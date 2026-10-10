@@ -2,7 +2,7 @@
   "permissions": {
     "deny": ["Bash(git reset:*)", "Bash(git rebase:*)", "Bash(git rm:*)", "Bash(sudo:*)"]
   },
-  "enabledMcpjsonServers": ["playwright", "context7", "serena"],
+  "enabledMcpjsonServers": ["playwright", "context7", "serena", "findy-library"],
   "enabledPlugins": {
     "product-planner@xeiculy-plugins": true,
     "task-planner@xeiculy-plugins": true,

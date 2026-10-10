@@ -11,6 +11,10 @@
     "serena": {
       "command": "uvx",
       "args": ["--from", "git+https://github.com/oraios/serena", "serena-mcp-server"]
+    },
+    "findy-library": {
+      "type": "http",
+      "url": "https://lib.findy.co.jp/mcp"
     }
   }
 }
