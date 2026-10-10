@@ -41,7 +41,7 @@ ADR 0001〜0004 で、基盤は Cloudflare Workers + Durable Objects（Free プ�
 
 - K1 は DD1・DD3・DD4・DD6 で最も良い
   - `wrangler.jsonc` は Worker・Durable Object のマイグレーション・D1 の binding をリポジトリの中に宣言的に書くものなので、それ自体が IaC の役割を果たす。ローカル（`wrangler dev`）・テスト（vitest-pool-workers）・デプロイが同じ設定を読むので、設定の正本が1つで済む
-  - wrangler は、ID のない D1 の binding をデプロイのときに自動で作成するか、前のデプロイから引き継げる。D1 を作るためだけに Terraform を使う理由がない
+  - wrangler は、ID のない D1 の binding をデプロイのときに自動で作成し、作った ID を `wrangler.jsonc` に書き戻す（公式ドキュメントの Automatic provisioning）。ダッシュボードや GitHub 連携からデプロイした場合は、ID が設定ファイルに書き戻されない。D1 を作るためだけに Terraform を使う理由がない
 - K2・K3 は、Terraform で管理できないものが多く、管理できるものは wrangler と重なる
   - GitHub OAuth App は、GitHub の API に作成の手段がなく、Terraform の GitHub provider にもリソースがない（integrations/terraform-provider-github の Issue #786 が未解決）。どの案でも手で作る
   - ホストの許可リストは設定ではなくデータなので、どの案でも wrangler のコマンドで扱う
