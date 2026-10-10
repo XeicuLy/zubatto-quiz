@@ -3,7 +3,9 @@
   "printWidth": 120,
   "singleQuote": true,
   "sortImports": true,
-  "sortTailwindcss": true,
+  "sortTailwindcss": {
+    "stylesheet": "./docs/design/mock/mock.css"
+  },
   "sortPackageJson": true,
   "ignorePatterns": []
 }

@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ズバクイ モック: ホストの管理画面</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+1:wght@400;500;700;800&display=swap"
+    />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="dist/mock.css" />
+  </head>
+  <body class="bg-backstage font-sans text-backstage-ink antialiased">
+    <!--
+      ホストの管理画面（楽屋）。本番の前に PC で落ち着いて問題を作る場所なので、明るい面にする。
+      選択肢の色だけは進行画面と同じにして、どの選択肢がどのパネルになるか分かるようにする。
+    -->
+
+    <!-- ログイン（ADR 0003: GitHub ログイン、許可リストにいる人だけ） -->
+    <section id="login" data-state data-default aria-label="ログイン">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-16">
+        <p class="font-display text-4xl">ズバクイ</p>
+        <h1 class="mt-2 text-xl font-bold">ホストの管理画面</h1>
+        <p class="mt-6 leading-relaxed text-backstage-muted">
+          問題セットを作り、部屋を作って進行します。ホストとして登録された GitHub アカウントでログインしてください。
+        </p>
+        <button
+          class="mt-8 rounded-panel bg-stage py-4 text-lg font-bold text-on-stage shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-stage active:translate-y-1.5 active:shadow-none"
+        >
+          GitHub でログイン
+        </button>
+        <p class="mt-6 text-sm text-backstage-muted">
+          クイズに答えるだけなら、ログインは要りません。ホストから届いた URL を開いてください。
+        </p>
+      </div>
+    </section>
+
+    <!-- 許可リストにいないアカウント -->
+    <section id="login-denied" data-state aria-label="ログインできない">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-16">
+        <p class="font-display text-4xl">ズバクイ</p>
+        <h1 class="mt-2 text-xl font-bold">ホストの管理画面</h1>
+        <div class="mt-8 rounded-panel border-2 border-alert-strong bg-backstage-surface p-5" role="alert">
+          <p class="font-bold text-alert-strong">このアカウントはホストとして登録されていません</p>
+          <p class="mt-2 leading-relaxed">
+            ホストになるには、開発者に GitHub のアカウントを伝えて、許可リストに入れてもらってください。
+          </p>
+        </div>
+        <button
+          class="mt-8 rounded-panel border-2 border-backstage-line bg-backstage-surface py-3 font-bold focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-stage"
+        >
+          別のアカウントでログイン
+        </button>
+      </div>
+    </section>
+
+    <!-- 問題セットの一覧（F7） -->
+    <section id="sets" data-state aria-label="問題セットの一覧">
+      <div class="min-h-dvh">
+        <header class="border-b border-backstage-line bg-backstage-surface">
+          <div class="mx-auto flex max-w-4xl items-center justify-between gap-4 px-5 py-3">
+            <p class="font-display text-xl">ズバクイ</p>
+            <div class="flex min-w-0 items-center gap-3 text-sm">
+              <p class="name-clip text-backstage-muted" title="XeicuLy">XeicuLy</p>
+              <button class="shrink-0 underline focus-visible:outline-2 focus-visible:outline-stage">ログアウト</button>
+            </div>
+          </div>
+        </header>
+
+        <main class="mx-auto max-w-4xl px-5 py-10">
+          <div class="flex flex-wrap items-end justify-between gap-4">
+            <h1 class="font-display text-3xl">問題セット</h1>
+            <a
+              href="#edit"
+              class="rounded-full bg-stage px-5 py-2.5 font-bold text-on-stage focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-stage"
+            >
+              問題セットを作る
+            </a>
+          </div>
+          <p class="mt-3 text-sm leading-relaxed text-backstage-muted">
+            部屋は、作った時点の問題セットを使います。部屋を作ったあとに編集しても、その部屋には反映されません。
+          </p>
+
+          <ul
+            class="mt-8 divide-y divide-backstage-line rounded-panel border border-backstage-line bg-backstage-surface"
+          >
+            <li class="flex flex-wrap items-center gap-x-6 gap-y-3 p-5">
+              <div class="min-w-0 flex-1">
+                <h2 class="text-lg font-bold wrap-anywhere">2026 忘年会 内輪クイズ</h2>
+                <p class="mt-1 text-sm text-backstage-muted">10問 / 12月1日に更新</p>
+              </div>
+              <div class="flex shrink-0 gap-2">
+                <a
+                  href="#edit"
+                  class="rounded-full border-2 border-backstage-line px-4 py-2 text-sm font-bold focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage"
+                >
+                  編集
+                </a>
+                <a
+                  href="host.html#lobby"
+                  class="rounded-full bg-stage px-4 py-2 text-sm font-bold text-on-stage focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage"
+                >
+                  部屋を作る
+                </a>
+              </div>
+            </li>
+            <li class="flex flex-wrap items-center gap-x-6 gap-y-3 p-5">
+              <div class="min-w-0 flex-1">
+                <h2 class="text-lg font-bold wrap-anywhere">
+                  新人歓迎会 チームのことをどれだけ知ってるかクイズ（春のバージョン・ドラフト）
+                </h2>
+                <p class="mt-1 text-sm text-backstage-muted">4問 / 11月20日に更新</p>
+              </div>
+              <div class="flex shrink-0 gap-2">
+                <a
+                  href="#edit"
+                  class="rounded-full border-2 border-backstage-line px-4 py-2 text-sm font-bold focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage"
+                >
+                  編集
+                </a>
+                <a
+                  href="host.html#lobby"
+                  class="rounded-full bg-stage px-4 py-2 text-sm font-bold text-on-stage focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage"
+                >
+                  部屋を作る
+                </a>
+              </div>
+            </li>
+          </ul>
+        </main>
+      </div>
+    </section>
+
+    <!-- 問題セットがまだないとき -->
+    <section id="sets-empty" data-state aria-label="問題セットの一覧（空）">
+      <div class="min-h-dvh">
+        <header class="border-b border-backstage-line bg-backstage-surface">
+          <div class="mx-auto flex max-w-4xl items-center justify-between gap-4 px-5 py-3">
+            <p class="font-display text-xl">ズバクイ</p>
+            <div class="flex min-w-0 items-center gap-3 text-sm">
+              <p class="name-clip text-backstage-muted" title="XeicuLy">XeicuLy</p>
+              <button class="shrink-0 underline focus-visible:outline-2 focus-visible:outline-stage">ログアウト</button>
+            </div>
+          </div>
+        </header>
+
+        <main class="mx-auto max-w-4xl px-5 py-10">
+          <h1 class="font-display text-3xl">問題セット</h1>
+          <div class="mt-8 rounded-panel border-2 border-dashed border-backstage-line p-10 text-center">
+            <p class="text-lg font-bold">まだ問題セットがありません</p>
+            <p class="mt-2 text-backstage-muted">問題セットを作ると、そこから部屋を作れます。</p>
+            <a
+              href="#edit"
+              class="mt-6 inline-block rounded-full bg-stage px-5 py-2.5 font-bold text-on-stage focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-stage"
+            >
+              問題セットを作る
+            </a>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <!-- 問題セットの編集（F4: 2〜4択・正解・制限時間） -->
+    <section id="edit" data-state aria-label="問題セットの編集">
+      <div class="min-h-dvh pb-28">
+        <header class="border-b border-backstage-line bg-backstage-surface">
+          <div class="mx-auto flex max-w-4xl items-center justify-between gap-4 px-5 py-3">
+            <a href="#sets" class="font-bold underline focus-visible:outline-2 focus-visible:outline-stage"
+              >問題セットの一覧に戻る</a
+            >
+            <p class="name-clip text-sm text-backstage-muted" title="XeicuLy">XeicuLy</p>
+          </div>
+        </header>
+
+        <main class="mx-auto max-w-4xl px-5 py-10">
+          <label for="set-title" class="text-sm font-bold text-backstage-muted">問題セットの名前</label>
+          <input
+            id="set-title"
+            value="2026 忘年会 内輪クイズ"
+            class="mt-2 w-full rounded-chip border-2 border-backstage-line bg-backstage-surface px-4 py-3 font-display text-2xl focus-visible:border-stage focus-visible:outline-none"
+          />
+
+          <ol class="mt-10 grid grid-cols-1 gap-6">
+            <!-- 4択。選択肢は4つまでなので、足すボタンは押せない -->
+            <li class="rounded-panel border border-backstage-line bg-backstage-surface p-5">
+              <div class="flex items-center justify-between gap-4">
+                <h2 class="font-display text-xl">第1問</h2>
+                <button class="text-sm text-alert-strong underline focus-visible:outline-2 focus-visible:outline-stage">
+                  この問題を消す
+                </button>
+              </div>
+
+              <label for="q1-text" class="mt-4 block text-sm font-bold">問題文</label>
+              <textarea
+                id="q1-text"
+                rows="2"
+                class="mt-2 w-full rounded-chip border-2 border-backstage-line px-3 py-2 leading-relaxed focus-visible:border-stage focus-visible:outline-none"
+              >
+去年の忘年会で、部長が二次会で最初に歌った曲のジャンルは？</textarea>
+
+              <fieldset class="mt-5">
+                <legend class="text-sm font-bold">
+                  選択肢と正解 <span class="font-normal text-backstage-muted">（2〜4個。正解を1つ選ぶ）</span>
+                </legend>
+                <div class="mt-2 grid gap-2">
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="grid size-9 shrink-0 place-items-center rounded-full bg-choice-1 font-display text-on-choice"
+                      >1</span
+                    >
+                    <input
+                      aria-label="選択肢1"
+                      value="演歌"
+                      class="min-w-0 flex-1 rounded-chip border-2 border-backstage-line px-3 py-2 focus-visible:border-stage focus-visible:outline-none"
+                    />
+                    <label class="flex shrink-0 items-center gap-1.5 text-sm">
+                      <input type="radio" name="q1-correct" class="size-4 accent-stage" />正解
+                    </label>
+                    <button
+                      class="shrink-0 text-sm text-backstage-muted underline focus-visible:outline-2 focus-visible:outline-stage"
+                    >
+                      消す
+                    </button>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="grid size-9 shrink-0 place-items-center rounded-full bg-choice-2 font-display text-on-choice"
+                      >2</span
+                    >
+                    <input
+                      aria-label="選択肢2"
+                      value="アニソン"
+                      class="min-w-0 flex-1 rounded-chip border-2 border-stage px-3 py-2 focus-visible:outline-none"
+                    />
+                    <label class="flex shrink-0 items-center gap-1.5 text-sm font-bold">
+                      <input type="radio" name="q1-correct" checked class="size-4 accent-stage" />正解
+                    </label>
+                    <button
+                      class="shrink-0 text-sm text-backstage-muted underline focus-visible:outline-2 focus-visible:outline-stage"
+                    >
+                      消す
+                    </button>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="grid size-9 shrink-0 place-items-center rounded-full bg-choice-3 font-display text-on-choice"
+                      >3</span
+                    >
+                    <input
+                      aria-label="選択肢3"
+                      value="洋楽ロック"
+                      class="min-w-0 flex-1 rounded-chip border-2 border-backstage-line px-3 py-2 focus-visible:border-stage focus-visible:outline-none"
+                    />
+                    <label class="flex shrink-0 items-center gap-1.5 text-sm">
+                      <input type="radio" name="q1-correct" class="size-4 accent-stage" />正解
+                    </label>
+                    <button
+                      class="shrink-0 text-sm text-backstage-muted underline focus-visible:outline-2 focus-visible:outline-stage"
+                    >
+                      消す
+                    </button>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="grid size-9 shrink-0 place-items-center rounded-full bg-choice-4 font-display text-on-choice-4"
+                      >4</span
+                    >
+                    <input
+                      aria-label="選択肢4"
+                      value="歌っていない（ずっとタンバリンを叩いていた）"
+                      class="min-w-0 flex-1 rounded-chip border-2 border-backstage-line px-3 py-2 focus-visible:border-stage focus-visible:outline-none"
+                    />
+                    <label class="flex shrink-0 items-center gap-1.5 text-sm">
+                      <input type="radio" name="q1-correct" class="size-4 accent-stage" />正解
+                    </label>
+                    <button
+                      class="shrink-0 text-sm text-backstage-muted underline focus-visible:outline-2 focus-visible:outline-stage"
+                    >
+                      消す
+                    </button>
+                  </div>
+                </div>
+                <p class="mt-3 text-sm text-backstage-muted">選択肢は4つまでです</p>
+              </fieldset>
+
+              <div class="mt-5 flex flex-wrap items-center gap-3">
+                <label for="q1-time" class="text-sm font-bold">制限時間</label>
+                <input
+                  id="q1-time"
+                  type="number"
+                  value="10"
+                  class="w-20 rounded-chip border-2 border-backstage-line px-3 py-2 text-right tabular-nums focus-visible:border-stage focus-visible:outline-none"
+                />
+                <span class="text-sm">秒</span>
+                <span class="text-sm text-backstage-muted">受付を始めてからの時間</span>
+              </div>
+            </li>
+
+            <!-- 2択で、正解がまだ選ばれていない。選択肢は2つより減らせない -->
+            <li class="rounded-panel border-2 border-alert-strong bg-backstage-surface p-5">
+              <div class="flex items-center justify-between gap-4">
+                <h2 class="font-display text-xl">第2問</h2>
+                <button class="text-sm text-alert-strong underline focus-visible:outline-2 focus-visible:outline-stage">
+                  この問題を消す
+                </button>
+              </div>
+
+              <label for="q2-text" class="mt-4 block text-sm font-bold">問題文</label>
+              <textarea
+                id="q2-text"
+                rows="2"
+                class="mt-2 w-full rounded-chip border-2 border-backstage-line px-3 py-2 leading-relaxed focus-visible:border-stage focus-visible:outline-none"
+              >
+オフィスの観葉植物「ポトス太郎」は、今年の夏を越せた？</textarea>
+
+              <fieldset class="mt-5" aria-describedby="q2-error">
+                <legend class="text-sm font-bold">
+                  選択肢と正解 <span class="font-normal text-backstage-muted">（2〜4個。正解を1つ選ぶ）</span>
+                </legend>
+                <p id="q2-error" class="mt-2 text-sm font-bold text-alert-strong">正解を1つ選んでください</p>
+                <div class="mt-2 grid gap-2">
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="grid size-9 shrink-0 place-items-center rounded-full bg-choice-1 font-display text-on-choice"
+                      >1</span
+                    >
+                    <input
+                      aria-label="選択肢1"
+                      value="越せた"
+                      class="min-w-0 flex-1 rounded-chip border-2 border-backstage-line px-3 py-2 focus-visible:border-stage focus-visible:outline-none"
+                    />
+                    <label class="flex shrink-0 items-center gap-1.5 text-sm">
+                      <input type="radio" name="q2-correct" class="size-4 accent-stage" />正解
+                    </label>
+                    <button disabled class="shrink-0 text-sm text-backstage-muted/50">消す</button>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="grid size-9 shrink-0 place-items-center rounded-full bg-choice-2 font-display text-on-choice"
+                      >2</span
+                    >
+                    <input
+                      aria-label="選択肢2"
+                      value="枯れた"
+                      class="min-w-0 flex-1 rounded-chip border-2 border-backstage-line px-3 py-2 focus-visible:border-stage focus-visible:outline-none"
+                    />
+                    <label class="flex shrink-0 items-center gap-1.5 text-sm">
+                      <input type="radio" name="q2-correct" class="size-4 accent-stage" />正解
+                    </label>
+                    <button disabled class="shrink-0 text-sm text-backstage-muted/50">消す</button>
+                  </div>
+                </div>
+                <button
+                  class="mt-3 rounded-full border-2 border-dashed border-backstage-line px-4 py-1.5 text-sm font-bold focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage"
+                >
+                  選択肢を足す
+                </button>
+              </fieldset>
+
+              <div class="mt-5 flex flex-wrap items-center gap-3">
+                <label for="q2-time" class="text-sm font-bold">制限時間</label>
+                <input
+                  id="q2-time"
+                  type="number"
+                  value="5"
+                  class="w-20 rounded-chip border-2 border-backstage-line px-3 py-2 text-right tabular-nums focus-visible:border-stage focus-visible:outline-none"
+                />
+                <span class="text-sm">秒</span>
+                <span class="text-sm text-backstage-muted">受付を始めてからの時間</span>
+              </div>
+            </li>
+          </ol>
+
+          <button
+            class="mt-6 w-full rounded-panel border-2 border-dashed border-backstage-line py-4 font-bold focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-stage"
+          >
+            問題を足す
+          </button>
+        </main>
+
+        <!-- 保存の帯。画面の下に固定する -->
+        <div class="fixed inset-x-0 bottom-0 border-t border-backstage-line bg-backstage-surface/95 backdrop-blur">
+          <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-end gap-x-4 gap-y-2 px-5 py-3">
+            <p class="text-sm font-bold text-alert-strong">第2問に直すところがあります</p>
+            <button
+              class="rounded-full bg-stage px-6 py-2.5 font-bold text-on-stage focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-stage"
+            >
+              保存する
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- モック専用: 状態の切り替え。本番には入れない -->
+    <details
+      class="fixed top-0 left-1/2 z-50 max-w-[calc(100vw-1rem)] -translate-x-1/2 rounded-b-chip border border-t-0 border-dashed border-backstage-muted bg-backstage-surface/95 px-3 py-1 text-xs"
+    >
+      <summary class="cursor-pointer font-bold">モックの状態</summary>
+      <nav aria-label="モックの状態" class="mt-2 grid max-h-[60dvh] gap-3 overflow-y-auto pb-1">
+        <ul class="flex flex-wrap gap-x-3 gap-y-1 text-backstage-muted">
+          <li><a class="font-bold text-backstage-ink" href="admin.html" aria-current="page">管理画面</a></li>
+          <li><a class="underline" href="host.html">進行画面</a></li>
+          <li><a class="underline" href="player.html">回答者画面</a></li>
+          <li><a class="underline" href="ranking.html">ランキング</a></li>
+        </ul>
+        <ul class="grid gap-1">
+          <li><a class="underline" href="#login">ログイン</a></li>
+          <li><a class="underline" href="#login-denied">ログインできない</a></li>
+          <li><a class="underline" href="#sets">問題セットの一覧</a></li>
+          <li><a class="underline" href="#sets-empty">問題セットの一覧（空）</a></li>
+          <li><a class="underline" href="#edit">問題セットの編集</a></li>
+        </ul>
+      </nav>
+    </details>
+  </body>
+</html>
