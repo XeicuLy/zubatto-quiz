@@ -9,6 +9,8 @@ const migrations = await readD1Migrations(fileURLToPath(new URL('./migrations', 
 
 // wrangler.jsonc の secrets.required の、テスト用の値。GitHub への通信はテストの中で差し替えるので、本物の値は要らない
 const testSecrets = {
+  // http なので、Cookie に Secure が付かない（ローカルの vite dev と同じ）
+  BETTER_AUTH_URL: 'http://localhost:5173',
   BETTER_AUTH_SECRET: 'test-secret-at-least-32-characters-long',
   GITHUB_CLIENT_ID: 'test-github-client-id',
   GITHUB_CLIENT_SECRET: 'test-github-client-secret',
