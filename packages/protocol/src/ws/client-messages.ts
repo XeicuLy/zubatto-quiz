@@ -30,11 +30,15 @@ export const playerNameSchema = z
   // ただし、ZWJ（U+200D）は家族の絵文字などをつなぐのに要るので通す。
   // ZWJ だけを足した「たろう」も同じ見た目になるので、部屋の DO のかぶりの確認では ZWJ も除いて比べる（T19）
   .regex(/^(?:[^\p{Cc}\p{Cf}]|\u200D)*$/u, '制御文字や見えない書式の文字は使えない')
+  // ZWJ は見えないので、ZWJ と空白だけの名前は空の名前と同じ扱いにする。
+  // '\u200D \u200D' は外側が ZWJ なので、最初の trim では間の空白が残る。ZWJ を除いてからもう一度 trim する
+  .refine((name) => name.replaceAll('\u200D', '').trim().length > 0, '名前が空')
   // .max() は UTF-16 の長さで数えるので、絵文字が2文字分になる。JSON Schema の maxLength（コードポイント）にそろえる
   .refine((name) => [...name].length <= NAME_MAX_LENGTH, `名前は${NAME_MAX_LENGTH}文字まで`)
   .meta({
     maxLength: NAME_MAX_LENGTH,
-    description: '前後の空白を除いてから、長さ（コードポイント）と制御文字を確かめる',
+    description:
+      '前後の空白を除いてから、長さ（コードポイント）と制御文字を確かめる。ZWJ（U+200D）と空白だけの名前は拒む',
   });
 
 /**

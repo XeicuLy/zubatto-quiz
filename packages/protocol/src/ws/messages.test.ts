@@ -81,6 +81,14 @@ describe('clientMessageSchema: 不正な入力を拒む（S4・ADR 0004）', () 
     expect(clientMessageSchema.safeParse({ type: 'join', name: 'たろ\uFEFFう', token }).success).toBe(false);
   });
 
+  it('ZWJ（U+200D）と空白だけの名前を拒む（画面には空の名前に見える）', () => {
+    const token = makeToken();
+    expect(clientMessageSchema.safeParse({ type: 'join', name: '\u200D', token }).success).toBe(false);
+    expect(clientMessageSchema.safeParse({ type: 'join', name: '\u200D\u200D', token }).success).toBe(false);
+    // 外側が ZWJ なので、trim では間の空白が除かれない
+    expect(clientMessageSchema.safeParse({ type: 'join', name: '\u200D \u200D', token }).success).toBe(false);
+  });
+
   it('絵文字をつなぐ ZWJ（U+200D）は通す', () => {
     const token = makeToken();
     expect(clientMessageSchema.safeParse({ type: 'join', name: '👨‍👩‍👧‍👦ファミリー', token }).success).toBe(true);

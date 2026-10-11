@@ -16,7 +16,7 @@
               "minLength": 1,
               "pattern": "^(?:[^\\p{Cc}\\p{Cf}]|\\u200D)*$",
               "maxLength": 32,
-              "description": "前後の空白を除いてから、長さ（コードポイント）と制御文字を確かめる"
+              "description": "前後の空白を除いてから、長さ（コードポイント）と制御文字を確かめる。ZWJ（U+200D）と空白だけの名前は拒む"
             },
             "token": {
               "type": "string",
