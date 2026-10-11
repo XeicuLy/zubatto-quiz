@@ -1,0 +1,24 @@
+/*
+ * モックのビルドの入口。`pnpm run mock:build` で dist/mock.css を作る。
+ * 本番へ移すのは theme.css だけで、このファイルの中身はモック専用。
+ */
+
+@import 'tailwindcss' source(none);
+@import './theme.css';
+
+@source './*.html';
+
+/*
+ * 1つの HTML に複数の状態を並べ、URL の #id で1つだけ表示する。
+ * utilities の層は base より強いので、data-state を付けた要素には flex などの display を付けない。
+ */
+@layer base {
+  [data-state] {
+    display: none;
+  }
+
+  [data-state]:target,
+  body:not(:has([data-state]:target)) [data-state][data-default] {
+    display: block;
+  }
+}

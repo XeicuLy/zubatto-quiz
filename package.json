@@ -6,16 +6,20 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "tsc": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "mock:build": "tailwindcss -i docs/design/mock/mock.css -o docs/design/mock/dist/mock.css",
+    "mock:watch": "tailwindcss -i docs/design/mock/mock.css -o docs/design/mock/dist/mock.css --watch"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@commitlint/types": "^21.2.3",
+    "@tailwindcss/cli": "4.3.3",
     "@types/node": "^24.13.6",
     "consola": "^3.4.2",
     "husky": "^9.1.7",
     "oxfmt": "^0.68.0",
+    "tailwindcss": "4.3.3",
     "typescript": "^6.0.3"
   }
 }

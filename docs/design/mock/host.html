@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ズバクイ モック: ホストの進行画面</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+1:wght@400;500;700;800&display=swap"
+    />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="dist/mock.css" />
+  </head>
+  <body class="bg-stage font-sans text-on-stage antialiased">
+    <!--
+      ホストの進行画面。PC から投影する 16:9 と、ホストのスマホの両方を1つの画面で受け持つ。
+      md 以上は横並び（投影）、それより狭いと縦に積む（スマホ）。
+      進行の操作は下の帯にまとめる。投影に映っても邪魔にならないよう、小さく端に寄せる。
+    -->
+
+    <!-- 待機（F1・F3）。参加用 URL と参加者の一覧 -->
+    <section id="lobby" data-state data-default aria-label="待機">
+      <div class="flex min-h-dvh flex-col gap-stage p-stage">
+        <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <h1 class="font-display text-stage-title">2026 忘年会 内輪クイズ</h1>
+          <p class="text-stage-label text-on-stage-muted">全10問</p>
+        </header>
+
+        <div class="grid flex-1 gap-stage md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <div class="flex flex-col gap-4 self-start rounded-panel bg-stage-raised p-stage">
+            <h2 class="font-display text-stage-title">スマホで参加</h2>
+            <div class="flex flex-wrap items-center gap-stage">
+              <svg
+                viewBox="0 0 29 29"
+                class="size-[clamp(8rem,14vw,16rem)] shrink-0 rounded-chip bg-on-stage p-2 text-stage"
+                role="img"
+                aria-label="参加用 URL の QR コード"
+              >
+                <path
+                  fill="currentColor"
+                  d="M0 0h7v7H0zM1 1v5h5V1zM2 2h3v3H2zM22 0h7v7h-7zm1 1v5h5V1zm1 1h3v3h-3zM0 22h7v7H0zm1 1v5h5v-5zm1 1h3v3H2zM9 0h2v2H9zm4 0h1v3h-1zm3 1h2v2h-2zm-6 3h3v1h-3zm5 1h2v3h-2zm-6 4h1v2H9zm3 0h4v1h-4zm6 0h2v2h-2zm4 0h3v1h-3zm4 1h2v2h-2zM0 9h2v1H0zm3 1h3v2H3zm8 2h2v3h-2zm4 1h3v1h-3zm5 1h1v3h-1zm3 0h3v2h-3zM1 14h2v3H1zm4 1h3v1H5zm4 2h2v2H9zm5 0h2v1h-2zm4 1h2v2h-2zm4 1h3v1h-3zm4 1h3v2h-3zM9 22h2v3H9zm4 0h3v1h-3zm5 1h1v2h-1zm3 0h2v2h-2zm4 2h4v1h-4zm-12 2h2v2h-2zm5 0h3v2h-3zm5 1h2v1h-2z"
+                />
+              </svg>
+              <div class="min-w-0 flex-1">
+                <p class="text-stage-label text-on-stage-muted">または、この URL を開く</p>
+                <!-- S3: 推測できない URL。長いので折り返して全部見せる -->
+                <p class="mt-1 text-stage-title font-bold wrap-anywhere">zubakui.example/r/7Kq2xW9pLmTzR4vN</p>
+                <button
+                  class="mt-4 rounded-full border-2 border-on-stage-muted px-5 py-2 text-stage-label font-bold focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage"
+                >
+                  URL をコピー
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-4">
+            <h2 class="flex items-baseline gap-3">
+              <span class="font-display text-stage-title">参加者</span>
+              <span class="font-display text-question tabular-nums">18</span>
+              <span class="text-stage-label text-on-stage-muted">/ 50 人</span>
+            </h2>
+            <!-- 参加者の名前は全部見せる（name-wrap）。入った順に並べる -->
+            <ul class="flex flex-wrap content-start gap-2 text-stage-label">
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">🎍たろう🎍</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">はなこ</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">
+                ながいながいなまえのさんじゅうもじくらいあるひとです
+              </li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">Christopher-Alexander-Montgomery</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">👨‍👩‍👧‍👦ファミリー</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">部長</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">さとう</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">すずき</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">やまだ花子</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">経理のたなか</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">🍣🍺🍣🍺🍣🍺</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">ゆい</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">けんた</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">みき</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">ジョン</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">まい</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">しょう</li>
+              <li class="name-wrap rounded-chip bg-stage-raised px-3 py-1">ひろ</li>
+            </ul>
+          </div>
+        </div>
+
+        <footer class="flex flex-wrap items-center justify-between gap-4 border-t border-stage-line pt-4">
+          <!-- ADR 0002: 部屋を作ったあとの編集は、この部屋には反映されない -->
+          <p class="max-w-[60ch] text-sm leading-relaxed text-on-stage-muted">
+            部屋を作ったあとに問題セットを編集しても、この部屋には反映されません。直したいときは、部屋を作り直してください。
+          </p>
+          <button
+            class="rounded-full bg-on-stage px-6 py-3 font-bold text-stage shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            第1問を出す
+          </button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- 出題（F8: 読み上げのあいだは受付を始めない。選択肢もまだ出さない） -->
+    <section id="question" data-state aria-label="出題">
+      <div class="flex min-h-dvh flex-col gap-stage p-stage">
+        <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <p class="font-display text-stage-title">
+            第3問 <span class="text-stage-label text-on-stage-muted">/ 10</span>
+          </p>
+          <p class="text-stage-label text-on-stage-muted">制限時間 10秒</p>
+        </header>
+
+        <h1 class="my-auto max-w-[24em] text-question font-bold text-phrase">
+          去年の忘年会で、部長が二次会で最初に歌った曲のジャンルは？
+        </h1>
+
+        <footer class="flex flex-wrap items-center justify-end gap-4 border-t border-stage-line pt-4">
+          <p class="text-sm text-on-stage-muted">読み上げが終わったら押してください。回答者の画面に選択肢が出ます</p>
+          <button
+            class="rounded-full bg-on-stage px-6 py-3 font-bold text-stage shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            受付を始める
+          </button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- 受付中（F9: 残り時間、回答数） -->
+    <section id="accepting" data-state aria-label="受付中">
+      <div class="flex min-h-dvh flex-col gap-stage p-stage">
+        <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <p class="font-display text-stage-title">
+            第3問 <span class="text-stage-label text-on-stage-muted">/ 10</span>
+          </p>
+          <p class="text-stage-label">
+            回答 <span class="font-display text-stage-title tabular-nums">12</span>
+            <span class="text-on-stage-muted">/ 18 人</span>
+          </p>
+        </header>
+
+        <div class="flex items-start gap-stage">
+          <h1 class="flex-1 text-question font-bold text-phrase">
+            去年の忘年会で、部長が二次会で最初に歌った曲のジャンルは？
+          </h1>
+          <p class="shrink-0 text-center">
+            <span class="sr-only">残り</span>
+            <span class="block font-display text-timer tabular-nums">7</span>
+            <span class="text-stage-label text-on-stage-muted">秒</span>
+          </p>
+        </div>
+        <div class="h-3 overflow-hidden rounded-full bg-stage-raised" aria-hidden="true">
+          <div class="h-full w-[70%] rounded-full bg-on-stage"></div>
+        </div>
+
+        <ol class="grid flex-1 gap-4 text-choice font-bold md:grid-cols-2">
+          <li
+            class="flex items-center gap-[0.6em] rounded-panel bg-choice-1 px-[0.7em] py-[0.5em] text-on-choice shadow-panel"
+          >
+            <span class="grid size-[1.8em] shrink-0 place-items-center rounded-full bg-stage/25 font-display">1</span>
+            <span class="min-w-0 wrap-anywhere text-phrase">演歌</span>
+          </li>
+          <li
+            class="flex items-center gap-[0.6em] rounded-panel bg-choice-2 px-[0.7em] py-[0.5em] text-on-choice shadow-panel"
+          >
+            <span class="grid size-[1.8em] shrink-0 place-items-center rounded-full bg-stage/25 font-display">2</span>
+            <span class="min-w-0 wrap-anywhere text-phrase">アニソン</span>
+          </li>
+          <li
+            class="flex items-center gap-[0.6em] rounded-panel bg-choice-3 px-[0.7em] py-[0.5em] text-on-choice shadow-panel"
+          >
+            <span class="grid size-[1.8em] shrink-0 place-items-center rounded-full bg-stage/25 font-display">3</span>
+            <span class="min-w-0 wrap-anywhere text-phrase">洋楽ロック</span>
+          </li>
+          <li
+            class="flex items-center gap-[0.6em] rounded-panel bg-choice-4 px-[0.7em] py-[0.5em] text-on-choice-4 shadow-panel"
+          >
+            <span class="grid size-[1.8em] shrink-0 place-items-center rounded-full bg-stage/15 font-display">4</span>
+            <span class="min-w-0 wrap-anywhere text-phrase">歌っていない（ずっとタンバリンを叩いていた）</span>
+          </li>
+        </ol>
+
+        <footer class="flex flex-wrap items-center justify-end gap-4 border-t border-stage-line pt-4">
+          <p class="text-sm text-on-stage-muted">時間になると自動で締め切ります</p>
+          <button
+            class="rounded-full border-2 border-on-stage px-6 py-3 font-bold focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage"
+          >
+            いま締め切る
+          </button>
+        </footer>
+      </div>
+    </section>
+
+    <!--
+      締切のあとは、ホストが押すたびに1段ずつ進む。
+      ① 正解と回答の分布（毎問）→ ② 最速正解の発表（毎問）→ ③ 途中経過（ホストが出したいときだけ）→ 次の問題
+      最後の2問は順位を伏せるので、③ は出せず、② の「一番順位を上げた人」も出さない。
+      ②・③ の表示の中身は ranking.html と共有する。
+    -->
+
+    <!-- ① 正解と回答の分布（F13） -->
+    <section id="reveal" data-state aria-label="① 正解と回答の分布">
+      <div class="flex min-h-dvh flex-col gap-stage p-stage">
+        <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <p class="font-display text-stage-title">
+            第3問 <span class="text-stage-label text-on-stage-muted">/ 10</span>
+          </p>
+          <p class="text-stage-label text-on-stage-muted">締め切りました（18人中 16人が回答）</p>
+        </header>
+
+        <h1 class="text-stage-title font-bold text-phrase">
+          去年の忘年会で、部長が二次会で最初に歌った曲のジャンルは？
+        </h1>
+
+        <div class="flex-1">
+          <!-- 正解だけ色を残し、ほかは沈める。人数は棒の長さと数字の両方で出す -->
+          <ol class="grid grid-cols-1 content-start gap-3 text-choice font-bold">
+            <li class="relative overflow-hidden rounded-panel bg-stage-raised text-on-stage-muted">
+              <div class="absolute inset-y-0 left-0 w-[31%] bg-choice-1/35" aria-hidden="true"></div>
+              <div class="relative flex items-center gap-[0.6em] px-[0.7em] py-[0.4em]">
+                <span
+                  class="grid size-[1.6em] shrink-0 place-items-center rounded-full bg-choice-1 font-display text-on-choice"
+                  >1</span
+                >
+                <span class="min-w-0 flex-1 wrap-anywhere">演歌</span>
+                <span class="shrink-0 font-display tabular-nums">5<span class="ml-1 text-[0.6em]">人</span></span>
+              </div>
+            </li>
+            <li
+              class="relative overflow-hidden rounded-panel bg-choice-2 text-on-choice ring-4 ring-on-stage ring-offset-4 ring-offset-stage"
+            >
+              <div class="absolute inset-y-0 left-0 w-[50%] bg-stage/20" aria-hidden="true"></div>
+              <div class="relative flex items-center gap-[0.6em] px-[0.7em] py-[0.4em]">
+                <span class="grid size-[1.6em] shrink-0 place-items-center rounded-full bg-stage/25 font-display"
+                  >2</span
+                >
+                <span class="min-w-0 flex-1 wrap-anywhere">アニソン</span>
+                <span class="shrink-0 text-[0.7em]">○ 正解</span>
+                <span class="shrink-0 font-display tabular-nums">8<span class="ml-1 text-[0.6em]">人</span></span>
+              </div>
+            </li>
+            <li class="relative overflow-hidden rounded-panel bg-stage-raised text-on-stage-muted">
+              <div class="absolute inset-y-0 left-0 w-[13%] bg-choice-3/35" aria-hidden="true"></div>
+              <div class="relative flex items-center gap-[0.6em] px-[0.7em] py-[0.4em]">
+                <span
+                  class="grid size-[1.6em] shrink-0 place-items-center rounded-full bg-choice-3 font-display text-on-choice"
+                  >3</span
+                >
+                <span class="min-w-0 flex-1 wrap-anywhere">洋楽ロック</span>
+                <span class="shrink-0 font-display tabular-nums">2<span class="ml-1 text-[0.6em]">人</span></span>
+              </div>
+            </li>
+            <li class="relative overflow-hidden rounded-panel bg-stage-raised text-on-stage-muted">
+              <div class="absolute inset-y-0 left-0 w-[6%] bg-choice-4/35" aria-hidden="true"></div>
+              <div class="relative flex items-center gap-[0.6em] px-[0.7em] py-[0.4em]">
+                <span
+                  class="grid size-[1.6em] shrink-0 place-items-center rounded-full bg-choice-4 font-display text-on-choice-4"
+                  >4</span
+                >
+                <span class="min-w-0 flex-1 wrap-anywhere">歌っていない（ずっとタンバリンを叩いていた）</span>
+                <span class="shrink-0 font-display tabular-nums">1<span class="ml-1 text-[0.6em]">人</span></span>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <footer class="flex flex-wrap items-center justify-end gap-4 border-t border-stage-line pt-4">
+          <button
+            class="rounded-full bg-on-stage px-6 py-3 font-bold text-stage shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            最速正解を発表する
+          </button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ② 最速正解の発表（F14） -->
+    <section id="fastest" data-state aria-label="② 最速正解の発表">
+      <div class="flex min-h-dvh flex-col gap-stage bg-spotlight p-stage text-on-spotlight">
+        <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <h1 class="font-display text-stage-title">第3問の最速正解</h1>
+          <p class="text-stage-label">正解は 2 アニソン（16人中 8人が正解）</p>
+        </header>
+
+        <div class="my-auto motion-safe:animate-spotlight-in">
+          <p class="name-wrap font-display text-timer">🎍たろう🎍</p>
+          <p class="mt-[0.1em] font-display text-hero tabular-nums">
+            0.84<span class="ml-[0.15em] text-[0.35em]">秒</span>
+          </p>
+        </div>
+
+        <dl
+          class="grid grid-cols-1 gap-x-stage gap-y-3 border-t-2 border-on-spotlight/25 pt-4 text-stage-label md:grid-cols-3"
+        >
+          <div class="min-w-0">
+            <dt class="font-bold">2番目に速い正解</dt>
+            <dd class="flex items-baseline gap-3">
+              <span class="name-clip flex-1 font-display text-stage-title" title="はなこ">はなこ</span>
+              <span class="shrink-0 font-display tabular-nums">1.02秒</span>
+            </dd>
+          </div>
+          <div class="min-w-0">
+            <dt class="font-bold">3番目に速い正解</dt>
+            <dd class="flex items-baseline gap-3">
+              <span class="name-clip flex-1 font-display text-stage-title" title="👨‍👩‍👧‍👦ファミリー">👨‍👩‍👧‍👦ファミリー</span>
+              <span class="shrink-0 font-display tabular-nums">1.37秒</span>
+            </dd>
+          </div>
+          <div class="min-w-0">
+            <dt class="font-bold">この問題で一番順位を上げた人</dt>
+            <dd class="flex items-baseline gap-3">
+              <span class="name-clip flex-1 font-display text-stage-title" title="経理のたなか">経理のたなか</span>
+              <span class="shrink-0 font-display tabular-nums"
+                ><span aria-hidden="true">▲</span>5<span class="sr-only">つ上げた</span></span
+              >
+            </dd>
+          </div>
+        </dl>
+        <footer class="flex flex-wrap items-center justify-end gap-4 border-t border-on-spotlight/25 pt-4">
+          <button
+            class="rounded-full border-2 border-on-spotlight px-6 py-3 font-bold focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-spotlight"
+          >
+            途中経過を出す
+          </button>
+          <button
+            class="rounded-full bg-on-spotlight px-6 py-3 font-bold text-spotlight shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-spotlight active:translate-y-1.5 active:shadow-none"
+          >
+            第4問を出す
+          </button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ② 最速正解の発表（最後の2問）。③ のボタンは出さない -->
+    <section id="fastest-hidden" data-state aria-label="② 最速正解の発表（最後の2問）">
+      <div class="flex min-h-dvh flex-col gap-stage bg-spotlight p-stage text-on-spotlight">
+        <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <h1 class="font-display text-stage-title">第9問の最速正解</h1>
+          <p class="text-stage-label">正解は 3 経理のたなか（18人中 5人が正解）</p>
+        </header>
+
+        <div class="my-auto">
+          <p class="name-wrap font-display text-timer">はなこ</p>
+          <p class="mt-[0.1em] font-display text-hero tabular-nums">
+            2.48<span class="ml-[0.15em] text-[0.35em]">秒</span>
+          </p>
+        </div>
+
+        <dl
+          class="grid grid-cols-1 gap-x-stage gap-y-3 border-t-2 border-on-spotlight/25 pt-4 text-stage-label md:grid-cols-3"
+        >
+          <div class="min-w-0">
+            <dt class="font-bold">2番目に速い正解</dt>
+            <dd class="flex items-baseline gap-3">
+              <span class="name-clip flex-1 font-display text-stage-title" title="部長">部長</span>
+              <span class="shrink-0 font-display tabular-nums">3.10秒</span>
+            </dd>
+          </div>
+          <div class="min-w-0">
+            <dt class="font-bold">3番目に速い正解</dt>
+            <dd class="flex items-baseline gap-3">
+              <span class="name-clip flex-1 font-display text-stage-title" title="🎍たろう🎍">🎍たろう🎍</span>
+              <span class="shrink-0 font-display tabular-nums">3.52秒</span>
+            </dd>
+          </div>
+          <div class="min-w-0">
+            <p class="font-bold">ここからの順位は、最終発表まで伏せています</p>
+          </div>
+        </dl>
+        <footer class="flex flex-wrap items-center justify-end gap-4 border-t border-on-spotlight/25 pt-4">
+          <button
+            class="rounded-full bg-on-spotlight px-6 py-3 font-bold text-spotlight shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-spotlight active:translate-y-1.5 active:shadow-none"
+          >
+            第10問を出す
+          </button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ③ 途中経過（F15）。ホストが出したいときだけ -->
+    <section id="standings" data-state aria-label="③ 途中経過">
+      <div class="flex min-h-dvh flex-col gap-stage p-stage">
+        <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <h1 class="font-display text-stage-title">途中経過（第3問まで）</h1>
+          <p class="text-stage-label text-on-stage-muted">上位10人 / 18人</p>
+        </header>
+
+        <table class="w-full table-fixed border-separate border-spacing-y-1 text-stage-label">
+          <colgroup>
+            <col class="w-[4em]" />
+            <col />
+            <col class="w-[5.5em]" />
+            <col class="w-[5.5em]" />
+          </colgroup>
+          <thead class="whitespace-nowrap text-on-stage-muted">
+            <tr>
+              <th scope="col" class="px-2 text-left font-normal">順位</th>
+              <th scope="col" class="px-2 text-left font-normal">名前</th>
+              <th scope="col" class="px-2 text-right font-normal">この問題</th>
+              <th scope="col" class="px-2 text-right font-normal">合計</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="bg-stage-raised">
+              <td class="rounded-l-chip px-2 py-1.5 font-display whitespace-nowrap tabular-nums">1位</td>
+              <td class="px-2 py-1.5"><p class="name-clip font-bold" title="🎍たろう🎍">🎍たろう🎍</p></td>
+              <td class="px-2 py-1.5 text-right tabular-nums">+1,000</td>
+              <td class="rounded-r-chip px-2 py-1.5 text-right font-display tabular-nums">2,980</td>
+            </tr>
+            <tr class="bg-stage-raised">
+              <td class="rounded-l-chip px-2 py-1.5 font-display whitespace-nowrap tabular-nums">2位</td>
+              <td class="px-2 py-1.5"><p class="name-clip font-bold" title="はなこ">はなこ</p></td>
+              <td class="px-2 py-1.5 text-right tabular-nums">+912</td>
+              <td class="rounded-r-chip px-2 py-1.5 text-right font-display tabular-nums">2,845</td>
+            </tr>
+            <!-- 回答者画面だけ、自分の行を強調する -->
+            <tr class="bg-stage-raised">
+              <td class="rounded-l-chip px-2 py-1.5 font-display whitespace-nowrap tabular-nums">3位</td>
+              <td class="px-2 py-1.5">
+                <p class="name-clip font-bold" title="ながいながいなまえのさんじゅうもじくらいあるひとです">
+                  ながいながいなまえのさんじゅうもじくらいあるひとです
+                </p>
+              </td>
+              <td class="px-2 py-1.5 text-right tabular-nums">+843</td>
+              <td class="rounded-r-chip px-2 py-1.5 text-right font-display tabular-nums">2,410</td>
+            </tr>
+            <tr class="bg-stage-raised">
+              <td class="rounded-l-chip px-2 py-1.5 font-display whitespace-nowrap tabular-nums">4位</td>
+              <td class="px-2 py-1.5">
+                <p class="name-clip font-bold" title="Christopher-Alexander-Montgomery">
+                  Christopher-Alexander-Montgomery
+                </p>
+              </td>
+              <td class="px-2 py-1.5 text-right text-on-stage-muted tabular-nums">+0</td>
+              <td class="rounded-r-chip px-2 py-1.5 text-right font-display tabular-nums">2,205</td>
+            </tr>
+            <tr class="bg-stage-raised">
+              <td class="rounded-l-chip px-2 py-1.5 font-display whitespace-nowrap tabular-nums">5位</td>
+              <td class="px-2 py-1.5"><p class="name-clip font-bold" title="👨‍👩‍👧‍👦ファミリー">👨‍👩‍👧‍👦ファミリー</p></td>
+              <td class="px-2 py-1.5 text-right tabular-nums">+790</td>
+              <td class="rounded-r-chip px-2 py-1.5 text-right font-display tabular-nums">2,100</td>
+            </tr>
+            <tr class="bg-stage-raised">
+              <td class="rounded-l-chip px-2 py-1.5 font-display whitespace-nowrap tabular-nums">6位</td>
+              <td class="px-2 py-1.5"><p class="name-clip font-bold" title="部長">部長</p></td>
+              <td class="px-2 py-1.5 text-right text-on-stage-muted tabular-nums">+0</td>
+              <td class="rounded-r-chip px-2 py-1.5 text-right font-display tabular-nums">1,980</td>
+            </tr>
+            <tr class="bg-stage-raised">
+              <td class="rounded-l-chip px-2 py-1.5 font-display whitespace-nowrap tabular-nums">7位</td>
+              <td class="px-2 py-1.5"><p class="name-clip font-bold" title="経理のたなか">経理のたなか</p></td>
+              <td class="px-2 py-1.5 text-right tabular-nums">+705</td>
+              <td class="rounded-r-chip px-2 py-1.5 text-right font-display tabular-nums">1,876</td>
+            </tr>
+            <tr class="bg-stage-raised">
+              <td class="rounded-l-chip px-2 py-1.5 font-display whitespace-nowrap tabular-nums">8位</td>
+              <td class="px-2 py-1.5"><p class="name-clip font-bold" title="🍣🍺🍣🍺🍣🍺">🍣🍺🍣🍺🍣🍺</p></td>
+              <td class="px-2 py-1.5 text-right text-on-stage-muted tabular-nums">+0</td>
+              <td class="rounded-r-chip px-2 py-1.5 text-right font-display tabular-nums">1,640</td>
+            </tr>
+            <tr class="bg-stage-raised">
+              <td class="rounded-l-chip px-2 py-1.5 font-display whitespace-nowrap tabular-nums">9位</td>
+              <td class="px-2 py-1.5"><p class="name-clip font-bold" title="さとう">さとう</p></td>
+              <td class="px-2 py-1.5 text-right text-on-stage-muted tabular-nums">+0</td>
+              <td class="rounded-r-chip px-2 py-1.5 text-right font-display tabular-nums">1,567</td>
+            </tr>
+            <tr class="bg-stage-raised">
+              <td class="rounded-l-chip px-2 py-1.5 font-display whitespace-nowrap tabular-nums">10位</td>
+              <td class="px-2 py-1.5"><p class="name-clip font-bold" title="すずき">すずき</p></td>
+              <td class="px-2 py-1.5 text-right tabular-nums">+655</td>
+              <td class="rounded-r-chip px-2 py-1.5 text-right font-display tabular-nums">1,502</td>
+            </tr>
+          </tbody>
+        </table>
+        <footer class="flex flex-wrap items-center justify-end gap-4 border-t border-stage-line pt-4">
+          <button
+            class="rounded-full bg-on-stage px-6 py-3 font-bold text-stage shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            第4問を出す
+          </button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- 最終ランキング（F15）。表示の中身は ranking.html#final と共有する -->
+    <section id="final" data-state aria-label="最終ランキング">
+      <div class="flex min-h-dvh flex-col gap-stage p-stage">
+        <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <h1 class="font-display text-stage-title">最終ランキング</h1>
+          <p class="text-stage-label text-on-stage-muted">全10問 / 18人</p>
+        </header>
+
+        <div class="grid flex-1 content-start gap-stage md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <div
+            class="flex flex-col justify-center rounded-panel bg-spotlight p-stage text-on-spotlight motion-safe:animate-spotlight-in"
+          >
+            <p class="font-display text-stage-title">優勝</p>
+            <p class="mt-2 name-wrap font-display text-question">🎍たろう🎍</p>
+            <p class="mt-4 font-display text-question whitespace-nowrap tabular-nums">
+              7,820<span class="ml-2 text-stage-title">点</span>
+            </p>
+          </div>
+
+          <ol class="grid grid-cols-1 content-start gap-2 text-stage-title">
+            <li class="flex items-center gap-4 rounded-panel bg-stage-raised px-4 py-2">
+              <span class="w-[2.6em] shrink-0 font-display whitespace-nowrap tabular-nums">2位</span>
+              <span class="name-clip flex-1 font-bold" title="はなこ">はなこ</span>
+              <span class="shrink-0 font-display tabular-nums">7,105</span>
+            </li>
+            <li class="flex items-center gap-4 rounded-panel bg-stage-raised px-4 py-2">
+              <span class="w-[2.6em] shrink-0 font-display whitespace-nowrap tabular-nums">3位</span>
+              <span class="name-clip flex-1 font-bold" title="ながいながいなまえのさんじゅうもじくらいあるひとです">
+                ながいながいなまえのさんじゅうもじくらいあるひとです
+              </span>
+              <span class="shrink-0 font-display tabular-nums">6,930</span>
+            </li>
+            <li class="flex items-center gap-4 px-4 py-1 text-stage-label">
+              <span class="w-[2.6em] shrink-0 font-display whitespace-nowrap tabular-nums">4位</span>
+              <span class="name-clip flex-1" title="Christopher-Alexander-Montgomery"
+                >Christopher-Alexander-Montgomery</span
+              >
+              <span class="shrink-0 font-display tabular-nums">6,410</span>
+            </li>
+            <li class="flex items-center gap-4 px-4 py-1 text-stage-label">
+              <span class="w-[2.6em] shrink-0 font-display whitespace-nowrap tabular-nums">5位</span>
+              <span class="name-clip flex-1" title="👨‍👩‍👧‍👦ファミリー">👨‍👩‍👧‍👦ファミリー</span>
+              <span class="shrink-0 font-display tabular-nums">5,980</span>
+            </li>
+            <li class="flex items-center gap-4 px-4 py-1 text-stage-label">
+              <span class="w-[2.6em] shrink-0 font-display whitespace-nowrap tabular-nums">5位</span>
+              <span class="name-clip flex-1" title="部長">部長</span>
+              <span class="shrink-0 font-display tabular-nums">5,980</span>
+            </li>
+            <li class="flex items-center gap-4 px-4 py-1 text-stage-label">
+              <span class="w-[2.6em] shrink-0 font-display whitespace-nowrap tabular-nums">7位</span>
+              <span class="name-clip flex-1" title="経理のたなか">経理のたなか</span>
+              <span class="shrink-0 font-display tabular-nums">5,215</span>
+            </li>
+          </ol>
+        </div>
+
+        <footer class="flex flex-wrap items-center justify-end gap-4 border-t border-stage-line pt-4">
+          <a
+            href="ranking.html#final"
+            class="rounded-full border-2 border-on-stage px-6 py-3 font-bold focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage"
+          >
+            全員の順位を見る
+          </a>
+          <button
+            class="rounded-full bg-on-stage px-6 py-3 font-bold text-stage shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            部屋を終える
+          </button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- 再接続中（A1）。つながるまで進行の操作を止める -->
+    <section id="reconnecting" data-state aria-label="再接続中">
+      <div class="relative min-h-dvh">
+        <div class="flex min-h-dvh flex-col gap-stage p-stage opacity-40" inert>
+          <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+            <p class="font-display text-stage-title">
+              第3問 <span class="text-stage-label text-on-stage-muted">/ 10</span>
+            </p>
+          </header>
+          <h1 class="text-question font-bold text-phrase">
+            去年の忘年会で、部長が二次会で最初に歌った曲のジャンルは？
+          </h1>
+          <div class="grid flex-1 gap-4 md:grid-cols-2">
+            <div class="rounded-panel bg-choice-1"></div>
+            <div class="rounded-panel bg-choice-2"></div>
+            <div class="rounded-panel bg-choice-3"></div>
+            <div class="rounded-panel bg-choice-4"></div>
+          </div>
+        </div>
+        <div class="absolute inset-x-0 top-0 p-stage" role="status">
+          <div
+            class="flex items-center gap-3 rounded-panel bg-alert px-5 py-4 text-stage-label font-bold text-stage shadow-panel"
+          >
+            <span
+              class="size-[1.2em] shrink-0 rounded-full border-3 border-stage border-t-transparent motion-safe:animate-spin"
+              aria-hidden="true"
+            ></span>
+            <p>接続が切れました。つなぎ直しています。進行の操作は、つながってからできます</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- モック専用: 状態の切り替え。本番には入れない -->
+    <details
+      class="fixed top-0 left-1/2 z-50 max-w-[calc(100vw-1rem)] -translate-x-1/2 rounded-b-chip border border-t-0 border-dashed border-on-stage-muted bg-stage/95 px-3 py-1 text-xs"
+    >
+      <summary class="cursor-pointer font-bold">モックの状態</summary>
+      <nav aria-label="モックの状態" class="mt-2 grid max-h-[60dvh] gap-3 overflow-y-auto pb-1">
+        <ul class="flex flex-wrap gap-x-3 gap-y-1 text-on-stage-muted">
+          <li><a class="underline" href="admin.html">管理画面</a></li>
+          <li><a class="font-bold text-on-stage" href="host.html" aria-current="page">進行画面</a></li>
+          <li><a class="underline" href="player.html">回答者画面</a></li>
+          <li><a class="underline" href="ranking.html">ランキング</a></li>
+        </ul>
+        <ul class="grid gap-1">
+          <li><a class="underline" href="#lobby">待機（参加用 URL と参加者）</a></li>
+          <li><a class="underline" href="#question">出題（読み上げ中）</a></li>
+          <li><a class="underline" href="#accepting">受付中</a></li>
+          <li><a class="underline" href="#reveal">① 正解と回答の分布</a></li>
+          <li><a class="underline" href="#fastest">② 最速正解の発表</a></li>
+          <li><a class="underline" href="#fastest-hidden">② 最速正解の発表（最後の2問）</a></li>
+          <li><a class="underline" href="#standings">③ 途中経過</a></li>
+          <li><a class="underline" href="#final">最終ランキング</a></li>
+          <li><a class="underline" href="#reconnecting">再接続中</a></li>
+        </ul>
+      </nav>
+    </details>
+  </body>
+</html>

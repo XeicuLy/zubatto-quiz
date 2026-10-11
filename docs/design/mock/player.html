@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ズバクイ モック: 回答者画面</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+1:wght@400;500;700;800&display=swap"
+    />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="dist/mock.css" />
+  </head>
+  <body class="bg-stage font-sans text-on-stage antialiased">
+    <!--
+      回答者画面（スマホの縦向き）。PC で開いても max-w-md の列に収める。
+      本人の名前は、長い名前の見本として「ながいながい…」を使う。
+    -->
+
+    <!-- 名前の入力 -->
+    <section id="join" data-state data-default aria-label="名前の入力">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-14 pb-24">
+        <h1 class="font-display text-5xl leading-tight">ズバッと<br />クイズ</h1>
+        <p class="mt-3 text-on-stage-muted">2026 忘年会 内輪クイズ</p>
+
+        <form class="mt-12 flex flex-col gap-3" action="#waiting">
+          <label for="join-name" class="font-bold">名前</label>
+          <input
+            id="join-name"
+            name="name"
+            autocomplete="nickname"
+            class="rounded-chip border-2 border-stage-line bg-stage-raised px-4 py-3 text-lg text-on-stage placeholder:text-on-stage-muted/70 focus-visible:border-on-stage focus-visible:outline-none"
+            placeholder="例: たろう"
+          />
+          <p class="text-sm text-on-stage-muted">
+            ランキングに出る名前です。同じ部屋の人とかぶらない名前にしてください。
+          </p>
+          <button
+            class="mt-6 rounded-panel bg-on-stage py-4 text-lg font-bold text-stage shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            参加する
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 名前のかぶり（ADR 0004: join を理由付きで断る） -->
+    <section id="join-taken" data-state aria-label="名前のかぶり">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-14 pb-24">
+        <h1 class="font-display text-5xl leading-tight">ズバッと<br />クイズ</h1>
+        <p class="mt-3 text-on-stage-muted">2026 忘年会 内輪クイズ</p>
+
+        <form class="mt-12 flex flex-col gap-3" action="#waiting">
+          <label for="taken-name" class="font-bold">名前</label>
+          <input
+            id="taken-name"
+            name="name"
+            value="たろう"
+            aria-invalid="true"
+            aria-describedby="taken-error"
+            class="rounded-chip border-2 border-alert bg-stage-raised px-4 py-3 text-lg text-on-stage focus-visible:outline-none"
+          />
+          <p id="taken-error" class="font-bold text-alert" role="alert">
+            「たろう」はこの部屋でもう使われています。別の名前を入れてください。
+          </p>
+          <button
+            class="mt-6 rounded-panel bg-on-stage py-4 text-lg font-bold text-stage shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            参加する
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 部屋が満員（SC1: 50名） -->
+    <section id="room-full" data-state aria-label="満員">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
+        <h1 class="font-display text-3xl leading-snug">この部屋は満員です</h1>
+        <p class="mt-4 leading-relaxed text-on-stage-muted">
+          1つの部屋に入れるのは50人までです。ホストに、別の部屋を作れるか聞いてください。
+        </p>
+      </div>
+    </section>
+
+    <!-- 待機 -->
+    <section id="waiting" data-state aria-label="待機">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-10 pb-24">
+        <p class="text-on-stage-muted">参加しました</p>
+        <!-- 自分の名前は全部見せる（name-wrap） -->
+        <p class="mt-2 name-wrap font-display text-4xl leading-snug">
+          ながいながいなまえのさんじゅうもじくらいあるひとです
+        </p>
+
+        <div class="mt-auto rounded-panel border-2 border-dashed border-stage-line p-6 text-center">
+          <p class="text-lg font-bold">ホストが始めるのを待っています</p>
+          <p class="mt-2 text-on-stage-muted">
+            いま <span class="font-display text-2xl text-on-stage">18</span> 人が参加中
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 出題（読み上げ中）。P2 のため、選択肢は受付を始めた瞬間に出す -->
+    <section id="question" data-state aria-label="出題">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
+        <header class="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
+          <p class="shrink-0 font-display text-lg">第3問 <span class="text-sm text-on-stage-muted">/ 10</span></p>
+          <p
+            class="name-clip min-w-0 rounded-full bg-stage-raised px-3 py-1 text-sm"
+            title="ながいながいなまえのさんじゅうもじくらいあるひとです"
+          >
+            ながいながいなまえのさんじゅうもじくらいあるひとです
+          </p>
+        </header>
+        <h1 class="mt-6 text-2xl leading-relaxed font-bold text-phrase">
+          去年の忘年会で、部長が二次会で最初に歌った曲のジャンルは？
+        </h1>
+
+        <div class="mt-8 flex flex-1 flex-col gap-3" aria-hidden="true">
+          <div class="flex-1 rounded-panel border-2 border-dashed border-stage-line"></div>
+          <div class="flex-1 rounded-panel border-2 border-dashed border-stage-line"></div>
+          <div class="flex-1 rounded-panel border-2 border-dashed border-stage-line"></div>
+          <div class="flex-1 rounded-panel border-2 border-dashed border-stage-line"></div>
+        </div>
+        <p class="mt-4 text-center font-bold text-on-stage-muted">選択肢は、ホストが受付を始めると出ます</p>
+      </div>
+    </section>
+
+    <!-- 回答（4択） -->
+    <section id="answer-4" data-state aria-label="回答（4択）">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
+        <header class="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
+          <p class="shrink-0 font-display text-lg">第3問 <span class="text-sm text-on-stage-muted">/ 10</span></p>
+          <p class="shrink-0 font-bold">残り <span class="font-display text-2xl">7</span> 秒</p>
+        </header>
+        <div class="mt-2 h-2 overflow-hidden rounded-full bg-stage-raised" aria-hidden="true">
+          <div class="h-full w-[70%] rounded-full bg-on-stage"></div>
+        </div>
+        <h1 class="mt-5 text-2xl leading-relaxed font-bold text-phrase">
+          去年の忘年会で、部長が二次会で最初に歌った曲のジャンルは？
+        </h1>
+
+        <div class="mt-6 flex flex-1 flex-col gap-3">
+          <button
+            class="flex max-h-40 min-h-16 flex-1 items-center gap-4 rounded-panel bg-choice-1 px-4 py-3 text-left text-xl font-bold text-on-choice shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-stage/25 font-display text-2xl"
+              >1</span
+            >
+            <span class="min-w-0 wrap-anywhere">演歌</span>
+          </button>
+          <button
+            class="flex max-h-40 min-h-16 flex-1 items-center gap-4 rounded-panel bg-choice-2 px-4 py-3 text-left text-xl font-bold text-on-choice shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-stage/25 font-display text-2xl"
+              >2</span
+            >
+            <span class="min-w-0 wrap-anywhere">アニソン</span>
+          </button>
+          <button
+            class="flex max-h-40 min-h-16 flex-1 items-center gap-4 rounded-panel bg-choice-3 px-4 py-3 text-left text-xl font-bold text-on-choice shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-stage/25 font-display text-2xl"
+              >3</span
+            >
+            <span class="min-w-0 wrap-anywhere">洋楽ロック</span>
+          </button>
+          <button
+            class="flex max-h-40 min-h-16 flex-1 items-center gap-4 rounded-panel bg-choice-4 px-4 py-3 text-left text-xl font-bold text-on-choice-4 shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-stage/15 font-display text-2xl"
+              >4</span
+            >
+            <span class="min-w-0 wrap-anywhere">歌っていない（ずっとタンバリンを叩いていた）</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 回答（3択） -->
+    <section id="answer-3" data-state aria-label="回答（3択）">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
+        <header class="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
+          <p class="shrink-0 font-display text-lg">第5問 <span class="text-sm text-on-stage-muted">/ 10</span></p>
+          <p class="shrink-0 font-bold">残り <span class="font-display text-2xl">12</span> 秒</p>
+        </header>
+        <div class="mt-2 h-2 overflow-hidden rounded-full bg-stage-raised" aria-hidden="true">
+          <div class="h-full w-[80%] rounded-full bg-on-stage"></div>
+        </div>
+        <h1 class="mt-5 text-2xl leading-relaxed font-bold text-phrase">今年、社内のランチで一番よく選ばれた店は？</h1>
+
+        <div class="mt-6 flex flex-1 flex-col gap-3">
+          <button
+            class="flex max-h-40 min-h-16 flex-1 items-center gap-4 rounded-panel bg-choice-1 px-4 py-3 text-left text-xl font-bold text-on-choice shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-stage/25 font-display text-2xl"
+              >1</span
+            >
+            <span class="min-w-0 wrap-anywhere">駅前のラーメン屋</span>
+          </button>
+          <button
+            class="flex max-h-40 min-h-16 flex-1 items-center gap-4 rounded-panel bg-choice-2 px-4 py-3 text-left text-xl font-bold text-on-choice shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-stage/25 font-display text-2xl"
+              >2</span
+            >
+            <span class="min-w-0 wrap-anywhere">カレーのキッチンカー</span>
+          </button>
+          <button
+            class="flex max-h-40 min-h-16 flex-1 items-center gap-4 rounded-panel bg-choice-3 px-4 py-3 text-left text-xl font-bold text-on-choice shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-stage/25 font-display text-2xl"
+              >3</span
+            >
+            <span class="min-w-0 wrap-anywhere">ビル地下の定食屋</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 回答（2択） -->
+    <section id="answer-2" data-state aria-label="回答（2択）">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
+        <header class="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
+          <p class="shrink-0 font-display text-lg">第8問 <span class="text-sm text-on-stage-muted">/ 10</span></p>
+          <p class="shrink-0 font-bold">残り <span class="font-display text-2xl">4</span> 秒</p>
+        </header>
+        <div class="mt-2 h-2 overflow-hidden rounded-full bg-stage-raised" aria-hidden="true">
+          <div class="h-full w-[40%] rounded-full bg-on-stage"></div>
+        </div>
+        <h1 class="mt-5 text-2xl leading-relaxed font-bold text-phrase">
+          オフィスの観葉植物「ポトス太郎」は、今年の夏を越せた？
+        </h1>
+
+        <div class="mt-6 flex flex-1 flex-col gap-3">
+          <button
+            class="flex max-h-40 min-h-16 flex-1 items-center gap-4 rounded-panel bg-choice-1 px-4 py-3 text-left text-xl font-bold text-on-choice shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-stage/25 font-display text-2xl"
+              >1</span
+            >
+            <span class="min-w-0 wrap-anywhere">越せた</span>
+          </button>
+          <button
+            class="flex max-h-40 min-h-16 flex-1 items-center gap-4 rounded-panel bg-choice-2 px-4 py-3 text-left text-xl font-bold text-on-choice shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-stage/25 font-display text-2xl"
+              >2</span
+            >
+            <span class="min-w-0 wrap-anywhere">枯れた</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 回答済み（F10: 選び直しはできない） -->
+    <section id="answered" data-state aria-label="回答済み">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
+        <header class="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
+          <p class="shrink-0 font-display text-lg">第3問 <span class="text-sm text-on-stage-muted">/ 10</span></p>
+          <p class="shrink-0 font-bold">残り <span class="font-display text-2xl">5</span> 秒</p>
+        </header>
+        <div class="mt-2 h-2 overflow-hidden rounded-full bg-stage-raised" aria-hidden="true">
+          <div class="h-full w-[50%] rounded-full bg-on-stage"></div>
+        </div>
+        <h1 class="mt-5 text-2xl leading-relaxed font-bold text-phrase">
+          去年の忘年会で、部長が二次会で最初に歌った曲のジャンルは？
+        </h1>
+
+        <div class="mt-6 flex flex-col gap-3">
+          <div
+            class="flex items-center gap-4 rounded-panel bg-stage-raised px-4 py-3 text-xl font-bold text-on-stage-muted opacity-60"
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-stage font-display text-2xl">1</span>
+            <span class="min-w-0 wrap-anywhere">演歌</span>
+          </div>
+          <div
+            class="flex items-center gap-4 rounded-panel bg-choice-2 px-4 py-3 text-xl font-bold text-on-choice ring-4 ring-on-stage ring-offset-4 ring-offset-stage"
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-stage/25 font-display text-2xl"
+              >2</span
+            >
+            <span class="min-w-0 wrap-anywhere">アニソン</span>
+            <span class="ml-auto shrink-0 text-base">あなたの回答</span>
+          </div>
+          <div
+            class="flex items-center gap-4 rounded-panel bg-stage-raised px-4 py-3 text-xl font-bold text-on-stage-muted opacity-60"
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-stage font-display text-2xl">3</span>
+            <span class="min-w-0 wrap-anywhere">洋楽ロック</span>
+          </div>
+          <div
+            class="flex items-center gap-4 rounded-panel bg-stage-raised px-4 py-3 text-xl font-bold text-on-stage-muted opacity-60"
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-stage font-display text-2xl">4</span>
+            <span class="min-w-0 wrap-anywhere">歌っていない（ずっとタンバリンを叩いていた）</span>
+          </div>
+        </div>
+
+        <div class="mt-auto pt-8 text-center">
+          <p class="text-on-stage-muted">回答までの時間</p>
+          <p class="font-display text-6xl tabular-nums">2.37<span class="ml-1 text-2xl">秒</span></p>
+          <p class="mt-4 text-on-stage-muted">締切を待っています（18人中 15人が回答）</p>
+        </div>
+      </div>
+    </section>
+
+    <!--
+      結果と、あなたの位置。トップが遠く感じないよう、順位よりも「次の目標」を見せる。
+      - 1〜3位のときだけ順位を出す。それ以外は順位の数字を出さず、1つ上の人との差を出す
+      - 矢印は、順位が上がったときだけ出す。下がったときは何も出さない
+      - トップとの差と一緒に、残りの問題で取れる最大の点を出し、逆転できると分かるようにする
+      - 最後の2問は順位を伏せる
+    -->
+
+    <!-- 結果（正解・上位）。1〜3位なので順位を出す -->
+    <section id="result-correct" data-state aria-label="結果（正解・上位）">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
+        <header class="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
+          <p class="shrink-0 font-display text-lg">第3問 <span class="text-sm text-on-stage-muted">/ 10</span></p>
+          <p class="shrink-0 text-on-stage-muted">締め切りました</p>
+        </header>
+
+        <div class="mt-8 text-center">
+          <p class="font-display text-7xl text-correct">○ 正解</p>
+          <p class="mt-3 text-lg">2 アニソン</p>
+          <p class="mt-4 font-display text-5xl tabular-nums">+843<span class="ml-1 text-xl">点</span></p>
+          <p class="mt-1 text-on-stage-muted">2.37秒で正解</p>
+        </div>
+
+        <div class="mt-8 rounded-panel bg-stage-raised p-5">
+          <div class="flex items-baseline justify-between gap-4">
+            <p class="font-display text-4xl tabular-nums">3<span class="ml-1 text-lg">位</span></p>
+            <p class="font-bold text-correct">
+              <span aria-hidden="true">▲</span>2<span class="sr-only">つ</span> 順位が上がりました
+            </p>
+          </div>
+          <p class="mt-2 text-lg font-bold">2位まで あと <span class="font-display tabular-nums">435</span>点</p>
+          <p class="mt-3 border-t border-stage-line pt-3 text-sm text-on-stage-muted">
+            合計 <span class="font-display text-base text-on-stage tabular-nums">2,410</span>点
+          </p>
+        </div>
+
+        <!-- F14: 最速正解者は全員の画面に出す（② の発表に合わせて出る）。詳しい発表は ranking.html#fastest -->
+        <div class="mt-auto flex items-center gap-3 rounded-panel border-2 border-spotlight px-4 py-3">
+          <p class="shrink-0 text-sm font-bold text-spotlight">最速正解</p>
+          <p class="name-clip flex-1 font-bold" title="🎍たろう🎍">🎍たろう🎍</p>
+          <p class="shrink-0 font-display text-xl tabular-nums">0.84<span class="ml-0.5 text-sm">秒</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 結果（正解・中位）。順位の数字は出さず、上がった幅と次の目標を出す -->
+    <section id="result-correct-mid" data-state aria-label="結果（正解・中位）">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
+        <header class="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
+          <p class="shrink-0 font-display text-lg">第3問 <span class="text-sm text-on-stage-muted">/ 10</span></p>
+          <p class="shrink-0 text-on-stage-muted">締め切りました</p>
+        </header>
+
+        <div class="mt-8 text-center">
+          <p class="font-display text-7xl text-correct">○ 正解</p>
+          <p class="mt-3 text-lg">2 アニソン</p>
+          <p class="mt-4 font-display text-5xl tabular-nums">+705<span class="ml-1 text-xl">点</span></p>
+          <p class="mt-1 text-on-stage-muted">4.12秒で正解</p>
+        </div>
+
+        <div class="mt-8 rounded-panel bg-stage-raised p-5">
+          <p class="font-bold text-correct">
+            <span aria-hidden="true">▲</span>5<span class="sr-only">つ</span> 順位が上がりました
+          </p>
+          <p class="mt-2 text-lg font-bold">1つ上の人まで あと <span class="font-display tabular-nums">224</span>点</p>
+          <dl class="mt-3 grid grid-cols-2 gap-3 border-t border-stage-line pt-3 text-sm text-on-stage-muted">
+            <div>
+              <dt>合計</dt>
+              <dd><span class="font-display text-base text-on-stage tabular-nums">1,876</span>点</dd>
+            </div>
+            <div>
+              <dt>トップとの差</dt>
+              <dd><span class="font-display text-base text-on-stage tabular-nums">1,104</span>点</dd>
+            </div>
+          </dl>
+          <p class="mt-3 text-sm font-bold">
+            残り7問で、最大 <span class="font-display tabular-nums">7,000</span>点 取れます
+          </p>
+        </div>
+
+        <!-- F14: 最速正解者は全員の画面に出す（② の発表に合わせて出る）。詳しい発表は ranking.html#fastest -->
+        <div class="mt-auto flex items-center gap-3 rounded-panel border-2 border-spotlight px-4 py-3">
+          <p class="shrink-0 text-sm font-bold text-spotlight">最速正解</p>
+          <p class="name-clip flex-1 font-bold" title="🎍たろう🎍">🎍たろう🎍</p>
+          <p class="shrink-0 font-display text-xl tabular-nums">0.84<span class="ml-0.5 text-sm">秒</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 結果（不正解）。下がっても矢印は出さず、次の目標と逆転の余地だけを出す -->
+    <section id="result-wrong" data-state aria-label="結果（不正解）">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
+        <header class="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
+          <p class="shrink-0 font-display text-lg">第3問 <span class="text-sm text-on-stage-muted">/ 10</span></p>
+          <p class="shrink-0 text-on-stage-muted">締め切りました</p>
+        </header>
+
+        <div class="mt-8 text-center">
+          <p class="font-display text-7xl text-on-stage-muted">× 不正解</p>
+          <p class="mt-3 text-lg">正解は 2 アニソン</p>
+          <p class="mt-1 text-on-stage-muted">あなたの回答: 1 演歌</p>
+          <p class="mt-4 font-display text-5xl tabular-nums">+0<span class="ml-1 text-xl">点</span></p>
+        </div>
+
+        <div class="mt-8 rounded-panel bg-stage-raised p-5">
+          <p class="text-lg font-bold">1つ上の人まで あと <span class="font-display tabular-nums">38</span>点</p>
+          <dl class="mt-3 grid grid-cols-2 gap-3 border-t border-stage-line pt-3 text-sm text-on-stage-muted">
+            <div>
+              <dt>合計</dt>
+              <dd><span class="font-display text-base text-on-stage tabular-nums">1,567</span>点</dd>
+            </div>
+            <div>
+              <dt>トップとの差</dt>
+              <dd><span class="font-display text-base text-on-stage tabular-nums">1,413</span>点</dd>
+            </div>
+          </dl>
+          <p class="mt-3 text-sm font-bold">
+            残り7問で、最大 <span class="font-display tabular-nums">7,000</span>点 取れます
+          </p>
+        </div>
+
+        <!-- F14: 最速正解者は全員の画面に出す（② の発表に合わせて出る）。詳しい発表は ranking.html#fastest -->
+        <div class="mt-auto flex items-center gap-3 rounded-panel border-2 border-spotlight px-4 py-3">
+          <p class="shrink-0 text-sm font-bold text-spotlight">最速正解</p>
+          <p class="name-clip flex-1 font-bold" title="🎍たろう🎍">🎍たろう🎍</p>
+          <p class="shrink-0 font-display text-xl tabular-nums">0.84<span class="ml-0.5 text-sm">秒</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 結果（最後の2問）。順位も1つ上の人との差も伏せ、最終発表まで引っ張る -->
+    <section id="result-hidden" data-state aria-label="結果（順位を伏せている）">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
+        <header class="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
+          <p class="shrink-0 font-display text-lg">第9問 <span class="text-sm text-on-stage-muted">/ 10</span></p>
+          <p class="shrink-0 text-on-stage-muted">締め切りました</p>
+        </header>
+
+        <div class="mt-8 text-center">
+          <p class="font-display text-7xl text-correct">○ 正解</p>
+          <p class="mt-3 text-lg">3 経理のたなか</p>
+          <p class="mt-4 font-display text-5xl tabular-nums">+612<span class="ml-1 text-xl">点</span></p>
+          <p class="mt-1 text-on-stage-muted">5.80秒で正解</p>
+        </div>
+
+        <div class="mt-8 rounded-panel border-2 border-dashed border-stage-line p-5 text-center">
+          <p class="text-lg font-bold">ここからの順位は、最終発表まで伏せています</p>
+          <p class="mt-2 text-sm text-on-stage-muted">
+            残り1問で、最大 <span class="font-display tabular-nums">1,000</span>点 取れます
+          </p>
+        </div>
+
+        <!-- F14: 最速正解者は全員の画面に出す（② の発表に合わせて出る）。詳しい発表は ranking.html#fastest -->
+        <div class="mt-auto flex items-center gap-3 rounded-panel border-2 border-spotlight px-4 py-3">
+          <p class="shrink-0 text-sm font-bold text-spotlight">最速正解</p>
+          <p class="name-clip flex-1 font-bold" title="はなこ">はなこ</p>
+          <p class="shrink-0 font-display text-xl tabular-nums">2.48<span class="ml-0.5 text-sm">秒</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 結果（時間切れ）。不正解と同じく、次の目標と逆転の余地を出す -->
+    <section id="result-timeout" data-state aria-label="結果（時間切れ）">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
+        <header class="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
+          <p class="shrink-0 font-display text-lg">第3問 <span class="text-sm text-on-stage-muted">/ 10</span></p>
+          <p class="shrink-0 text-on-stage-muted">締め切りました</p>
+        </header>
+
+        <div class="mt-10 text-center">
+          <p class="font-display text-6xl text-on-stage-muted">時間切れ</p>
+          <p class="mt-4 text-lg">正解は 2 アニソン</p>
+          <p class="mt-6 font-display text-5xl tabular-nums">+0<span class="ml-1 text-xl">点</span></p>
+        </div>
+
+        <div class="mt-8 rounded-panel bg-stage-raised p-5">
+          <p class="text-lg font-bold">1つ上の人まで あと <span class="font-display tabular-nums">38</span>点</p>
+          <dl class="mt-3 grid grid-cols-2 gap-3 border-t border-stage-line pt-3 text-sm text-on-stage-muted">
+            <div>
+              <dt>合計</dt>
+              <dd><span class="font-display text-base text-on-stage tabular-nums">1,567</span>点</dd>
+            </div>
+            <div>
+              <dt>トップとの差</dt>
+              <dd><span class="font-display text-base text-on-stage tabular-nums">1,413</span>点</dd>
+            </div>
+          </dl>
+          <p class="mt-3 text-sm font-bold">
+            残り7問で、最大 <span class="font-display tabular-nums">7,000</span>点 取れます
+          </p>
+        </div>
+
+        <!-- F14: 最速正解者は全員の画面に出す（② の発表に合わせて出る）。詳しい発表は ranking.html#fastest -->
+        <div class="mt-auto flex items-center gap-3 rounded-panel border-2 border-spotlight px-4 py-3">
+          <p class="shrink-0 text-sm font-bold text-spotlight">最速正解</p>
+          <p class="name-clip flex-1 font-bold" title="🎍たろう🎍">🎍たろう🎍</p>
+          <p class="shrink-0 font-display text-xl tabular-nums">0.84<span class="ml-0.5 text-sm">秒</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 再接続中（A1: 自動でつなぎ直す）。下の画面は操作できないようにする -->
+    <section id="reconnecting" data-state aria-label="再接続中">
+      <div class="relative mx-auto min-h-dvh max-w-md">
+        <div class="flex min-h-dvh flex-col px-5 pt-4 pb-24 opacity-40" inert>
+          <header class="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
+            <p class="shrink-0 font-display text-lg">第3問 <span class="text-sm text-on-stage-muted">/ 10</span></p>
+          </header>
+          <h1 class="mt-5 text-2xl leading-relaxed font-bold text-phrase">
+            去年の忘年会で、部長が二次会で最初に歌った曲のジャンルは？
+          </h1>
+          <div class="mt-6 flex flex-col gap-3">
+            <div class="h-16 rounded-panel bg-choice-1"></div>
+            <div class="h-16 rounded-panel bg-choice-2"></div>
+            <div class="h-16 rounded-panel bg-choice-3"></div>
+            <div class="h-16 rounded-panel bg-choice-4"></div>
+          </div>
+        </div>
+        <div class="absolute inset-x-0 top-0 px-3 pt-3" role="status">
+          <div class="flex items-center gap-3 rounded-panel bg-alert px-4 py-3 font-bold text-stage shadow-panel">
+            <span
+              class="size-5 shrink-0 rounded-full border-3 border-stage border-t-transparent motion-safe:animate-spin"
+              aria-hidden="true"
+            ></span>
+            <p>接続が切れました。つなぎ直しています</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 別のタブで開かれました（ADR 0004 X1: このタブは自動でつなぎ直さない） -->
+    <section id="other-tab" data-state aria-label="別のタブで開かれました">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
+        <h1 class="font-display text-3xl leading-snug">別のタブで開かれました</h1>
+        <p class="mt-4 leading-relaxed text-on-stage-muted">
+          この部屋を別のタブで開いたため、このタブの接続を閉じました。続きは、あとから開いたタブで遊べます。名前と得点はそのまま引き継がれています。
+        </p>
+      </div>
+    </section>
+
+    <!-- 戻れなかった（ADR 0004: resume が通らなければ秘密を消し、名前の入力から入り直す） -->
+    <section id="resume-failed" data-state aria-label="戻れなかった">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-14 pb-24">
+        <h1 class="font-display text-3xl leading-snug">前回の参加には戻れませんでした</h1>
+        <p class="mt-4 leading-relaxed text-on-stage-muted">
+          参加してから6時間が過ぎたため、前回の名前と得点では戻れません。新しく名前を入れて参加してください。
+        </p>
+
+        <form class="mt-10 flex flex-col gap-3" action="#waiting">
+          <label for="resume-name" class="font-bold">名前</label>
+          <input
+            id="resume-name"
+            name="name"
+            autocomplete="nickname"
+            class="rounded-chip border-2 border-stage-line bg-stage-raised px-4 py-3 text-lg text-on-stage placeholder:text-on-stage-muted/70 focus-visible:border-on-stage focus-visible:outline-none"
+            placeholder="例: たろう"
+          />
+          <button
+            class="mt-6 rounded-panel bg-on-stage py-4 text-lg font-bold text-stage shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none"
+          >
+            参加する
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 部屋が終わった -->
+    <section id="room-ended" data-state aria-label="部屋が終わった">
+      <div class="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
+        <h1 class="font-display text-3xl leading-snug">この部屋は終わりました</h1>
+        <p class="mt-4 leading-relaxed text-on-stage-muted">
+          遊んでくれてありがとうございました。最終の結果はスクリーンで発表されています。
+        </p>
+      </div>
+    </section>
+
+    <!-- モック専用: 状態の切り替え。本番には入れない -->
+    <details
+      class="fixed top-0 left-1/2 z-50 max-w-[calc(100vw-1rem)] -translate-x-1/2 rounded-b-chip border border-t-0 border-dashed border-on-stage-muted bg-stage/95 px-3 py-1 text-xs"
+    >
+      <summary class="cursor-pointer font-bold">モックの状態</summary>
+      <nav aria-label="モックの状態" class="mt-2 grid max-h-[60dvh] gap-3 overflow-y-auto pb-1">
+        <ul class="flex flex-wrap gap-x-3 gap-y-1 text-on-stage-muted">
+          <li><a class="underline" href="admin.html">管理画面</a></li>
+          <li><a class="underline" href="host.html">進行画面</a></li>
+          <li><a class="font-bold text-on-stage" href="player.html" aria-current="page">回答者画面</a></li>
+          <li><a class="underline" href="ranking.html">ランキング</a></li>
+        </ul>
+        <ul class="grid gap-1">
+          <li><a class="underline" href="#join">名前の入力</a></li>
+          <li><a class="underline" href="#join-taken">名前のかぶり</a></li>
+          <li><a class="underline" href="#room-full">満員</a></li>
+          <li><a class="underline" href="#waiting">待機（長い名前）</a></li>
+          <li><a class="underline" href="#question">出題（読み上げ中）</a></li>
+          <li><a class="underline" href="#answer-4">回答（4択）</a></li>
+          <li><a class="underline" href="#answer-3">回答（3択）</a></li>
+          <li><a class="underline" href="#answer-2">回答（2択）</a></li>
+          <li><a class="underline" href="#answered">回答済み</a></li>
+          <li><a class="underline" href="#result-correct">結果（正解・上位）</a></li>
+          <li><a class="underline" href="#result-correct-mid">結果（正解・中位で順位が上がった）</a></li>
+          <li><a class="underline" href="#result-wrong">結果（不正解）</a></li>
+          <li><a class="underline" href="#result-timeout">結果（時間切れ）</a></li>
+          <li><a class="underline" href="#result-hidden">結果（最後の2問）</a></li>
+          <li><a class="underline" href="#reconnecting">再接続中</a></li>
+          <li><a class="underline" href="#other-tab">別のタブで開かれました</a></li>
+          <li><a class="underline" href="#resume-failed">戻れなかった</a></li>
+          <li><a class="underline" href="#room-ended">部屋が終わった</a></li>
+        </ul>
+      </nav>
+    </details>
+  </body>
+</html>
