@@ -127,12 +127,12 @@ ADR 0001〜0004 で、基盤は Cloudflare Workers + Durable Objects（Free プ�
     ```
 
   - T35（#39）の本番の手順に、次のことを書く
-    - 本番の前に、ダッシュボードの Billable Usage かドキュメントで、Free の保存期間が7日になったことを確かめる。3日のままなら、手元のファイルを7日以上残す
+    - 本番の前に、ダッシュボードの Billable Usage かドキュメントで、Free の保存期間が7日になったことを確かめる
     - 本番の始まりから終わりまで、API と画面の Worker の `wrangler tail` を、別々のファイルに保存しておく。`logs/` は `.gitignore` に入れる
       - 先に `mkdir -p logs` を実行する。`>` はファイルを作るが、`logs/` は作らないため
       - `pnpm wrangler tail <API の Worker の名前> --format json > logs/<日付>-api.jsonl`
       - `pnpm wrangler tail <画面の Worker の名前> --format json > logs/<日付>-web.jsonl`。画面の Worker で起きたエラー（`/api/*` を転送できなかったときなど）は、API の Worker の tail には出ないため
-    - 手元のファイルには、ヘッダーに含まれる IP アドレスなども入るので、リポジトリに入れず、人に渡さない。エラーを確かめ終えたら消す
+    - 手元のファイルには、ヘッダーに含まれる IP アドレスなども入るので、リポジトリに入れず、人に渡さない。本番のログが Workers Logs に7日間残るなら、エラーを確かめ終えたら消す。保存期間が3日のままだったときや、上限で取り込みが止まったときは、本番が終わってから7日たつまで消さない
     - 本番のあと7日以内に、ダッシュボードの Workers Logs でエラー（`console.error` と例外）を確かめる
   - T37（#41）の O2 のリハーサルで、次のことも確かめる
     - Workers Logs の件数（または取り込んだ量）
