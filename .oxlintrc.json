@@ -33,6 +33,15 @@
           {
             "name": "cloudflare:test",
             "message": "テスト専用のモジュール。本番のコードでは cloudflare:workers を使う。"
+          },
+          {
+            "name": "better-auth/plugins",
+            "importNames": ["testUtils"],
+            "message": "testUtils はテスト専用の auth インスタンス（apps/api/test/auth）にだけ入れる（ADR 0003）。"
+          },
+          {
+            "name": "better-auth/test",
+            "message": "Better Auth のテスト用のモジュール。本番のコードからは import しない（ADR 0003）。"
           }
         ]
       }
