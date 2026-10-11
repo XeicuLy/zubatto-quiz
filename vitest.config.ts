@@ -8,7 +8,7 @@ import { defineConfig } from 'vitest/config';
  * - vitest 4 は、projects のグロブが1つも当たらないと（`[]` でも）「No projects were found」で落ちる。
  *   これは passWithNoTests より前に起きる
  * - projects を書かない（undefined）ときは root が1つのプロジェクトになり、テストが0件なら passWithNoTests で成功する
- * - apps/ と packages/ がまだ空でも、pnpm run test（CI）を成功させたい
+ * - apps/・packages/・tools/ がまだ空でも、pnpm run test（CI）を成功させたい
  */
 function resolveProjects(globs: string[]): string[] | undefined {
   // ファイル（apps/README.md など）だけが当たったときは、パッケージがあるとみなさない
@@ -21,7 +21,7 @@ function resolveProjects(globs: string[]): string[] | undefined {
 export default defineConfig({
   test: {
     // 各パッケージの vitest の設定を束ねて1回で走らせる。vitest-pool-workers を使うパッケージは自分の設定でプールを持つ
-    projects: resolveProjects(['apps/*', 'packages/*']),
+    projects: resolveProjects(['apps/*', 'packages/*', 'tools/*']),
     // パッケージがまだ空でも CI を通す
     passWithNoTests: true,
   },

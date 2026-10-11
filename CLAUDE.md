@@ -19,15 +19,15 @@ pnpm run fmt        # oxfmt (printWidth 120, single quotes, sorted imports/Tailw
 pnpm run fmt:check
 pnpm run lint       # oxlint --deny-warnings over the whole repo (.oxlintrc.json)
 pnpm run tsc        # root tsc --noEmit, then each package's own `tsc` script
-pnpm run test       # vitest run; root vitest.config.ts bundles apps/* and packages/* as projects
-pnpm exec vitest run --project <name>   # one package; the project name is its directory name unless its config sets one
+pnpm run test       # vitest run; root vitest.config.ts bundles apps/*, packages/* and tools/* as projects
+pnpm exec vitest run --project <name>   # one package; the project name is its vitest config `name`, else its package.json `name`, else its directory name
 ```
 
 - A Claude Code PostToolUse hook runs `oxfmt` on every file after Edit/Write, so don't format by hand.
 - `.npmrc` sets `save-exact=true`, so dependencies are pinned to exact versions.
 - CI (`.github/workflows/ci.yaml`) runs the same four checks on every PR to `main`. The `main` repository ruleset requires the `ci` job (GitHub Actions only) and has no bypass actors, so not even admins can merge a failing PR. Keep that job name.
 - Each package's `tsconfig.json` extends `tsconfig.base.json` and adds its own `types`/`lib`. A package with a `tsc` script is type-checked by the root `pnpm run tsc`.
-- vitest 4 fails with "No projects were found" when no project glob matches, so `vitest.config.ts` leaves `projects` unset while `apps/` and `packages/` are empty. Stay on vitest 4.x until `@cloudflare/vitest-pool-workers` supports 5.
+- vitest 4 fails with "No projects were found" when no project glob matches, so `vitest.config.ts` leaves `projects` unset while `apps/`, `packages/` and `tools/` are empty. Stay on vitest 4.x until `@cloudflare/vitest-pool-workers` supports 5.
 - oxlint rejects `dangerouslySetInnerHTML`, `innerHTML`-style DOM APIs (ADR 0004) and imports of test code (`test/`, `*.test.*`, `*.spec.*`) from production code. Test code may import production code.
 
 ## Commits
