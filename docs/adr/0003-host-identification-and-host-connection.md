@@ -72,7 +72,7 @@ S1 では、ホスト以外は管理画面を開けず、進行操作もでき�
 - 対応事項: テストでは、`testUtils` をテスト専用の auth インスタンスにだけ入れるか、D1 にセッションを直接入れる。E2E 用のログインの入口が必要なら、本番の入口ファイルからは import されないテスト専用の入口にだけ置く。sprout-app のように、本番のコードに入口を含めて実行時の `APP_ENV` で止める方式は採らない
 - 対応事項: 部屋の DO への WebSocket は、ホスト用と回答者用で入口を分ける。ホスト用の入口では、Worker が `Origin` を確かめ、Cookie のセッションから `owner_id` を決めて DO に渡す。DO は、それが部屋の持ち主と一致したときだけ、接続の attachment に `{ role: "host", ownerId }` を記録する。進行操作は、attachment の role が host の接続からだけ受け付ける。回答者用の入口では Cookie を使わない。同じ人の回答者用の接続から進行操作を送っても拒否されることを、自動テストで確かめる
 - 対応事項: Cookie の `SameSite` の値は、GitHub から戻ってくる処理と合わせて実装のときに決める
-- 対応事項: SPA と API を同じ Worker にするか分けるかは、この ADR では決めない。分ける場合は、Better Auth の `crossSubDomainCookies` と、Cookie を送る CORS の設定が要る
+- 対応事項: SPA と API の Worker の構成は [ADR 0006](0006-spa-and-api-worker-layout.md) で決めた。画面の Worker が `/api/*` を Service binding で API の Worker へ転送し、ブラウザからは同じオリジンにする。そのため、Better Auth の `crossSubDomainCookies` と、Cookie を送る CORS の設定は使わない
 - 対応事項: Better Auth のログインの有効期限は7日（使っていれば1日ごとに延びる）とし、本番中に切れないようにする。期限が切れたら GitHub でログインし直す
 - 対応事項: attachment の形（`{ role: "host", ownerId } | { role: "player", participantId }`）は、回答者の見分け方（S4・F19）の ADR でも同じものを使う
 - 対応事項: Go + Cloud Run への置き換えの ADR で、GitHub ログインとログイン状態の管理を `golang.org/x/oauth2` などで書き直す手順と、Better Auth のテーブル（user・account・session）から移す手順を検討する
