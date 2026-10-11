@@ -69,6 +69,10 @@ S1 では、ホスト以外は管理画面を開けず、進行操作もでき�
 - 悪い影響: GitHub のアカウントを失くしたホストは、新しいアカウントで別のホストとして始める。古い問題セットは引き継がれない
 - 悪い影響: Cookie を使う WebSocket には、別のサイトから接続を開かれる攻撃（CSWSH）が残るため、接続を開くときの `Origin` の確認が欠かせない
 - 対応事項: 許可リスト（GitHub のユーザー ID）を持ち、Better Auth の `databaseHooks` で、新しく登録するときとログインするとき（セッションを作るとき）の両方で確かめる。外したホストが入り直せないようにするためで、許可リストの外の人が拒否されることを自動テストで確かめる。追加・削除は wrangler のコマンドで行い、取り消すときは許可リストから外したうえで、そのホストのセッションを D1 から消す。取り消しが効くのは次の接続からで、つながったままのホスト用の接続は閉じるまで進行操作を続けられる（部屋の DO は接続を開くときに1回だけ確かめるため。P1）。すぐに止めたいときは、その部屋を終えるか Worker を削除する。手順は README に書く
+  - T13 で、新しく登録するときの確認は `databaseHooks` ではなく、Better Auth 1.7 で入った `user.validateUserInfo` で行うことにした。ログインするとき（セッションを作るとき）の確認は、決めたとおり `databaseHooks` の `session.create.before` で行う。2026-10-11 に Better Auth v1.7.7 のソースで次のことを確かめた
+    - 新しく登録するときは、user → account → session の順に作られる。user を作る時点では、まだ GitHub のユーザー ID が D1 にない
+    - user と account の作成はトランザクションの中で呼ばれるが、drizzle のアダプターは D1 ではトランザクションを使わない。そのため `account.create.before` で拒否すると、先に作られた user の行（メールアドレスを含む）だけが残る
+    - `validateUserInfo` は user を作る前に呼ばれ、GitHub のプロフィール（`id` を含む）を受け取る。拒否すれば user の行も作られない。中で例外が出たときも拒否になる
 - 対応事項: テストでは、`testUtils` をテスト専用の auth インスタンスにだけ入れるか、D1 にセッションを直接入れる。E2E 用のログインの入口が必要なら、本番の入口ファイルからは import されないテスト専用の入口にだけ置く。sprout-app のように、本番のコードに入口を含めて実行時の `APP_ENV` で止める方式は採らない
 - 対応事項: 部屋の DO への WebSocket は、ホスト用と回答者用で入口を分ける。ホスト用の入口では、Worker が `Origin` を確かめ、Cookie のセッションから `owner_id` を決めて DO に渡す。DO は、それが部屋の持ち主と一致したときだけ、接続の attachment に `{ role: "host", ownerId }` を記録する。進行操作は、attachment の role が host の接続からだけ受け付ける。回答者用の入口では Cookie を使わない。同じ人の回答者用の接続から進行操作を送っても拒否されることを、自動テストで確かめる
 - 対応事項: Cookie の `SameSite` は、Better Auth のすべての Cookie（ログイン状態と、GitHub ログインの途中で使う `state`）で `Lax` にする。T13 の Better Auth の設定には `advanced: { defaultCookieAttributes: { sameSite: 'lax' } }` だけを書き、`secure` と `useSecureCookies` は書かない。理由と確かめたこと（2026-10-11 時点の Better Auth v1.6.23 のドキュメントとソース、Hono のドキュメント、MDN）は次のとおり
