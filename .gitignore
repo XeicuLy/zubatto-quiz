@@ -1,3 +1,8 @@
 node_modules/
 memo.md
 docs/design/mock/dist/
+
+# wrangler のローカルの状態（ローカルの D1・DO のデータなど）
+.wrangler/
+# ローカルのシークレット。値はリポジトリに入れない（ADR 0005）
+.dev.vars*
