@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // エディタはこの設定を使う。テストとスクリプトが node の型を使うので、ここでは読み込む
+    "types": ["node"]
+  },
+  // src のテストでないコードが node の型に頼っていないかは、tsconfig.lib.json で確かめる
+  "include": ["src/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"]
+}

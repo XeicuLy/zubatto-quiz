@@ -1,0 +1,15 @@
+{
+  "name": "@zubatto-quiz/protocol",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "schema": "node scripts/export-json-schema.ts && oxfmt schema/ws.schema.json",
+    "tsc": "tsc -p tsconfig.lib.json && tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  }
+}
