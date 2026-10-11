@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-ズバッとクイズ (ズバクイ) is a real-time multiple-choice quiz app where players score on both correctness and answer speed. The repo is **pre-implementation**: it holds tooling, CI and design documents. The pnpm workspace (`apps/*`, `packages/*`, `tools/*`) is set up, but no package, application code or `wrangler.jsonc` exists yet. Before you design or implement anything, read the documents below. They are the source of truth:
+ズバッとクイズ (ズバクイ) is a real-time multiple-choice quiz app where players score on both correctness and answer speed. The repo is **pre-implementation**: it holds tooling, CI and design documents. The pnpm workspace (`apps/*`, `packages/*`, `tools/*`) is set up. The only package so far is `packages/protocol`; no application code or `wrangler.jsonc` exists yet. Before you design or implement anything, read the documents below. They are the source of truth:
 
 - `docs/requirements/zubatto-quiz.md` is the requirements spec. Requirement IDs are `F*` (functional), `P*` (performance), `S*` (security), `A*` (availability), `SC*` (scalability), `M*` (maintainability), `C*` (cost) and `O*` (operations). ADRs and commits cite these IDs.
 - `docs/adr/0001`–`0005` record the accepted architecture decisions. Each ADR's "対応事項" list under Consequences is effectively the implementation checklist.
@@ -57,6 +57,10 @@ The first release is all TypeScript on Cloudflare's free plan. After the first e
   - Count `getWebSockets()` against the 100-connection cap before `acceptWebSocket`, with no `await` in between.
   - Run the `join` checks (name collision after NFKC normalization and trim, 50-player cap) and the insert as synchronous SQL with no `await`.
   - Enforce one answer per question with `UNIQUE(question_id, participant_id)` and an accepting-answers check in one transaction.
+- **Message spec** (`packages/protocol`): zod schemas for the WebSocket messages, close codes and the question-set shape.
+  - The room DO must decode input with `decodeClientMessage` and send through `encodeServerMessage`. Both strip unknown fields, so a stray `participantId`, `correctIndex` or `rank` never crosses the wire.
+  - `schema/ws.schema.json` is generated, and it is the source of truth for the Go rewrite. After changing a schema, run `pnpm --filter @zubatto-quiz/protocol run schema`. A test fails when the file is stale.
+  - `tsconfig.json` (with node types) is for the editor and the tests. `tsconfig.lib.json` checks non-test `src/` with no ambient types, so a Workers, DOM or node dependency fails `pnpm run tsc`.
 - **XSS hardening** replaces HttpOnly here:
   - CSP `script-src 'self'`.
   - Markdown (F5) renders no raw HTML.

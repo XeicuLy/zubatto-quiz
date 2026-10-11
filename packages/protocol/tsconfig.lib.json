@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // 部屋の DO（Workers）と画面（DOM）の両方から使い、Go へ置き換えるときの正本にもなる。
+    // どちらの基盤の型にも頼らないよう、lib は ES2022 だけにし、ambient な型（node・Workers・DOM）を読み込まない（ADR 0001 の D5・D6）。
+    // エディタは tsconfig.json（node の型あり）を使うので、ここに違反しても赤線は出ない。pnpm run tsc（CI）で見つける
+    "types": []
+  },
+  "include": ["src/**/*.ts"],
+  // テストは vitest の型（node の型を含む）を読み込むので、tsconfig.json で確かめる
+  "exclude": ["src/**/*.test.ts"]
+}
