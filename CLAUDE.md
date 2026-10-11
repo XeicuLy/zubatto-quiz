@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-ズバッとクイズ (ズバクイ) is a real-time multiple-choice quiz app where players score on both correctness and answer speed. The repo is **pre-implementation**: it holds tooling, CI and design documents. The pnpm workspace (`apps/*`, `packages/*`, `tools/*`) is set up. The only package so far is `packages/protocol`; no application code or `wrangler.jsonc` exists yet. Before you design or implement anything, read the documents below. They are the source of truth:
+ズバッとクイズ (ズバクイ) is a real-time multiple-choice quiz app where players score on both correctness and answer speed. The repo is **pre-implementation**: it holds tooling, CI and design documents. The pnpm workspace (`apps/*`, `packages/*`, `tools/*`) is set up. The packages so far are `packages/protocol` (the WebSocket message spec) and `packages/scoring` (score and ranking calculation); no application code or `wrangler.jsonc` exists yet. Before you design or implement anything, read the documents below. They are the source of truth:
 
 - `docs/requirements/zubatto-quiz.md` is the requirements spec. Requirement IDs are `F*` (functional), `P*` (performance), `S*` (security), `A*` (availability), `SC*` (scalability), `M*` (maintainability), `C*` (cost) and `O*` (operations). ADRs and commits cite these IDs.
 - `docs/adr/0001`–`0005` record the accepted architecture decisions. Each ADR's "対応事項" list under Consequences is effectively the implementation checklist.
@@ -69,6 +69,11 @@ The first release is all TypeScript on Cloudflare's free plan. After the first e
   - Secrets go in with `wrangler secret put`.
   - Anything that can't be expressed in config goes in README runbooks: the GitHub OAuth Apps for local and prod, the allowlist, and the stop procedure (delete the Worker).
   - No Terraform until the Go migration.
+- **Scoring** (`packages/scoring`): pure functions for F11, F14 and F15. The room DO stores and broadcasts results; it never computes points or ranks itself.
+  - Change point values only in `config.ts` (M2). F12's `quickBonus` goes into `defaultScoring` when the bonus is built.
+  - Normalize each elapsed time once with `normalizeElapsedMs`, and use that value for display, points, the bonus and the fastest answers (P2).
+  - Tie-break rules are in the requirements' 「同点のとき」 section. `positionOf` returns the protocol's `playerPosition` shape without `rankUp` and `hidden`; the deadline aggregation adds those.
+  - Like `packages/protocol`, `tsconfig.lib.json` checks non-test `src/` with no ambient types.
 - **Testing**: `vitest-pool-workers`, so DOs and D1 run in the local Workers runtime. Use `evictDurableObject` for hibernation and restart cases.
   - Better Auth's `testUtils` plugin goes only in a test-only auth instance.
   - Never ship a test-login endpoint in the production entry, even one gated by a runtime env flag.
