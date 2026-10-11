@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 
 import { createAuth } from './auth/create-auth';
 import { questionSetRoutes } from './routes/question-sets';
+import { roomRoutes } from './routes/rooms';
 
 // wrangler は main の export から DO のクラスを探す
 export { RoomDurableObject } from './room/room-do';
@@ -15,5 +16,6 @@ app.get('/health', (c) => c.json({ ok: true }));
 app.on(['GET', 'POST'], '/auth/*', (c) => createAuth(c.env).handler(c.req.raw));
 
 app.route('/question-sets', questionSetRoutes);
+app.route('/rooms', roomRoutes);
 
 export default app;

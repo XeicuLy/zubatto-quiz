@@ -38,7 +38,7 @@ describe('createQuestionSet と getQuestionSet', () => {
   it('作ったセットを、題名と問題（正解を含む）ごと、入れた順番で取り出せる', async () => {
     const { id } = await createQuestionSet(db, { ownerId: 'alice', input });
 
-    expect(await getQuestionSet(db, { ownerId: 'alice', setId: id })).toEqual({ id, ...input });
+    expect(await getQuestionSet(db, { ownerId: 'alice', setId: id })).toMatchObject({ id, ...input });
   });
 
   it('問題の数が上限（MAX_QUESTIONS）のセットも、作って更新して取り出せる', async () => {
@@ -53,11 +53,21 @@ describe('createQuestionSet と getQuestionSet', () => {
       })),
     };
     const { id } = await createQuestionSet(db, { ownerId: 'alice', input: full });
-    expect(await getQuestionSet(db, { ownerId: 'alice', setId: id })).toEqual({ id, ...full });
+    expect(await getQuestionSet(db, { ownerId: 'alice', setId: id })).toMatchObject({ id, ...full });
 
     const reversed = { ...full, questions: [...full.questions].reverse() };
     await updateQuestionSet(db, { ownerId: 'alice', setId: id, input: reversed });
-    expect(await getQuestionSet(db, { ownerId: 'alice', setId: id })).toEqual({ id, ...reversed });
+    expect(await getQuestionSet(db, { ownerId: 'alice', setId: id })).toMatchObject({ id, ...reversed });
+  });
+
+  it('問題ごとに D1 の id が付く。部屋の DO はこの id を questionId にする（ADR 0002）', async () => {
+    const { id } = await createQuestionSet(db, { ownerId: 'alice', input });
+
+    const set = await getQuestionSet(db, { ownerId: 'alice', setId: id });
+    const ids = set?.questions.map((question) => question.id) ?? [];
+    expect(ids).toHaveLength(input.questions.length);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toEqual(ids.map(() => expect.any(String)));
   });
 
   it('ないセットの id では undefined', async () => {
@@ -96,7 +106,7 @@ describe('updateQuestionSet', () => {
     const { id } = await createQuestionSet(db, { ownerId: 'alice', input });
 
     expect(await updateQuestionSet(db, { ownerId: 'alice', setId: id, input: edited })).toBe(true);
-    expect(await getQuestionSet(db, { ownerId: 'alice', setId: id })).toEqual({ id, ...edited });
+    expect(await getQuestionSet(db, { ownerId: 'alice', setId: id })).toMatchObject({ id, ...edited });
   });
 
   it('ないセットの id では false', async () => {
@@ -115,7 +125,7 @@ describe('updateQuestionSet', () => {
       'cause.message',
       expect.stringMatching(/CHECK constraint failed/),
     );
-    expect(await getQuestionSet(db, { ownerId: 'alice', setId: id })).toEqual({ id, ...input });
+    expect(await getQuestionSet(db, { ownerId: 'alice', setId: id })).toMatchObject({ id, ...input });
   });
 });
 
@@ -147,12 +157,18 @@ describe('他人の問題セット（S1・ADR 0002）', () => {
 
   it('書けない: 更新は false で、題名も問題も変わらない', async () => {
     expect(await updateQuestionSet(db, { ownerId: 'mallory', setId: aliceSetId, input: edited })).toBe(false);
-    expect(await getQuestionSet(db, { ownerId: 'alice', setId: aliceSetId })).toEqual({ id: aliceSetId, ...input });
+    expect(await getQuestionSet(db, { ownerId: 'alice', setId: aliceSetId })).toMatchObject({
+      id: aliceSetId,
+      ...input,
+    });
   });
 
   it('消せない: 削除は false で、セットも問題も残る', async () => {
     expect(await deleteQuestionSet(db, { ownerId: 'mallory', setId: aliceSetId })).toBe(false);
-    expect(await getQuestionSet(db, { ownerId: 'alice', setId: aliceSetId })).toEqual({ id: aliceSetId, ...input });
+    expect(await getQuestionSet(db, { ownerId: 'alice', setId: aliceSetId })).toMatchObject({
+      id: aliceSetId,
+      ...input,
+    });
   });
 });
 

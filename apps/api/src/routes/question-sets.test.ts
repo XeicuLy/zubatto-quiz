@@ -5,55 +5,15 @@ import {
   type QuestionSetDetail,
   type QuestionSetInput,
 } from '@zubatto-quiz/protocol';
-import { env, exports } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { allowGithubUser, createTestAuth, insertGithubUser } from '../../test/auth/create-test-auth';
-import { createDb } from '../db';
-import { hostAllowlist, user } from '../db/schema';
+import { apiRequest, apiRequestAs, loginAs, ORIGIN, resetHosts } from '../../test/host-request';
 
-// vitest-plugin はテストごとには D1 を戻さないので、テストの前に空にする（user を消すと問題セットと問題も消える）
-const db = createDb(env.DB);
+beforeEach(resetHosts);
 
-// 2人のホスト。alice が自分のセットを扱い、mallory が alice のセットに手を出そうとする（S1・ADR 0002）
-beforeEach(async () => {
-  await db.delete(user);
-  await db.delete(hostAllowlist);
-  for (const [userId, githubUserId] of [
-    ['alice', '1001'],
-    ['mallory', '1002'],
-  ]) {
-    await insertGithubUser(db, { userId, githubUserId });
-    await allowGithubUser(db, githubUserId);
-  }
-});
-
-/** userId のホストのログイン Cookie を作る */
-async function loginAs(userId: string): Promise<Headers> {
-  const { test } = await createTestAuth(env);
-  return test.getAuthHeaders({ userId });
-}
-
-// 画面の Worker のオリジン（vitest.config.ts の BETTER_AUTH_URL）。転送された要求の URL は、このオリジンになる
-const ORIGIN = 'http://localhost:5173';
-
-/** API の Worker へ、画面の Worker から転送されたのと同じ形で要求を送る */
-const request = (path: string, init?: RequestInit) => exports.default.fetch(`${ORIGIN}/api/question-sets${path}`, init);
-
-/**
- * userId のホストとして、同じオリジンの画面から要求を送る。body は JSON にして送る。
- * ブラウザは GET 以外の要求に Origin と Sec-Fetch-Site を付ける。csrf() は Content-Type のない要求（本文のない DELETE）を
- * text/plain として扱うので、これがないと同じオリジンの要求でも断られる
- */
-async function requestAs(userId: string, method: string, path: string, body?: unknown) {
-  const headers = await loginAs(userId);
-  headers.set('origin', ORIGIN);
-  headers.set('sec-fetch-site', 'same-origin');
-  if (body !== undefined) {
-    headers.set('content-type', 'application/json');
-  }
-  return request(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-}
+const request = (path: string, init?: RequestInit) => apiRequest(`/question-sets${path}`, init);
+const requestAs = (userId: string, method: string, path: string, body?: unknown) =>
+  apiRequestAs(userId, method, `/question-sets${path}`, body);
 
 /** userId のホストとしてセットを作り、id を返す */
 async function createAs(userId: string, input: QuestionSetInput): Promise<string> {
