@@ -71,6 +71,22 @@ describe('clientMessageSchema: 不正な入力を拒む（S4・ADR 0004）', () 
     expect(clientMessageSchema.safeParse({ type: 'join', name: 'たろう\nはなこ', token }).success).toBe(false);
   });
 
+  it('見えない書式の文字を含む名前を拒む（名前のかぶりの確認をすり抜けて、他人のふりをさせない）', () => {
+    const token = makeToken();
+    // ゼロ幅スペース: 「たろう」と同じに見えるが、NFKC で正規化しても別の名前になる
+    expect(clientMessageSchema.safeParse({ type: 'join', name: 'たろう\u200B', token }).success).toBe(false);
+    // 文字の向きを右から左に変える: 表示を逆にして、別の名前に見せかけられる
+    expect(clientMessageSchema.safeParse({ type: 'join', name: '\u202Eうろた', token }).success).toBe(false);
+    // BOM（ゼロ幅のノーブレークスペース）。前後にあると trim で除かれるので、途中に置く
+    expect(clientMessageSchema.safeParse({ type: 'join', name: 'たろ\uFEFFう', token }).success).toBe(false);
+  });
+
+  it('絵文字をつなぐ ZWJ（U+200D）は通す', () => {
+    const token = makeToken();
+    expect(clientMessageSchema.safeParse({ type: 'join', name: '👨‍👩‍👧‍👦ファミリー', token }).success).toBe(true);
+    expect(clientMessageSchema.safeParse({ type: 'join', name: '🍣🍺🍣🍺🍣🍺', token }).success).toBe(true);
+  });
+
   it('32バイトでない token を拒む', () => {
     expect(clientMessageSchema.safeParse({ type: 'resume', token: makeToken(31) }).success).toBe(false);
     expect(clientMessageSchema.safeParse({ type: 'resume', token: makeToken(33) }).success).toBe(false);
