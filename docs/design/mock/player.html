@@ -468,7 +468,7 @@
       </div>
     </section>
 
-    <!-- 結果（時間切れ） -->
+    <!-- 結果（時間切れ）。不正解と同じく、次の目標と逆転の余地を出す -->
     <section id="result-timeout" data-state aria-label="結果（時間切れ）">
       <div class="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
         <header class="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
@@ -480,6 +480,30 @@
           <p class="font-display text-6xl text-on-stage-muted">時間切れ</p>
           <p class="mt-4 text-lg">正解は 2 アニソン</p>
           <p class="mt-6 font-display text-5xl tabular-nums">+0<span class="ml-1 text-xl">点</span></p>
+        </div>
+
+        <div class="mt-8 rounded-panel bg-stage-raised p-5">
+          <p class="text-lg font-bold">1つ上の人まで あと <span class="font-display tabular-nums">38</span>点</p>
+          <dl class="mt-3 grid grid-cols-2 gap-3 border-t border-stage-line pt-3 text-sm text-on-stage-muted">
+            <div>
+              <dt>合計</dt>
+              <dd><span class="font-display text-base text-on-stage tabular-nums">1,567</span>点</dd>
+            </div>
+            <div>
+              <dt>トップとの差</dt>
+              <dd><span class="font-display text-base text-on-stage tabular-nums">1,413</span>点</dd>
+            </div>
+          </dl>
+          <p class="mt-3 text-sm font-bold">
+            残り7問で、最大 <span class="font-display tabular-nums">7,000</span>点 取れます
+          </p>
+        </div>
+
+        <!-- F14: 最速正解者は全員の画面に出す（② の発表に合わせて出る）。詳しい発表は ranking.html#fastest -->
+        <div class="mt-auto flex items-center gap-3 rounded-panel border-2 border-spotlight px-4 py-3">
+          <p class="shrink-0 text-sm font-bold text-spotlight">最速正解</p>
+          <p class="name-clip flex-1 font-bold" title="🎍たろう🎍">🎍たろう🎍</p>
+          <p class="shrink-0 font-display text-xl tabular-nums">0.84<span class="ml-0.5 text-sm">秒</span></p>
         </div>
       </div>
     </section>
