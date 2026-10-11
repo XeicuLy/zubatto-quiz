@@ -67,6 +67,18 @@ export const questions = sqliteTable(
       'questions_choices_count',
       sql`json_array_length(${t.choices}) between ${literal(MIN_CHOICES)} and ${literal(MAX_CHOICES)}`,
     ),
+    // 選択肢はどれも文字列。CHECK の中では副問い合わせ（json_each）を使えないので、MAX_CHOICES までの位置を1つずつ見る。
+    // json_type は JSON の null には 'null' を、要素のない位置には SQL の NULL を返す。要素のない位置は数の CHECK に任せる
+    check(
+      'questions_choices_text',
+      sql.join(
+        Array.from(
+          { length: MAX_CHOICES },
+          (_, i) => sql`coalesce(json_type(${t.choices}, ${sql.raw(`'$[${i}]'`)}), 'text') = 'text'`,
+        ),
+        sql` and `,
+      ),
+    ),
     // 正解の番号は選択肢の中。protocol の questionSchema の refine と同じ条件
     check(
       'questions_correct_index_range',

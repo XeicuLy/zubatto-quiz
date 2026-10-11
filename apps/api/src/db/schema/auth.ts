@@ -1,9 +1,9 @@
 // Better Auth の表（user・session・account・verification）。auth の CLI（1.7.7）の generate の出力を、oxfmt で整形だけして置く。
 // CLI は設定ファイルがないと出力しないので、drizzleAdapter（provider: 'sqlite'）と GitHub のログインだけの設定を渡して出した。
-// Better Auth の版を上げたり plugin を足したりしたら、出し直して差分をとる。問題セットの owner_id は user.id を参照する（ADR 0003）
+// Better Auth の版を上げたり plugin を足したりしたら、出し直して差分をとる。そのとき、account の (provider_id, account_id) の unique は残す。問題セットの owner_id は user.id を参照する（ADR 0003）
 
 import { relations, sql } from 'drizzle-orm';
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, index, unique } from 'drizzle-orm/sqlite-core';
 
 export const user = sqliteTable('user', {
   id: text('id').primaryKey(),
@@ -68,7 +68,11 @@ export const account = sqliteTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index('account_userId_idx').on(table.userId)],
+  (table) => [
+    index('account_userId_idx').on(table.userId),
+    // CLI の出力に足したもの。Better Auth は (providerId, accountId) が2行以上あるアカウントを探すのを拒むので、DB で重複を止める
+    unique('account_providerId_accountId_unique').on(table.providerId, table.accountId),
+  ],
 );
 
 export const verification = sqliteTable(

@@ -70,8 +70,8 @@ The first release is all TypeScript on Cloudflare's free plan. After the first e
   - Anything that can't be expressed in config goes in README runbooks: the GitHub OAuth Apps for local and prod, the allowlist, and the stop procedure (delete the Worker).
   - No Terraform until the Go migration.
 - **D1 schema** (`apps/api/src/db`): drizzle tables for Better Auth, `question_sets`, `questions` and `host_allowlist`. Use `createDb(env.DB)`.
-  - `schema/auth.ts` is the output of the Better Auth CLI (`auth`, formerly `@better-auth/cli`). The CLI needs a config file. Regenerate it when you upgrade Better Auth or add a plugin.
-  - `questions.choices` is a JSON array column. The DB CHECK constraints copy the rules in protocol's `questionSchema` (2–4 choices, correct index in range, F9 limits) and take their numbers from protocol's constants.
+  - `schema/auth.ts` is the output of the Better Auth CLI (`auth`, formerly `@better-auth/cli`). The CLI needs a config file. Regenerate it when you upgrade Better Auth or add a plugin, and keep the hand-added `(provider_id, account_id)` unique on `account`: Better Auth refuses to look up an account that has duplicate rows.
+  - `questions.choices` is a JSON array column. The DB CHECK constraints copy the rules in protocol's `questionSchema` (2–4 choices, all of them strings, correct index in range, F9 limits) and take their numbers from protocol's constants.
   - `migrations/` is generated. Run `pnpm --filter @zubatto-quiz/api run db:generate --name <name>` and don't edit the SQL by hand; oxfmt skips `migrations/meta`. Once a migration is deployed, only add new ones, and keep them additive so the old code still runs (ADR 0005).
   - `pnpm --filter @zubatto-quiz/api run db:migrate:local` applies them to the local D1 that `vite dev` uses (`apps/web/.wrangler/state`).
   - In tests, `test/apply-migrations.ts` applies `migrations/` before each test file. vitest-plugin does not reset D1 between tests, so clear tables in `beforeEach`. drizzle wraps D1 errors, so assert on `cause.message`.

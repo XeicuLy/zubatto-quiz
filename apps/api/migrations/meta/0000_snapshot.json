@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a74bbbfe-224d-4cfe-8271-5884d80b15ce",
+  "id": "1cb1dcf1-840d-427f-9b63-8f16218e3978",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -107,6 +107,14 @@
             "user_id"
           ],
           "isUnique": false
+        },
+        "account_providerId_accountId_unique": {
+          "name": "account_providerId_accountId_unique",
+          "columns": [
+            "provider_id",
+            "account_id"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {
@@ -546,6 +554,10 @@
         "questions_choices_count": {
           "name": "questions_choices_count",
           "value": "json_array_length(\"questions\".\"choices\") between 2 and 4"
+        },
+        "questions_choices_text": {
+          "name": "questions_choices_text",
+          "value": "coalesce(json_type(\"questions\".\"choices\", '$[0]'), 'text') = 'text' and coalesce(json_type(\"questions\".\"choices\", '$[1]'), 'text') = 'text' and coalesce(json_type(\"questions\".\"choices\", '$[2]'), 'text') = 'text' and coalesce(json_type(\"questions\".\"choices\", '$[3]'), 'text') = 'text'"
         },
         "questions_correct_index_range": {
           "name": "questions_correct_index_range",

@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createDb } from './index';
-import { hostAllowlist, questions, questionSets, user } from './schema';
+import { account, hostAllowlist, questions, questionSets, user } from './schema';
 
 // マイグレーションは test/apply-migrations.ts で当たっている。
 // vitest-plugin はテストごとには D1 を戻さないので、テストの前に空にする（user を消すと問題セットと問題も消える）
@@ -123,6 +123,19 @@ describe('questions', () => {
       );
     });
 
+    // 型を通らない書き込み（wrangler d1 execute など）の代わりに、string[] でない値を型を外して入れる
+    it.each([[['赤', null]], [['赤', 1]], [[['赤'], '青']], [['赤', '青', '黄', null]]])(
+      '文字列でない要素を含む %j は入らない',
+      async (choices) => {
+        await expect(
+          db.insert(questions).values(question(setId, choices as unknown as string[])),
+        ).rejects.toHaveProperty(
+          'cause.message',
+          expect.stringMatching(/CHECK constraint failed: questions_choices_text/),
+        );
+      },
+    );
+
     it.each([2, -1])('正解の番号 %i は2択では入らない', async (correctIndex) => {
       await expect(db.insert(questions).values(question(setId, ['赤', '青'], correctIndex))).rejects.toHaveProperty(
         'cause.message',
@@ -136,6 +149,38 @@ describe('questions', () => {
       'cause.message',
       expect.stringMatching(/CHECK constraint failed: questions_limit_ms_range/),
     );
+  });
+});
+
+describe('account（Better Auth）', () => {
+  beforeEach(async () => {
+    await insertUser('alice');
+    await insertUser('bob');
+  });
+
+  const githubAccount = (id: string, userId: string, providerId = 'github') => ({
+    id,
+    accountId: '1234567',
+    providerId,
+    userId,
+    updatedAt: new Date(),
+  });
+
+  // Better Auth は (providerId, accountId) が2行以上あるアカウントを探すのを拒み、その人はログインできなくなる
+  it('同じ GitHub のユーザー ID のアカウントは2つ入らない', async () => {
+    await db.insert(account).values(githubAccount('a1', 'alice'));
+
+    await expect(db.insert(account).values(githubAccount('a2', 'bob'))).rejects.toHaveProperty(
+      'cause.message',
+      expect.stringMatching(/UNIQUE constraint failed: account\.provider_id, account\.account_id/),
+    );
+  });
+
+  it('別のログインの方法なら、同じ ID でも入る', async () => {
+    await db.insert(account).values(githubAccount('a1', 'alice'));
+    await db.insert(account).values(githubAccount('a2', 'bob', 'google'));
+
+    expect(await db.$count(account)).toBe(2);
   });
 });
 

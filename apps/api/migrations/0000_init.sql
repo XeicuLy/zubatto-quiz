@@ -16,6 +16,7 @@ CREATE TABLE `account` (
 );
 --> statement-breakpoint
 CREATE INDEX `account_userId_idx` ON `account` (`user_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `account_providerId_accountId_unique` ON `account` (`provider_id`,`account_id`);--> statement-breakpoint
 CREATE TABLE `session` (
 	`id` text PRIMARY KEY NOT NULL,
 	`expires_at` integer NOT NULL,
@@ -78,6 +79,7 @@ CREATE TABLE `questions` (
 	FOREIGN KEY (`set_id`) REFERENCES `question_sets`(`id`) ON UPDATE no action ON DELETE cascade,
 	CONSTRAINT "questions_limit_ms_range" CHECK("questions"."limit_ms" between 5000 and 60000 and "questions"."limit_ms" % 1000 = 0),
 	CONSTRAINT "questions_choices_count" CHECK(json_array_length("questions"."choices") between 2 and 4),
+	CONSTRAINT "questions_choices_text" CHECK(coalesce(json_type("questions"."choices", '$[0]'), 'text') = 'text' and coalesce(json_type("questions"."choices", '$[1]'), 'text') = 'text' and coalesce(json_type("questions"."choices", '$[2]'), 'text') = 'text' and coalesce(json_type("questions"."choices", '$[3]'), 'text') = 'text'),
 	CONSTRAINT "questions_correct_index_range" CHECK("questions"."correct_index" >= 0 and "questions"."correct_index" < json_array_length("questions"."choices"))
 );
 --> statement-breakpoint
