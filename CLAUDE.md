@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-ズバッとクイズ (ズバクイ) is a real-time multiple-choice quiz app where players score on both correctness and answer speed. The repo is **pre-implementation**: it holds only tooling and design documents. No application code, `wrangler.jsonc`, test runner or CI exists yet. Before you design or implement anything, read the documents below. They are the source of truth:
+ズバッとクイズ (ズバクイ) is a real-time multiple-choice quiz app where players score on both correctness and answer speed. The repo is **pre-implementation**: it holds tooling, CI and design documents. The pnpm workspace (`apps/*`, `packages/*`, `tools/*`) is set up, but no package, application code or `wrangler.jsonc` exists yet. Before you design or implement anything, read the documents below. They are the source of truth:
 
 - `docs/requirements/zubatto-quiz.md` is the requirements spec. Requirement IDs are `F*` (functional), `P*` (performance), `S*` (security), `A*` (availability), `SC*` (scalability), `M*` (maintainability), `C*` (cost) and `O*` (operations). ADRs and commits cite these IDs.
 - `docs/adr/0001`–`0005` record the accepted architecture decisions. Each ADR's "対応事項" list under Consequences is effectively the implementation checklist.
@@ -14,13 +14,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```sh
 make setup          # mise install (node/pnpm/uv pinned in .mise.toml) + pnpm install --frozen-lockfile
+make check          # everything CI runs: fmt:check, lint, tsc, test
 pnpm run fmt        # oxfmt (printWidth 120, single quotes, sorted imports/Tailwind classes/package.json)
 pnpm run fmt:check
-pnpm run tsc        # tsc --noEmit
+pnpm run lint       # oxlint --deny-warnings over the whole repo (.oxlintrc.json)
+pnpm run tsc        # root tsc --noEmit, then each package's own `tsc` script
+pnpm run test       # vitest run; root vitest.config.ts bundles apps/* and packages/* as projects
+pnpm exec vitest run --project <name>   # one package; the project name is its directory name unless its config sets one
 ```
 
 - A Claude Code PostToolUse hook runs `oxfmt` on every file after Edit/Write, so don't format by hand.
 - `.npmrc` sets `save-exact=true`, so dependencies are pinned to exact versions.
+- CI (`.github/workflows/ci.yaml`) runs the same four checks on every PR to `main`. The `main` repository ruleset requires the `ci` job (GitHub Actions only) and has no bypass actors, so not even admins can merge a failing PR. Keep that job name.
+- Each package's `tsconfig.json` extends `tsconfig.base.json` and adds its own `types`/`lib`. A package with a `tsc` script is type-checked by the root `pnpm run tsc`.
+- vitest 4 fails with "No projects were found" when no project glob matches, so `vitest.config.ts` leaves `projects` unset while `apps/` and `packages/` are empty. Stay on vitest 4.x until `@cloudflare/vitest-pool-workers` supports 5.
+- oxlint rejects `dangerouslySetInnerHTML`, `innerHTML`-style DOM APIs (ADR 0004) and imports of test code (`test/`, `*.test.*`, `*.spec.*`) from production code. Test code may import production code.
 
 ## Commits
 

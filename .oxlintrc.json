@@ -1,0 +1,41 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "react", "import", "vitest"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "react/no-danger": "error",
+    "react/no-danger-with-children": "error",
+    // ADR 0004: 名前などの入力を HTML として解釈させない。文字として描画するには textContent や JSX の {} を使う
+    "no-restricted-properties": [
+      "error",
+      { "property": "innerHTML", "message": "HTML として解釈される。textContent を使う。" },
+      { "property": "outerHTML", "message": "HTML として解釈される。textContent を使う。" },
+      { "property": "insertAdjacentHTML", "message": "HTML として解釈される。insertAdjacentText を使う。" },
+      { "property": "setHTMLUnsafe", "message": "HTML として解釈される。textContent を使う。" },
+      { "property": "createContextualFragment", "message": "HTML として解釈される。" },
+      { "object": "document", "property": "write", "message": "HTML として解釈される。" },
+      { "object": "document", "property": "writeln", "message": "HTML として解釈される。" }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["**/test", "**/test/**", "**/*.test", "**/*.test.*", "**/*.spec", "**/*.spec.*"],
+            "message": "本番のコードからテストのコードを import しない。"
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["**/test/**", "**/*.test.*", "**/*.spec.*", "**/vitest.config.*"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
+}
