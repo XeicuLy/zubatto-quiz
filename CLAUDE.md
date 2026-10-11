@@ -57,6 +57,10 @@ The first release is all TypeScript on Cloudflare's free plan. After the first e
   - Count `getWebSockets()` against the 100-connection cap before `acceptWebSocket`, with no `await` in between.
   - Run the `join` checks (name collision after NFKC normalization and trim, 50-player cap) and the insert as synchronous SQL with no `await`.
   - Enforce one answer per question with `UNIQUE(question_id, participant_id)` and an accepting-answers check in one transaction.
+- **Message spec** (`packages/protocol`): zod schemas for the WebSocket messages, close codes and the question-set shape.
+  - The room DO must decode input with `decodeClientMessage` and send through `encodeServerMessage`. Both strip unknown fields, so a stray `participantId`, `correctIndex` or `rank` never crosses the wire.
+  - `schema/ws.schema.json` is generated, and it is the source of truth for the Go rewrite. After changing a schema, run `pnpm --filter @zubatto-quiz/protocol run schema`. A test fails when the file is stale.
+  - `tsconfig.json` (with node types) is for the editor and the tests. `tsconfig.lib.json` checks non-test `src/` with no ambient types, so a Workers, DOM or node dependency fails `pnpm run tsc`.
 - **XSS hardening** replaces HttpOnly here:
   - CSP `script-src 'self'`.
   - Markdown (F5) renders no raw HTML.
