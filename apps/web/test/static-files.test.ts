@@ -42,23 +42,59 @@ describe('public/_headers の CSP（ADR 0004）', () => {
   });
 });
 
+// HTML のタグ名と属性名は大文字小文字を区別しないので、正規表現には i を付ける。
+// 閉じタグは </script > のように中に空白を持てるので、> までをまとめて読む
+
+/** HTML の <script> を、属性と中身に分けて取り出す */
+function scriptsIn(html: string): { attributes: string; body: string }[] {
+  return [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\b[^>]*>/gi)].map(([, attributes = '', body = '']) => ({
+    attributes,
+    body,
+  }));
+}
+
+/** HTML が <style> の要素か、style・on* の属性を持つかを返す */
+function hasInlineStyleOrHandler(html: string): boolean {
+  return /<style\b/i.test(html) || /[\s/](style|on[a-z]+)\s*=/i.test(html);
+}
+
+describe('index.html の検査が見つけるもの', () => {
+  // ブラウザは <SCRIPT> もスクリプトとして動かす
+  it.each(['<script>alert(1)</script>', '<SCRIPT>alert(1)</SCRIPT>', '<script>alert(1)</script >'])(
+    '%s をインラインのスクリプトとして見つける',
+    (html) => {
+      expect(scriptsIn(html)).toEqual([{ attributes: '', body: 'alert(1)' }]);
+    },
+  );
+
+  it.each([
+    '<style>body{}</style>',
+    '<STYLE>body{}</STYLE>',
+    '<div style="color:red"></div>',
+    '<div STYLE="color:red"></div>',
+    '<img onerror="alert(1)">',
+    '<img ONERROR="alert(1)">',
+    '<img onerror = "alert(1)">',
+    // ブラウザは / も属性の区切りとして読む
+    '<img/onerror="alert(1)">',
+  ])('%s をインラインのスタイルかイベントハンドラーとして見つける', (html) => {
+    expect(hasInlineStyleOrHandler(html)).toBe(true);
+  });
+});
+
 describe('index.html', () => {
   it('インラインのスクリプトを持たない（script-src の CSP に違反しない）', async () => {
-    const html = await readAppFile('index.html');
-    const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)];
+    const scripts = scriptsIn(await readAppFile('index.html'));
 
     expect(scripts.length).toBeGreaterThan(0);
-    for (const [, attributes = '', body = ''] of scripts) {
-      expect(attributes).toMatch(/\bsrc=/);
+    for (const { attributes, body } of scripts) {
+      expect(attributes).toMatch(/\bsrc\s*=/i);
       expect(body.trim()).toBe('');
     }
   });
 
   it('インラインのスタイルとイベントハンドラーを持たない', async () => {
-    const html = await readAppFile('index.html');
-
-    expect(html).not.toMatch(/<style\b/);
-    expect(html).not.toMatch(/\s(style|on[a-z]+)=/);
+    expect(hasInlineStyleOrHandler(await readAppFile('index.html'))).toBe(false);
   });
 
   it('言語を日本語にし、タイトルを日本語にする（SC3）', async () => {
