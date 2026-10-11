@@ -13,7 +13,8 @@
   // 部屋の DO は SQLite を使う（ADR 0001）。一度デプロイしたタグは書き換えず、変えるときは新しいタグを足す
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomDurableObject"] }],
   // database_id は書かない。デプロイと D1 のコマンドは名前で D1 を探す。database_name は変えない（ADR 0005）
-  "d1_databases": [{ "binding": "DB", "database_name": "zubakui" }],
+  // migrations_dir は drizzle-kit の出力先（drizzle.config.ts の out）と同じ
+  "d1_databases": [{ "binding": "DB", "database_name": "zubakui", "migrations_dir": "migrations" }],
   // O1: エラーのログを Workers Logs に残す。Traces は上限を分け合うので使わない（ADR 0005）
   "observability": {
     "enabled": true,

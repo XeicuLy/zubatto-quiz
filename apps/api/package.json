@@ -3,15 +3,20 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local --persist-to ../web/.wrangler/state",
     "dev": "wrangler dev",
     "tsc": "wrangler types --check && tsc -p tsconfig.json && tsc -p tsconfig.node.json",
     "types": "wrangler types"
   },
   "dependencies": {
+    "@zubatto-quiz/protocol": "workspace:*",
+    "drizzle-orm": "0.45.4",
     "hono": "4.13.13"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.4.0",
+    "drizzle-kit": "0.31.11",
     "vitest": "4.1.11",
     "wrangler": "4.149.0"
   }

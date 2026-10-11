@@ -10,5 +10,6 @@
   "sortPackageJson": true,
   // wrangler types が作るファイル。整形すると wrangler types --check が「古い」と判定する
   // routeTree.gen.ts は TanStack Router のプラグインが作り直すので、整形しても戻される
-  "ignorePatterns": ["**/worker-configuration.d.ts", "**/routeTree.gen.ts"]
+  // migrations/meta は drizzle-kit がスキーマの差分をとるための写し。手で触らないので、出力のまま置く
+  "ignorePatterns": ["**/worker-configuration.d.ts", "**/routeTree.gen.ts", "apps/api/migrations/meta/**"]
 }
