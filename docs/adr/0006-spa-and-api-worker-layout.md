@@ -17,7 +17,7 @@ ADR 0003 では、SPA と API を同じ Worker に置いても、別の Worker �
 - DD1 セキュリティ（S1、ADR 0003・0004）: ホストのログイン Cookie が、このアプリ以外の Worker に送られない / Cookie を付けた要求を CORS で許す相手がいない（いても最小限） / WebSocket の入口で許す `Origin` を、環境ごとに設定しなくて済む / CSP の `script-src 'self'` を、SPA のすべての画面に確実に付けられる
 - DD2 ロックイン耐性（ADR 0001 の D5・D6）: API だけを Go + Cloud Run へ移すときに、画面のコード（API と WebSocket の URL、`credentials`）を変えずに済む。ブラウザがサードパーティ Cookie を送らなくても動く
 - DD3 運用・ランニングコスト（C1〜C3）: Workers Free のまま使える。静的ファイルの配信で、1日10万リクエストの枠を使わない。ドメインを買わない
-- DD4 変更容易性・開発の手間（M1、ADR 0005）: ローカルで画面と API が1つのコマンドで動く。デプロイの手順と、環境ごとの設定（相手の URL など）が少ない。vitest-pool-workers で API と DO をテストできる
+- DD4 変更容易性・開発の手間（M1、ADR 0005）: ローカルで画面と API が1つのコマンドで動く。デプロイの手順と、環境ごとの設定（相手の URL など）が少ない。vitest-plugin で API と DO をテストできる
 - DD5 学習コスト・期限（ADR 0001 の40〜80時間）: 公式の手順から外れる量と、sprout-app の作りを使い回せる量
 
 ## Considered Options
@@ -39,7 +39,7 @@ ADR 0003 では、SPA と API を同じ Worker に置いても、別の Worker �
   - 静的アセットの配信は無料で、回数の上限もない。Service binding 経由の要求は追加のリクエストとして数えず、2つの Worker の CPU 時間の合計だけが数えられる（DD3）
   - すでに「前段の Worker が後ろのサービスへ転送する」形になっているので、Go へ移すときは、転送先を Service binding から Cloud Run への `fetch` に替えるだけで済む。画面は相対 URL（`/api/...`）だけを使うので、画面のコードは変わらない（DD2）
   - 画面の Worker だけをデプロイしても、部屋の DO の WebSocket は切れない。本番中に画面だけを直せる（DD4）
-  - apps/web と apps/api がパッケージで分かれるので、vitest-pool-workers の設定は API だけで済み、画面から API のコードを import できない境目も自然にできる（DD4）
+  - apps/web と apps/api がパッケージで分かれるので、vitest-plugin の設定は API だけで済み、画面から API のコードを import できない境目も自然にできる（DD4）
   - Cloudflare の Vite プラグインの `auxiliaryWorkers` で、`vite dev` 1つで2つの Worker と DO を動かせる。公式もこの形を勧めている（DD4）
 - L1 は、設定とデプロイが最も少ないが、選ばなかった
   - どのデプロイでも部屋の DO の WebSocket が切れるので、本番中に画面だけを直すことができない
