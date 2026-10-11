@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 
 import { createAuth } from './auth/create-auth';
+import { questionSetRoutes } from './routes/question-sets';
 
 // wrangler は main の export から DO のクラスを探す
 export { RoomDurableObject } from './room/room-do';
@@ -12,5 +13,7 @@ app.get('/health', (c) => c.json({ ok: true }));
 
 // GitHub のログイン・コールバック・ログアウト・セッションの取得（ADR 0003）。Origin の確認は Better Auth 自身が baseURL で行う
 app.on(['GET', 'POST'], '/auth/*', (c) => createAuth(c.env).handler(c.req.raw));
+
+app.route('/question-sets', questionSetRoutes);
 
 export default app;

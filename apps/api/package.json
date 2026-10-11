@@ -10,10 +10,12 @@
     "types": "wrangler types"
   },
   "dependencies": {
+    "@hono/zod-validator": "0.9.1",
     "@zubatto-quiz/protocol": "workspace:*",
     "better-auth": "1.7.7",
     "drizzle-orm": "0.45.4",
-    "hono": "4.13.13"
+    "hono": "4.13.13",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.4.0",
