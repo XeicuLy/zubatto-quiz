@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-ズバッとクイズ (ズバクイ) is a real-time multiple-choice quiz app where players score on both correctness and answer speed. The repo is **pre-implementation**: it holds tooling, CI and design documents. The pnpm workspace (`apps/*`, `packages/*`, `tools/*`) is set up. The packages so far are `packages/protocol` (the WebSocket message spec) and `packages/scoring` (score and ranking calculation); no application code or `wrangler.jsonc` exists yet. Before you design or implement anything, read the documents below. They are the source of truth:
+ズバッとクイズ (ズバクイ) is a real-time multiple-choice quiz app where players score on both correctness and answer speed. The repo is **early in implementation**: it holds tooling, CI and design documents. The pnpm workspace (`apps/*`, `packages/*`, `tools/*`) is set up. The packages so far are `packages/protocol` (the WebSocket message spec), `packages/scoring` (score and ranking calculation) and `apps/api` (the API Worker skeleton: Hono with `GET /api/health`, an empty room DO and `wrangler.jsonc`). `apps/web` doesn't exist yet. Before you design or implement anything, read the documents below. They are the source of truth:
 
 - `docs/requirements/zubatto-quiz.md` is the requirements spec. Requirement IDs are `F*` (functional), `P*` (performance), `S*` (security), `A*` (availability), `SC*` (scalability), `M*` (maintainability), `C*` (cost) and `O*` (operations). ADRs and commits cite these IDs.
 - `docs/adr/0001`–`0005` record the accepted architecture decisions. Each ADR's "対応事項" list under Consequences is effectively the implementation checklist.
@@ -27,7 +27,7 @@ pnpm exec vitest run --project <name>   # one package; the project name is its v
 - `.npmrc` sets `save-exact=true`, so dependencies are pinned to exact versions.
 - CI (`.github/workflows/ci.yaml`) runs the same four checks on every PR to `main`. The `main` repository ruleset requires the `ci` job (GitHub Actions only) and has no bypass actors, so not even admins can merge a failing PR. Keep that job name.
 - Each package's `tsconfig.json` extends `tsconfig.base.json` and adds its own `types`/`lib`. A package with a `tsc` script is type-checked by the root `pnpm run tsc`.
-- vitest 4 fails with "No projects were found" when no project glob matches, so `vitest.config.ts` leaves `projects` unset while `apps/`, `packages/` and `tools/` are empty. Stay on vitest 4.x until `@cloudflare/vitest-pool-workers` supports 5.
+- vitest 4 fails with "No projects were found" when no project glob matches, so `vitest.config.ts` leaves `projects` unset while `apps/`, `packages/` and `tools/` are empty. `@cloudflare/vitest-pool-workers` is deprecated and renamed to `@cloudflare/vitest-plugin`, which supports vitest 4 and 5 (checked 2026-10-11).
 - oxlint rejects `dangerouslySetInnerHTML`, `innerHTML`-style DOM APIs (ADR 0004) and imports of test code (`test/`, `*.test.*`, `*.spec.*`) from production code. Test code may import production code.
 
 ## Commits
@@ -74,7 +74,10 @@ The first release is all TypeScript on Cloudflare's free plan. After the first e
   - Normalize each elapsed time once with `normalizeElapsedMs`, and use that value for display, points, the bonus and the fastest answers (P2).
   - Tie-break rules are in the requirements' 「同点のとき」 section. `positionOf` returns the protocol's `playerPosition` shape without `rankUp` and `hidden`; the deadline aggregation adds those.
   - Like `packages/protocol`, `tsconfig.lib.json` checks non-test `src/` with no ambient types.
-- **Testing**: `vitest-pool-workers`, so DOs and D1 run in the local Workers runtime. Use `evictDurableObject` for hibernation and restart cases.
+- **Testing**: `@cloudflare/vitest-plugin` (formerly `vitest-pool-workers`), so DOs and D1 run in the local Workers runtime. Use `evictDurableObject` for hibernation and restart cases.
+  - Import `env` and `exports` from `cloudflare:workers`. `env` and `SELF` from `cloudflare:test` are deprecated. Take only test helpers such as `runInDurableObject` from `cloudflare:test`; oxlint rejects it in production code.
+  - `apps/api/worker-configuration.d.ts` is generated. After changing `wrangler.jsonc`, run `pnpm --filter @zubatto-quiz/api run types`. The package's `tsc` script runs `wrangler types --check`, so a stale file fails CI. oxfmt and oxlint skip the file, because formatting it would make the check fail.
+  - `src/` and the tests use the Workers types, and `vitest.config.ts` uses the node types (`tsconfig.node.json`). Mixing the two makes `Request` and other globals clash.
   - Better Auth's `testUtils` plugin goes only in a test-only auth instance.
   - Never ship a test-login endpoint in the production entry, even one gated by a runtime env flag.
   - Each ADR's Consequences section lists the security and concurrency cases that must have automated tests.

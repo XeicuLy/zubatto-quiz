@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // API の Worker（Hono・部屋の DO・Better Auth）。ブラウザからは画面の Worker の /api/* を通して呼ぶ（ADR 0006）
+  "name": "zubakui-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  // 画面の Worker の Service binding からだけ呼ぶ。*.workers.dev とプレビューの URL を出さない（ADR 0006）
+  "workers_dev": false,
+  "preview_urls": false,
+  "durable_objects": {
+    "bindings": [{ "name": "ROOM", "class_name": "RoomDurableObject" }],
+  },
+  // 部屋の DO は SQLite を使う（ADR 0001）。一度デプロイしたタグは書き換えず、変えるときは新しいタグを足す
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomDurableObject"] }],
+  // database_id は書かない。デプロイと D1 のコマンドは名前で D1 を探す。database_name は変えない（ADR 0005）
+  "d1_databases": [{ "binding": "DB", "database_name": "zubakui" }],
+  // O1: エラーのログを Workers Logs に残す。Traces は上限を分け合うので使わない（ADR 0005）
+  "observability": {
+    "enabled": true,
+    // GitHub のログインから戻る URL の code・state を残さない
+    "redact_query_string": true,
+    "logs": { "invocation_logs": true, "head_sampling_rate": 1 },
+  },
+}

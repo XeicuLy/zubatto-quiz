@@ -40,7 +40,7 @@ ADR 0001〜0004 で、基盤は Cloudflare Workers + Durable Objects（Free プ�
 理由:
 
 - K1 は DD1・DD3・DD4・DD6 で最も良い
-  - `wrangler.jsonc` は Worker・Durable Object のマイグレーション・D1 の binding をリポジトリの中に宣言的に書くものなので、それ自体が IaC の役割を果たす。ローカル（`wrangler dev`）・テスト（vitest-pool-workers）・デプロイが同じ設定を読むので、設定の正本が1つで済む
+  - `wrangler.jsonc` は Worker・Durable Object のマイグレーション・D1 の binding をリポジトリの中に宣言的に書くものなので、それ自体が IaC の役割を果たす。ローカル（`wrangler dev`）・テスト（vitest-plugin）・デプロイが同じ設定を読むので、設定の正本が1つで済む
   - wrangler は、ID のない D1 の binding をデプロイのときに自動で作成し、作った ID を `wrangler.jsonc` に書き戻す（公式ドキュメントの Automatic provisioning）。ダッシュボードや GitHub 連携からデプロイした場合は、ID が設定ファイルに書き戻されない。D1 を作るためだけに Terraform を使う理由がない
 - K2・K3 は、Terraform で管理できないものが多く、管理できるものは wrangler と重なる
   - GitHub OAuth App は、GitHub の API に作成の手段がなく、Terraform の GitHub provider にもリソースがない（integrations/terraform-provider-github の Issue #786 が未解決）。どの案でも手で作る
@@ -65,6 +65,7 @@ ADR 0001〜0004 で、基盤は Cloudflare Workers + Durable Objects（Free プ�
 - 悪い影響: CI からデプロイするので、Cloudflare の API トークンを GitHub に置く。漏れると、このアカウントの Worker と D1 を書き換えられる
 - 悪い影響: Workers のリクエスト数が上限に近づいたことを知らせる公式の通知は、見つけられなかった。D1 も、通知が来るのは上限に達したときで、近づいたときではない。そのため、要件 C4 を「課金が起きうる構成にするときは予算アラートを設定し、無料プランでは上限で止まることを受け入れて、使用量を本番の前後にダッシュボードで確かめる」に書き直した
 - 対応事項: Worker・部屋の Durable Object（`new_sqlite_classes` のマイグレーション）・D1 の binding を `wrangler.jsonc` に書く。D1 の binding は、API の Worker の `apps/api/wrangler.jsonc` にだけ書く（ADR 0006）
+  - テストには vitest-plugin（`@cloudflare/vitest-plugin`）を使う。この ADR を書いたときの名前は vitest-pool-workers（`@cloudflare/vitest-pool-workers`）だったが、名前が変わり、前の名前のパッケージは更新されなくなった（2026-10-11 に npm で確かめた）。ADR 0002〜0006 の本文も、新しい名前に直した
 - 対応事項: D1 の作り方と、本番のデプロイ・マイグレーションの仕方は、次のとおりにする。wrangler の仕様は、2026-10-11 時点の公式ドキュメント（context7 経由を含む）と、wrangler のソース（4.149.0）で確かめた
   - D1 の binding には名前だけを書き、`database_id` は書かない。T11 では `d1_databases: [{ binding: 'DB', database_name: 'zubakui' }]` と書く。`migrations_dir` は、T12 で drizzle の出力先に合わせて足す
     - wrangler は、ID のない D1 の binding を、デプロイのたびに次の順で結びつける。デプロイ済みの Worker に同じ binding があれば、それを引き継ぐ。なければ、同じ名前の D1 があればそれにつなぐ。それもなければ、その名前で D1 を作る。そのため、ID が書き戻されなくても、デプロイのたびに D1 が増えることはない
@@ -72,7 +73,7 @@ ADR 0001〜0004 で、基盤は Cloudflare Workers + Durable Objects（Free プ�
     - wrangler は 4.113.0 以上を使う。Automatic provisioning は、この版で試験的な機能ではなくなった
     - `database_name` は変えない。変えると、wrangler は前の D1 から離れ、新しい空の D1 を作ってしまう
   - wrangler.jsonc に ID が書き戻されても、コミットしない。ローカルの D1 は、`database_id` があればその ID で、なければ binding の名前（`DB`）で見分けられる。ID を書き足すと、ローカルの D1 が別の空のものに替わってしまう
-  - ローカル（`vite dev`）とテスト（vitest-pool-workers）は、ID に関係なくローカルの D1 を使う。どちらも `DB` という名前のローカルの D1 になり、Cloudflare のアカウントは要らない。この決定でテストは変わらない
+  - ローカル（`vite dev`）とテスト（vitest-plugin）は、ID に関係なくローカルの D1 を使う。どちらも `DB` という名前のローカルの D1 になり、Cloudflare のアカウントは要らない。この決定でテストは変わらない
   - 本番の D1 は、初回だけ手元で `wrangler d1 create zubakui --location apac` を実行して作る
     - マイグレーションはデプロイの前に当てる（次の項目）ので、初回も D1 が先にないといけない。許可リストに自分を入れるときも、D1 とテーブルが要る。どのみち初回は手元の手順が要るので、そこで作る
     - 位置のヒント（`--location`）を付けないと、D1 は作る要求を出した場所の近くに置かれる。CI のデプロイで自動で作ると、CI のマシンがある場所（米国など）に置かれうる。位置をあとから変えられるとは、ドキュメントに書かれていない

@@ -7,5 +7,6 @@
     "stylesheet": "./docs/design/mock/mock.css"
   },
   "sortPackageJson": true,
-  "ignorePatterns": []
+  // wrangler types が作るファイル。整形すると wrangler types --check が「古い」と判定する
+  "ignorePatterns": ["**/worker-configuration.d.ts"]
 }

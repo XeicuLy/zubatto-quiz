@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Workers の型は worker-configuration.d.ts（wrangler types で作る）から読む。node の型を混ぜると Request などがぶつかる
+    // テストは cloudflare:test の型を使う。本番のコードからの import は oxlint で止める
+    "types": ["@cloudflare/vitest-plugin/types"]
+  },
+  "include": ["src/**/*.ts", "worker-configuration.d.ts"]
+}
