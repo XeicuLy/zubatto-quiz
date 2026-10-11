@@ -71,7 +71,22 @@ S1 では、ホスト以外は管理画面を開けず、進行操作もでき�
 - 対応事項: 許可リスト（GitHub のユーザー ID）を持ち、Better Auth の `databaseHooks` で、新しく登録するときとログインするとき（セッションを作るとき）の両方で確かめる。外したホストが入り直せないようにするためで、許可リストの外の人が拒否されることを自動テストで確かめる。追加・削除は wrangler のコマンドで行い、取り消すときは許可リストから外したうえで、そのホストのセッションを D1 から消す。取り消しが効くのは次の接続からで、つながったままのホスト用の接続は閉じるまで進行操作を続けられる（部屋の DO は接続を開くときに1回だけ確かめるため。P1）。すぐに止めたいときは、その部屋を終えるか Worker を削除する。手順は README に書く
 - 対応事項: テストでは、`testUtils` をテスト専用の auth インスタンスにだけ入れるか、D1 にセッションを直接入れる。E2E 用のログインの入口が必要なら、本番の入口ファイルからは import されないテスト専用の入口にだけ置く。sprout-app のように、本番のコードに入口を含めて実行時の `APP_ENV` で止める方式は採らない
 - 対応事項: 部屋の DO への WebSocket は、ホスト用と回答者用で入口を分ける。ホスト用の入口では、Worker が `Origin` を確かめ、Cookie のセッションから `owner_id` を決めて DO に渡す。DO は、それが部屋の持ち主と一致したときだけ、接続の attachment に `{ role: "host", ownerId }` を記録する。進行操作は、attachment の role が host の接続からだけ受け付ける。回答者用の入口では Cookie を使わない。同じ人の回答者用の接続から進行操作を送っても拒否されることを、自動テストで確かめる
-- 対応事項: Cookie の `SameSite` の値は、GitHub から戻ってくる処理と合わせて実装のときに決める
+- 対応事項: Cookie の `SameSite` は、Better Auth のすべての Cookie（ログイン状態と、GitHub ログインの途中で使う `state`）で `Lax` にする。T13 の Better Auth の設定には `advanced: { defaultCookieAttributes: { sameSite: 'lax' } }` だけを書き、`secure` と `useSecureCookies` は書かない。理由と確かめたこと（2026-10-11 時点の Better Auth v1.6.23 のドキュメントとソース、Hono のドキュメント、MDN）は次のとおり
+  - Better Auth の既定は `SameSite=Lax`・`HttpOnly`・`Path=/` なので、`Lax` は既定と同じ値になる。それでも書くのは、Better Auth の既定が変わっても、この判断のとおりに動かすため
+  - `Secure` と、Cookie の名前の先頭の `__Secure-` は、`useSecureCookies` を書かなければ、`baseURL` が `https://` で始まるかで決まる。`baseURL` を環境ごとに画面の Worker の URL にすれば（ADR 0006）、ローカルの `http://localhost` では付かず、本番の `https://*.workers.dev` では付く。書かなくても環境ごとに正しく決まるので、`secure` は書かない。sprout-app の `secure: !isLocalhost` も要らない
+  - `Strict` は採らない。D1 があると、Better Auth は GitHub ログインの途中の情報を D1 に置き、署名した `state` の Cookie（有効5分）をコールバックで照合する。`defaultCookieAttributes` は、この `state` の Cookie にも効く。GitHub からのコールバックは github.com という別のサイトからの画面の移動なので、`Strict` の Cookie は付かず、`state_security_mismatch` でログインが失敗する。ログイン状態の Cookie だけを `Strict` にすることもできるが、守れる範囲は `Origin` の確認とほとんど重なり、設定が増えるだけなので採らない
+  - `None` は採らない。別のサイトの画面から開いた WebSocket や `fetch` にもログイン Cookie が付き、CSWSH と CSRF の守りが `Origin` の確認だけになる。ブラウザからは同じオリジンなので（ADR 0006）、別のサイトへ Cookie を送る必要もない
+  - `Lax` で Cookie が付くのは、同じサイトからの要求と、別のサイトからの GET の画面の移動だけである。GitHub からのコールバックは GET の画面の移動なので `state` の Cookie が付く。ホスト用の WebSocket は同じオリジンの画面から開くので、ログイン Cookie が付く。別のサイトの画面から開いた WebSocket・`fetch`・フォームの POST には付かない。なお、一部のブラウザには「設定から2分間は POST でも Cookie を付ける」緩和があるが、これは `SameSite` を書いていない Cookie を `Lax` として扱うときだけのもので、`Lax` を明示する Better Auth の Cookie には当たらない
+- 対応事項: `Origin` の確認と `SameSite=Lax` は、次のように役割を分ける
+  - 主な守りは `Origin` の確認とする。`SameSite` は「どのサイトから来たか」しか見ないので、同じサイトの別のオリジンからの要求は止められない。workers.dev では `<account>.workers.dev` が1つのサイトなので、同じアカウントの別の Worker がこれに当たる。ローカルでは localhost の別のポートがこれに当たる。`Origin` の確認は、画面の Worker のオリジンと一致するかを見るので、これらも止められる
+  - `SameSite=Lax` は2つ目の守りとする。`Origin` の確認を付け忘れた経路があっても、別のサイトから開かれた接続や要求には Cookie が付かず、ホストとして扱われない
+  - ホスト用の WebSocket の入口では、Worker が `Origin` を `new URL(request.url).origin` と比べ、合わなければ Cookie を読む前に拒否する（ADR 0006、T18）
+  - Cookie を使う HTTP API のうち、状態を変える経路（問題セットの保存、部屋の作成など）には、apps/api で Hono の `csrf()` を付ける（T15）。`csrf()` が確かめるのは、GET・HEAD・OPTIONS 以外で、フォームから送れる Content-Type（`application/x-www-form-urlencoded`・`multipart/form-data`・`text/plain`）の要求だけである。`Origin` と `Sec-Fetch-Site` のどちらも同じオリジンを示さなければ拒否する。比べる相手の既定は要求の URL のオリジンで、転送された要求では画面の Worker のオリジンになる。JSON の要求を別のオリジンから送るにはプリフライトが要り、apps/api は CORS を許さないので（ADR 0006）、ブラウザは送らない
+  - Better Auth の経路（`/api/auth/*`）では、Better Auth 自身が `baseURL` と `trustedOrigins` で `Origin` を確かめる。`disableCSRFCheck` と `disableOriginCheck` は使わない
+- 対応事項: ブラウザでの確認は、開発者ツールの Network で Cookie のヘッダーを見て行う。ローカル（http://localhost）では T13・T18・T24 で、それぞれの Issue の作ったものを確かめる。本番（https の workers.dev）では、本番の環境ができる T35 で3つをまとめて確かめる。結果がここに書いたことと違えば、この ADR を見直す
+  - T13: GitHub からのコールバックの要求に `state` の Cookie が付き、ログインできる。ログイン Cookie に `HttpOnly` と `SameSite=Lax` が付いている。本番では、さらに `Secure` が付き、名前が `__Secure-` で始まる
+  - T18: 同じオリジンの画面から開いたホスト用の WebSocket に、ログイン Cookie が付く。別のオリジンの `Origin` が付いた接続を拒否することを、自動テストで確かめる
+  - T24: Service binding で転送しても、`Cookie` と `Origin` のヘッダーが API の Worker に届く
 - 対応事項: SPA と API の Worker の構成は [ADR 0006](0006-spa-and-api-worker-layout.md) で決めた。画面の Worker が `/api/*` を Service binding で API の Worker へ転送し、ブラウザからは同じオリジンにする。そのため、Better Auth の `crossSubDomainCookies` と、Cookie を送る CORS の設定は使わない
 - 対応事項: Better Auth のログインの有効期限は7日（使っていれば1日ごとに延びる）とし、本番中に切れないようにする。期限が切れたら GitHub でログインし直す
 - 対応事項: attachment の形（`{ role: "host", ownerId } | { role: "player", participantId }`）は、回答者の見分け方（S4・F19）の ADR でも同じものを使う
