@@ -71,3 +71,36 @@ ADR 0001〜0004 で、基盤は Cloudflare Workers + Durable Objects（Free プ�
 - 対応事項: 本番の前後に、ダッシュボードで Workers と D1 の使用量を見る手順を README に書き、O2 のリハーサルで使用量の目安を測る
 - 対応事項: 将来 Workers Paid に上げるときは、そのときに予算アラートを設定する
 - 対応事項: Go + Cloud Run への置き換えの ADR で、Terraform の導入（state の置き場所、GCP の予算通知、Cloudflare 側も Terraform に寄せるか）を決める
+- 対応事項: エラーのログを7日間残す（O1）方法は、次のとおりにする。料金と保存期間は、2026-10-11 時点の公式ドキュメント（context7 経由）で確かめた
+  - Workers Logs を、Free プランのまま使う
+    - 2026-11-30 までの Workers Logs は、Free では1日20万件まで・3日しか残らず、O1 を満たさない
+    - 2026-12-01 から、Workers Logs は Cloudflare Observability の料金に変わる。Free は、取り込みが1日 0.5 GB まで（アカウント全体で、Workers Traces などと分け合う）で、7日間残る。本番は12月なので、これで O1 を満たす
+    - Free で 0.5 GB に達すると、課金はされず、00:00 UTC（日本時間 9:00）まで新しいログを取り込まなくなる。取り込んだログは7日間残る
+    - ログの量は、上限よりずっと少ない。部屋の DO は Hibernation API を使うので、ログが出るのは「入口の要求」「回答者やホストからのメッセージ」「alarm」の呼び出しごとに1件と、自分で出したログだけで、送信や ping の自動応答では出ない。本番（20名・20問）で数千件、O2 のリハーサル（5部屋 × 50接続）でも数万件の見込みで、1件1 KB としても数十 MB にとどまる。実際の量は、O2 のリハーサルで使用量とあわせて測る
+    - 選ばなかった方法: 有料の Workers Paid（月5ドル）は、C1 の月500円程度を超える。エラーを D1 や部屋の DO に書くと、書き込みと見る手段のコードが増え、D1 が落ちたときのエラーも残せない。O1 を3日に緩めるのは、12月から7日残るので理由がない
+  - 予備として、本番中は手元で `wrangler tail` の出力をファイルに保存する。12月からの料金の変更が遅れたときや、アカウントの上限で取り込みが止まったときに備える。費用はかからない
+    - `wrangler tail` は、Worker から呼んだ Durable Object のログも流す。ただし、混んでいると間引かれる（sampling mode）。本番の量では間引かれない見込み
+  - ログに出すものと出さないもの（ADR 0004・S5）
+    - `console.error` などに出すのは、`{ event: 'join_rejected', roomId, code }` のような、決まったキーの値だけにする。回答者は `participantId` で表す
+    - 再接続用の秘密とそのハッシュ、受け取ったメッセージの本文、回答者の名前、Cookie やセッションの値は出さない。メッセージの本文には、`join`・`resume` の秘密と名前が入るため
+    - メッセージの検証に失敗したときも、受け取った値は出さず、エラーの種類と場所（どのキーか）だけを出す
+    - 呼び出しごとのログ（invocation logs）は、`fetch` では「`<Method> <URL>`」、WebSocket ではイベントの種類（`message` など）を残す。メッセージの本文は残らない。リクエストのヘッダーのうち、`cookie` と、名前に `auth`・`token`・`secret` などを含むものは、値が `REDACTED` に置き換わる
+    - URL のクエリは、既定ではそのまま残る。GitHub のログインから戻る URL（`/api/auth/callback/github?code=...&state=...`）の値が残らないよう、`redact_query_string` を有効にする
+  - T11（#15）で、`apps/api/wrangler.jsonc` に次の設定を書く。T24（#28）で、`apps/web/wrangler.jsonc` にも同じ設定を書く。画面の Worker も `/api/*` を転送するので、同じ URL がログに残るため。Traces は使わない（上限を分け合うため）
+
+    ```jsonc
+    "observability": {
+      "enabled": true,
+      "redact_query_string": true,
+      "logs": { "invocation_logs": true, "head_sampling_rate": 1 },
+    },
+    ```
+
+  - T35（#39）の本番の手順に、次のことを書く
+    - 本番の前に、ダッシュボードの Billable Usage かドキュメントで、Free の保存期間が7日になったことを確かめる。3日のままなら、手元のファイルを7日以上残す
+    - 本番の始まりから終わりまで、`pnpm wrangler tail <API の Worker の名前> --format json > logs/<日付>-api.jsonl` を動かしておく。`logs/` は `.gitignore` に入れる
+    - 手元のファイルには、ヘッダーに含まれる IP アドレスなども入るので、リポジトリに入れず、人に渡さない。エラーを確かめ終えたら消す
+    - 本番のあと7日以内に、ダッシュボードの Workers Logs でエラー（`console.error` と例外）を確かめる
+  - T37（#41）の O2 のリハーサルで、次のことも確かめる
+    - Workers Logs の件数（または取り込んだ量）
+    - 部屋の DO の `webSocketMessage` で出したログが、接続が閉じる前に `wrangler tail` に流れること。ドキュメントには「WebSocket のイベントの中の `console.log` は、接続が閉じるまで `wrangler tail` に出ない」とある。これは Hibernation API を使わない WebSocket についての注意と思われるが、確かめる。閉じるまで出ないなら、本番のあとに Workers Logs で確かめる手順を主にする
