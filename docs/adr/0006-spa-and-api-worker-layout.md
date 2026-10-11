@@ -8,7 +8,7 @@ accepted
 
 ADR 0003 では、SPA と API を同じ Worker に置いても、別の Worker に分けても、W1（Cookie で確かめる WebSocket の入口）が成り立つことだけを確かめ、どちらの構成にするかは決めなかった。構成によって、Cookie の SameSite（T3）、apps/ の構成と wrangler.jsonc（T11）、Better Auth の設定（T13）、CSP の付け方（T24）が変わるので、ここで決める。
 
-画面は TanStack Start の SPA モードで作り、API は Hono と部屋の Durable Object で作る（ADR 0001）。ドメインは `*.workers.dev` を使い、買わない（ADR 0003）。忘年会のあとに、API だけを Go + Cloud Run へ置き換える（ADR 0001）。前例の sprout-app は、画面と API を別の Worker に分け、`crossSubDomainCookies` で `.<account>.workers.dev` 全体に Cookie を配っている。ただし sprout-app は SSR なので、画面の Worker もサーバー側で Cookie を読み、API へ転送する必要があった。ズバクイは SPA なので、画面の側にサーバーのコードはなく、Cookie を使うのは API だけである。
+画面は React の SPA で作り、API は Hono と部屋の Durable Object で作る（ADR 0001）。この ADR を書いたときは、画面を TanStack Start の SPA モードで作る予定だったが、T24 で TanStack Router だけを使うことにした（「構成とファイルの置き場所」を見る）。ドメインは `*.workers.dev` を使い、買わない（ADR 0003）。忘年会のあとに、API だけを Go + Cloud Run へ置き換える（ADR 0001）。前例の sprout-app は、画面と API を別の Worker に分け、`crossSubDomainCookies` で `.<account>.workers.dev` 全体に Cookie を配っている。ただし sprout-app は SSR なので、画面の Worker もサーバー側で Cookie を読み、API へ転送する必要があった。ズバクイは SPA なので、画面の側にサーバーのコードはなく、Cookie を使うのは API だけである。
 
 各サービスの仕様は、2026-10-11 時点の公式ドキュメント（context7 経由）と、sprout-app のコードで確かめた。
 
@@ -54,9 +54,10 @@ ADR 0003 では、SPA と API を同じ Worker に置いても、別の Worker �
 ### 構成とファイルの置き場所
 
 ```text
-apps/web/   画面の Worker（TanStack Start の SPA と、/api/* の転送）
+apps/web/   画面の Worker（TanStack Router の SPA と、/api/* の転送）
   wrangler.jsonc   assets（not_found_handling: single-page-application、run_worker_first: ['/api/*']）と、API の Worker への services の binding
-  src/server.ts    Worker の入口。/api/* は env.API.fetch(request) へ転送し、ほかは TanStack Start に渡す
+  index.html       SPA の入口。インラインのスクリプトを置かない
+  src/server.ts    Worker の入口。/api/* だけを env.API.fetch(request) へ転送する。ほかの経路は静的アセットが返すので、ここには来ない
   public/_headers  CSP
 apps/api/   API の Worker（Hono・部屋の DO・Better Auth）
   wrangler.jsonc   workers_dev: false、preview_urls: false、DO と D1 の binding
@@ -81,9 +82,13 @@ apps/api/   API の Worker（Hono・部屋の DO・Better Auth）
 - 悪い影響: 止めるときは、2つの Worker を削除する。API の Worker を消せば、DO と D1 の利用は止まる
 - 対応事項: API と WebSocket の経路は、すべて `/api/` の下に置く。Better Auth の `basePath` も `/api/auth` にする
 - 対応事項: ホスト用・回答者用の WebSocket の入口では、`Origin` を `new URL(request.url).origin`（画面の Worker のオリジン）と比べる（T18）
-- 対応事項: Service binding で WebSocket の Upgrade が通ることを、T24 で転送を作るときに確かめる。通らなければ、この ADR を見直す
-- 対応事項: SPA の shell を `index.html` として出す設定（TanStack Start の `spa.prerender.outputPath`）を T24 で確かめる。`not_found_handling: 'single-page-application'` が返すのは `/index.html` のため
-- 対応事項: CSP の `connect-src 'self'` で WebSocket もつなげるかを、T24 で確かめる
+- 対応事項（T24 で対応済み）: Service binding で WebSocket の Upgrade が通ることを、T24 で転送を作るときに確かめる。通らなければ、この ADR を見直す
+  - 2026-10-11 に `vite dev`（`auxiliaryWorkers`）で、画面の Worker 経由で API の Worker の WebSocket につなぎ、送った文字が返ってくることを確かめた。`Cookie` と `Origin` も、転送のあとにそのまま API の Worker に届いた。本番での確認は T35 で行う
+- 対応事項（T24 で対応済み）: SPA の shell を `index.html` として出す。`not_found_handling: 'single-page-application'` が返すのは `/index.html` のため
+  - TanStack Start の SPA モードは、`spa.prerender.outputPath` で shell を `index.html` に出せる。ただし shell には hydration 用のインラインのスクリプトが2つ入り、中身にビルドの時刻が入るのでビルドごとに変わる。クライアントはこのスクリプトが作る `window.$_TSR` がないと起動しないので、CSP の `script-src 'self'`（ADR 0004）と両立しない（2026-10-11 に TanStack Start 1.168.61 のビルドで確かめた）
+  - hash を CSP に足す方法と、ビルドのあとにスクリプトを外部ファイルへ出す方法も比べたが、どちらもビルドの手順が増え、後者は TanStack の内部の出力の形に頼る。画面はサーバーの機能（SSR やサーバー関数）を使わないので、TanStack Start をやめ、Vite の `index.html` を入口にして TanStack Router だけを使うことにした。`index.html` にインラインのスクリプトはなく、CSP は `script-src 'self'` のままでよい
+- 対応事項（T24 で対応済み）: CSP の `connect-src 'self'` で WebSocket もつなげるかを、T24 で確かめる
+  - 2026-10-11 に `vite build` と `vite preview`（`_headers` の CSP が付く）で、同じオリジンの `ws:` にはつながり、ほかのホストへの `wss:` は CSP で止まることを、Chromium で確かめた。`connect-src` には `wss:` を足さない
 - 対応事項: GitHub OAuth App のローカル用のコールバック URL は、`vite dev` のオリジンにする。README の停止手順は「2つの Worker を削除する」にする（T34）
 - 対応事項: 本番中は API の Worker をデプロイしない（部屋の DO の WebSocket が切れるため）。画面の Worker だけなら切れない
 - 対応事項: Go + Cloud Run への置き換えの ADR で、画面の Worker から Cloud Run へ転送する（WebSocket を含む）か、画面も Cloud Run に載せるかを決める。Cloud Run の URL を直接呼ばれないようにする方法もあわせて決める
