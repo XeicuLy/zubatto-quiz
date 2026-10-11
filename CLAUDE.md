@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-ズバッとクイズ (ズバクイ) is a real-time multiple-choice quiz app where players score on both correctness and answer speed. The repo is **early in implementation**: it holds tooling, CI and design documents. The pnpm workspace (`apps/*`, `packages/*`, `tools/*`) is set up. The packages so far are `packages/protocol` (the WebSocket message spec), `packages/scoring` (score and ranking calculation), `apps/api` (the API Worker skeleton: Hono with `GET /api/health`, an empty room DO and `wrangler.jsonc`) and `apps/web` (the SPA skeleton: TanStack Router routes, Tailwind tokens, the CSP and the Worker that forwards `/api/*`). Before you design or implement anything, read the documents below. They are the source of truth:
+ズバッとクイズ (ズバクイ) is a real-time multiple-choice quiz app where players score on both correctness and answer speed. The repo is **early in implementation**: it holds tooling, CI and design documents. The pnpm workspace (`apps/*`, `packages/*`, `tools/*`) is set up. The packages so far are `packages/protocol` (the WebSocket message spec), `packages/scoring` (score and ranking calculation), `apps/api` (the API Worker skeleton: Hono with `GET /api/health`, an empty room DO, `wrangler.jsonc` and the drizzle D1 schema with its migrations) and `apps/web` (the SPA skeleton: TanStack Router routes, Tailwind tokens, the CSP and the Worker that forwards `/api/*`). Before you design or implement anything, read the documents below. They are the source of truth:
 
 - `docs/requirements/zubatto-quiz.md` is the requirements spec. Requirement IDs are `F*` (functional), `P*` (performance), `S*` (security), `A*` (availability), `SC*` (scalability), `M*` (maintainability), `C*` (cost) and `O*` (operations). ADRs and commits cite these IDs.
 - `docs/adr/0001`–`0005` record the accepted architecture decisions. Each ADR's "対応事項" list under Consequences is effectively the implementation checklist.
@@ -69,6 +69,12 @@ The first release is all TypeScript on Cloudflare's free plan. After the first e
   - Secrets go in with `wrangler secret put`.
   - Anything that can't be expressed in config goes in README runbooks: the GitHub OAuth Apps for local and prod, the allowlist, and the stop procedure (delete the Worker).
   - No Terraform until the Go migration.
+- **D1 schema** (`apps/api/src/db`): drizzle tables for Better Auth, `question_sets`, `questions` and `host_allowlist`. Use `createDb(env.DB)`.
+  - `schema/auth.ts` is the output of the Better Auth CLI (`auth`, formerly `@better-auth/cli`). The CLI needs a config file. Regenerate it when you upgrade Better Auth or add a plugin, and keep the hand-added `(provider_id, account_id)` unique on `account`: Better Auth refuses to look up an account that has duplicate rows.
+  - `questions.choices` is a JSON array column. The DB CHECK constraints copy the rules in protocol's `questionSchema` (2–4 choices, all of them strings, correct index in range, F9 limits) and take their numbers from protocol's constants.
+  - `migrations/` is generated. Run `pnpm --filter @zubatto-quiz/api run db:generate --name <name>` and don't edit the SQL by hand; oxfmt skips `migrations/meta`. Once a migration is deployed, only add new ones, and keep them additive so the old code still runs (ADR 0005).
+  - `pnpm --filter @zubatto-quiz/api run db:migrate:local` applies them to the local D1 that `vite dev` uses (`apps/web/.wrangler/state`).
+  - In tests, `test/apply-migrations.ts` applies `migrations/` before each test file. vitest-plugin does not reset D1 between tests, so clear tables in `beforeEach`. drizzle wraps D1 errors, so assert on `cause.message`.
 - **Scoring** (`packages/scoring`): pure functions for F11, F14 and F15. The room DO stores and broadcasts results; it never computes points or ranks itself.
   - Change point values only in `config.ts` (M2). F12's `quickBonus` goes into `defaultScoring` when the bonus is built.
   - Normalize each elapsed time once with `normalizeElapsedMs`, and use that value for display, points, the bonus and the fastest answers (P2).

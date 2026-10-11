@@ -98,7 +98,7 @@ ADR 0001〜0004 で、基盤は Cloudflare Workers + Durable Objects（Free プ�
   - Cloudflare の API トークンを作り、アカウント ID とあわせて、GitHub の Environment（`production`）の secret に入れる
   - デプロイの workflow の動かし方。本番中は「API と画面」を選ばない
   - 初めて環境を作るときの順番: D1 を作る → シークレットを入れる → workflow を「API と画面」で動かす（マイグレーションも当たる）→ 許可リストに自分を入れる
-  - ローカルの D1 にマイグレーションを当てる。`vite dev` は画面の Worker（apps/web）の側にローカルのデータを置くので、`wrangler d1 migrations apply DB --local` の `--persist-to` をそこに合わせる。正しいパスは T11・T24 で確かめる
+  - ローカルの D1 にマイグレーションを当てる。`vite dev` は画面の Worker（apps/web）の側にローカルのデータを置くので、`wrangler d1 migrations apply DB --local` の `--persist-to` をそこに合わせる。T12 で確かめたパスは `../web/.wrangler/state`（apps/api から見たもの）で、`pnpm --filter @zubatto-quiz/api run db:migrate:local` で当てる。`vite dev` と wrangler は、どちらもローカルの D1 を binding の名前（`DB`）で見分けるので、同じ D1 になる
 - 対応事項: 本番の前後に、ダッシュボードで Workers と D1 の使用量を見る手順を README に書き、O2 のリハーサルで使用量の目安を測る
 - 対応事項: 将来 Workers Paid に上げるときは、そのときに予算アラートを設定する
 - 対応事項: Go + Cloud Run への置き換えの ADR で、Terraform の導入（state の置き場所、GCP の予算通知、Cloudflare 側も Terraform に寄せるか）を決める
