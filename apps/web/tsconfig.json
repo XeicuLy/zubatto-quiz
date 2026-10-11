@@ -1,0 +1,9 @@
+{
+  // エディタが、ファイルごとに下の3つのどれかを選ぶ。画面（DOM）と Worker の型を混ぜると Request などがぶつかるので分ける
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.worker.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}

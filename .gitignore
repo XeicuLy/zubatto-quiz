@@ -1,6 +1,8 @@
 node_modules/
 memo.md
 docs/design/mock/dist/
+# vite build の出力
+dist/
 
 # wrangler のローカルの状態（ローカルの D1・DO のデータなど）
 .wrangler/

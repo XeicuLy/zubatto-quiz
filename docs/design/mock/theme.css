@@ -1,6 +1,6 @@
 /*
  * ズバクイの見た目のトークン。
- * T24 で apps/web/src/styles.css の `@import 'tailwindcss';` の後ろに、このファイルの中身をそのまま移す。
+ * T24 で apps/web/src/styles.css に移した。以後の正本は styles.css で、トークンを変えるときは styles.css を直す。
  * モックだけで使うもの（状態の切り替えなど）は mock.css に置き、ここには入れない。
  */
 

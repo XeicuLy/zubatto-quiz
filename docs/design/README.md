@@ -4,15 +4,15 @@
 
 ## 中身
 
-| ファイル             | 内容                                                                                           |
-| -------------------- | ---------------------------------------------------------------------------------------------- |
-| `mock/theme.css`     | 色・文字・間隔などのトークン（`@theme`）と、名前の出し方などのユーティリティ。T24 で本番へ移す |
-| `mock/mock.css`      | ビルドの入口。状態を切り替えるためのモック専用の CSS も置く。本番へは移さない                  |
-| `mock/admin.html`    | ホストの管理画面                                                                               |
-| `mock/host.html`     | ホストの進行画面（投影とスマホ）                                                               |
-| `mock/player.html`   | 回答者画面（スマホの縦向き）                                                                   |
-| `mock/ranking.html`  | 最速正解者とランキング（進行画面と回答者画面で共有する部品）                                   |
-| `mock/dist/mock.css` | ビルドで作る CSS。git には入れない                                                             |
+| ファイル             | 内容                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------ |
+| `mock/theme.css`     | 色・文字・間隔などのトークン（`@theme`）と、名前の出し方などのユーティリティ。T24 で本番へ移した |
+| `mock/mock.css`      | ビルドの入口。状態を切り替えるためのモック専用の CSS も置く。本番へは移さない                    |
+| `mock/admin.html`    | ホストの管理画面                                                                                 |
+| `mock/host.html`     | ホストの進行画面（投影とスマホ）                                                                 |
+| `mock/player.html`   | 回答者画面（スマホの縦向き）                                                                     |
+| `mock/ranking.html`  | 最速正解者とランキング（進行画面と回答者画面で共有する部品）                                     |
+| `mock/dist/mock.css` | ビルドで作る CSS。git には入れない                                                               |
 
 ## 見方
 
@@ -103,9 +103,11 @@ open docs/design/mock/player.html
 
 ## T24 での移し方
 
-1. `mock/theme.css` の中身を、`apps/web/src/styles.css` の `@import 'tailwindcss';` の後ろへそのまま移す。`mock/mock.css` の中身（状態の切り替え）は移さない
-2. `.oxfmtrc.json` の `sortTailwindcss.stylesheet` を `apps/web/src/styles.css` に向け直す。自前のトークン（`bg-stage` など）のクラスを正しい順に並べるのに使っている
-3. フォントの読み込み方（Google Fonts か、自分のサーバーから配るか）は、CSP と合わせて T24 で決める
+T24 で、次のように本番へ移した。トークンの正本は `apps/web/src/styles.css` になったので、トークンを変えるときは styles.css を直す。
+
+1. `mock/theme.css` の中身を、`apps/web/src/styles.css` の `@import 'tailwindcss';` の後ろへそのまま移した。`mock/mock.css` の中身（状態の切り替え）は移していない
+2. `.oxfmtrc.json` の `sortTailwindcss.stylesheet` を `apps/web/src/styles.css` に向け直した。自前のトークン（`bg-stage` など）のクラスを正しい順に並べるのに使っている
+3. フォントは Google Fonts ではなく、`@fontsource` から入れて同じオリジンから配る。CSP の `font-src`・`style-src` を `'self'` のままにできる。モックは今も Google Fonts から読み込む
 4. モックが要らなくなったら、`@tailwindcss/cli` と `mock:build`・`mock:watch` を消す
 
 ## 確かめ方
