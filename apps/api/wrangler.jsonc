@@ -4,6 +4,14 @@
   "name": "zubakui-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
+  // Better Auth は node:async_hooks の AsyncLocalStorage を使う
+  "compatibility_flags": ["nodejs_compat"],
+  // 値は wrangler secret put（本番）と .dev.vars（ローカル）で入れる。ここに名前を書くと、wrangler types が .dev.vars がなくても同じ型を作る。
+  // 値のない名前があると wrangler deploy が失敗する
+  // BETTER_AUTH_URL は Better Auth の baseURL で、ブラウザから見える画面の Worker の URL にする（ADR 0006）。
+  // 秘密の値ではないが、vars に書くとデプロイのたびにその値に戻り、本番の値を入れ忘れても localhost のまま動いてしまうので、ここに入れる。
+  // https で始まるかで、Cookie の Secure と名前の __Secure- が決まる（ADR 0003）
+  "secrets": { "required": ["BETTER_AUTH_URL", "BETTER_AUTH_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"] },
   // 画面の Worker の Service binding からだけ呼ぶ。*.workers.dev とプレビューの URL を出さない（ADR 0006）
   "workers_dev": false,
   "preview_urls": false,
