@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-ズバッとクイズ (ズバクイ) is a real-time multiple-choice quiz app where players score on both correctness and answer speed. The repo is **early in implementation**: it holds tooling, CI and design documents. The pnpm workspace (`apps/*`, `packages/*`, `tools/*`) is set up. The packages so far are `packages/protocol` (the WebSocket message spec), `packages/scoring` (score and ranking calculation), `apps/api` (the API Worker skeleton: Hono with `GET /api/health`, an empty room DO, `wrangler.jsonc` and the drizzle D1 schema with its migrations) and `apps/web` (the SPA skeleton: TanStack Router routes, Tailwind tokens, the CSP and the Worker that forwards `/api/*`). Before you design or implement anything, read the documents below. They are the source of truth:
+ズバッとクイズ (ズバクイ) is a real-time multiple-choice quiz app where players score on both correctness and answer speed. The repo is **early in implementation**: it holds tooling, CI and design documents. The pnpm workspace (`apps/*`, `packages/*`, `tools/*`) is set up. The packages so far are `packages/protocol` (the WebSocket message spec), `packages/scoring` (score and ranking calculation), `apps/api` (the API Worker skeleton: Hono with `GET /api/health`, the room DO with its SQLite schema but no handlers yet, `wrangler.jsonc` and the drizzle D1 schema with its migrations) and `apps/web` (the SPA skeleton: TanStack Router routes, Tailwind tokens, the CSP and the Worker that forwards `/api/*`). Before you design or implement anything, read the documents below. They are the source of truth:
 
 - `docs/requirements/zubatto-quiz.md` is the requirements spec. Requirement IDs are `F*` (functional), `P*` (performance), `S*` (security), `A*` (availability), `SC*` (scalability), `M*` (maintainability), `C*` (cost) and `O*` (operations). ADRs and commits cite these IDs.
 - `docs/adr/0001`–`0005` record the accepted architecture decisions. Each ADR's "対応事項" list under Consequences is effectively the implementation checklist.
@@ -78,6 +78,12 @@ The first release is all TypeScript on Cloudflare's free plan. After the first e
   - `migrations/` is generated. Run `pnpm --filter @zubatto-quiz/api run db:generate --name <name>` and don't edit the SQL by hand; oxfmt skips `migrations/meta`. Once a migration is deployed, only add new ones, and keep them additive so the old code still runs (ADR 0005).
   - `pnpm --filter @zubatto-quiz/api run db:migrate:local` applies them to the local D1 that `vite dev` uses (`apps/web/.wrangler/state`).
   - In tests, `test/apply-migrations.ts` applies `migrations/` before each test file. vitest-plugin does not reset D1 between tests, so clear tables in `beforeEach`. drizzle wraps D1 errors, so assert on `cause.message`.
+- **Room DO SQLite** (`apps/api/src/room`): no drizzle. Use `ctx.storage.sql` directly, so the `join` checks and insert stay synchronous.
+  - `schema.ts` holds `ROOM_MIGRATIONS`, one SQL string per version. The constructor runs `migrate` inside `blockConcurrencyWhile`. Each version and its `schema_migrations` row are applied in one `transactionSync`. Never edit a deployed version; append a new one.
+  - DO SQLite doesn't support `PRAGMA user_version` (checked 2026-10-12), so the version lives in `schema_migrations`.
+  - Tables are `STRICT`. `participants.join_order` is the rowid alias and is the scoring `joinOrder`. A join writes only the `participants` row (ADR 0004 DD7); total scores are `sum(question_scores.points)`. `questions.closed_at` marks a question whose deadline has been scored, so a re-run alarm skips it (A3).
+  - Bind values with `?`, never string interpolation, including numbers.
+  - `attachment.ts` defines `Attachment` (`host` / `player` / `null` = unverified) with `getAttachment` and `setAttachment`.
 - **Scoring** (`packages/scoring`): pure functions for F11, F14 and F15. The room DO stores and broadcasts results; it never computes points or ranks itself.
   - Change point values only in `config.ts` (M2). F12's `quickBonus` goes into `defaultScoring` when the bonus is built.
   - Normalize each elapsed time once with `normalizeElapsedMs`, and use that value for display, points, the bonus and the fastest answers (P2).
