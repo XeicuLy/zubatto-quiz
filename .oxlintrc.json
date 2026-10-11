@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  // wrangler types が作るファイルは見ない
-  "ignorePatterns": ["**/worker-configuration.d.ts"],
+  // wrangler types と TanStack Router のプラグインが作るファイルは見ない
+  "ignorePatterns": ["**/worker-configuration.d.ts", "**/routeTree.gen.ts"],
   "plugins": ["typescript", "unicorn", "oxc", "react", "import", "vitest"],
   "categories": {
     "correctness": "error"

@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Workers の型は worker-configuration.d.ts（wrangler types で作る）から読む
+    "types": []
+  },
+  "include": ["src/server.ts", "src/server.test.ts", "worker-configuration.d.ts"]
+}

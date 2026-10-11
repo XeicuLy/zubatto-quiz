@@ -1,0 +1,6 @@
+# 静的アセット（SPA の index.html を含む）に付けるヘッダー。Worker のコードが返す /api/* の応答には付かない（ADR 0006）
+# CSP は ADR 0004 の XSS 対策の1つ目。script-src にインラインと eval を許さない。
+# connect-src の 'self' は、同じホストへの ws:・wss: も含む（WebSocket は /api/ の下につなぐ）
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'
+  X-Content-Type-Options: nosniff

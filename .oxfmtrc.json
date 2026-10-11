@@ -4,9 +4,11 @@
   "singleQuote": true,
   "sortImports": true,
   "sortTailwindcss": {
-    "stylesheet": "./docs/design/mock/mock.css"
+    // Tailwind CSS v4 は設定を CSS の @theme に書くので、エントリの CSS を渡す。@theme のトークン（bg-stage など）も並べ替えの対象になる
+    "stylesheet": "./apps/web/src/styles.css"
   },
   "sortPackageJson": true,
   // wrangler types が作るファイル。整形すると wrangler types --check が「古い」と判定する
-  "ignorePatterns": ["**/worker-configuration.d.ts"]
+  // routeTree.gen.ts は TanStack Router のプラグインが作り直すので、整形しても戻される
+  "ignorePatterns": ["**/worker-configuration.d.ts", "**/routeTree.gen.ts"]
 }

@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // vite.config.ts・vitest.config.ts と、ファイルを読むテスト（test/*.test.ts）は node の上で動く
+    "types": ["node"]
+  },
+  "include": ["vite.config.ts", "vitest.config.ts", "test/**/*.test.ts"]
+}
