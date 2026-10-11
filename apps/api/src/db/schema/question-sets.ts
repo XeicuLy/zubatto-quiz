@@ -1,5 +1,5 @@
 import { DEFAULT_LIMIT_MS, MAX_CHOICES, MAX_LIMIT_MS, MIN_CHOICES, MIN_LIMIT_MS } from '@zubatto-quiz/protocol';
-import { sql } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import { check, index, integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
 
 import { user } from './auth';
@@ -86,3 +86,12 @@ export const questions = sqliteTable(
     ),
   ],
 );
+
+// db.query の with で、セットと問題を1回のクエリで読むために使う（ADR 0002）。表の定義は変えないので、マイグレーションは要らない
+export const questionSetsRelations = relations(questionSets, ({ many }) => ({
+  questions: many(questions),
+}));
+
+export const questionsRelations = relations(questions, ({ one }) => ({
+  set: one(questionSets, { fields: [questions.setId], references: [questionSets.id] }),
+}));
