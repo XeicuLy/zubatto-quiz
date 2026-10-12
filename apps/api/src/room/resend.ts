@@ -53,10 +53,7 @@ export function answerProgressOf(sql: SqlStorage, questionId: string): AnswerPro
  * 送らないと、端末に選択肢がまた出て、押すと already_answered になる
  */
 function resendOwnAnswer(sql: SqlStorage, ws: WebSocket, participantId: string, questionId: string): void {
-  // TODO(あなた): 次の2つを書く
-  // 1. answers の表から、この人（participantId）のこの問題（questionId）の choice_index と elapsed_ms を読む。
-  //    行がないこともあるので、.one() ではなく .toArray()[0] で受ける（room-do.ts の fetch と同じ形）
-  // 2. 行があれば、answerAccepted を send で送る。形は handlers/answer.ts の send(ws, { type: 'answerAccepted', ... }) と同じ
+  // まだ答えていなければ行がない。.one() は行がないと例外を投げ、そのあとの処理を止めるので、.toArray()[0] で受ける
   const answer = sql
     .exec<{ choice_index: number; elapsed_ms: number }>(
       'SELECT choice_index, elapsed_ms FROM answers WHERE participant_id = ? AND question_id = ?',
