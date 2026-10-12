@@ -3,6 +3,7 @@ import { CLOSE_CODES, type HostCommand, type RoomPhase } from '@zubatto-quiz/pro
 import { scheduleAlarm } from '../alarm';
 import { broadcast, send } from '../send';
 import { transition, type RoomState, type TransitionResult } from '../state-machine';
+import { scoreQuestion, sendResults } from './close-question';
 
 type RoomRow = {
   phase: RoomPhase;
@@ -11,7 +12,7 @@ type RoomRow = {
   deadline_at: number | null;
 };
 
-/** 問題の1行。正解（correct_index）は締切まで DO の外へ出さないので、ここでは読まない（S2） */
+/** 問題の1行。正解（correct_index）は締切まで DO の外へ出さないので、ここでは読まない。締切の集計（close-question.ts）でだけ読む（S2） */
 type QuestionRow = { id: string; position: number; text: string; choices: string; limit_ms: number };
 
 const readRoomRow = (sql: SqlStorage): RoomRow =>
@@ -53,6 +54,10 @@ function applyHostCommand(ctx: DurableObjectState, command: HostCommand, now: nu
     if (command.type === 'retryQuestion' && question) {
       sql.exec('DELETE FROM answers WHERE question_id = ?', question.id);
     }
+    // 締切では、段階を ① に移すのと同じトランザクションで得点を確定する。alarm の締切もここを通る（A3）
+    if (command.type === 'closeAnswering' && question) {
+      scoreQuestion(sql, question.id, now);
+    }
     // 締切は受付中のあいだだけ持つ。部屋を終えたら、受付中だった問題の締切も捨てる
     const deadlineAt = next.phase === 'accepting' && !next.ended && question ? now + question.limit_ms : null;
     sql.exec(
@@ -75,7 +80,7 @@ function applyHostCommand(ctx: DurableObjectState, command: HostCommand, now: nu
   if (!question) {
     return result;
   }
-  // 出題とやり直しは問題文だけ、受付開始で選択肢を配る。①②③と最終ランキングで配るものは、締切の集計（T23）で足す
+  // 出題とやり直しは問題文だけ、受付開始で選択肢を配る。①②③と最終ランキングは、締切で確定した得点から作って配る
   if (next.phase === 'question') {
     broadcast(ctx, {
       type: 'questionShown',
@@ -95,6 +100,8 @@ function applyHostCommand(ctx: DurableObjectState, command: HostCommand, now: nu
       limitMs: question.limit_ms,
       remainingMs: question.limit_ms,
     });
+  } else {
+    sendResults(ctx, next.phase, question.position);
   }
   return result;
 }

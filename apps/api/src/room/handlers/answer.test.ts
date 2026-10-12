@@ -2,21 +2,17 @@ import type { ClientMessage, ServerMessage } from '@zubatto-quiz/protocol';
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { connect, joinPlayer, messageReader, newRoom, type RoomStub } from '../../../test/room-socket';
+import {
+  connect,
+  joinPlayer,
+  messageReader,
+  newRoom,
+  nextOf,
+  type RoomStub,
+  type Socket,
+} from '../../../test/room-socket';
 
 const LIMIT_MS = 10_000;
-
-type Socket = { ws: WebSocket; next: () => Promise<unknown> };
-
-/** 指定した種類のメッセージが届くまで読み進める。参加者一覧や出題など、そのテストで見ないものは読み飛ばす */
-async function nextOf<T extends ServerMessage['type']>(socket: Socket, type: T) {
-  for (;;) {
-    const message = (await socket.next()) as ServerMessage;
-    if (message.type === type) {
-      return message as Extract<ServerMessage, { type: T }>;
-    }
-  }
-}
 
 const send = (socket: Socket, message: ClientMessage | Record<string, unknown>) =>
   socket.ws.send(JSON.stringify(message));
@@ -180,9 +176,7 @@ describe('受付中でない問題への回答（F10）', () => {
       players: [taro],
     } = await startAccepting(stub);
     send(host, { type: 'closeAnswering', questionIndex: 0 });
-    // 締切の結果はまだ配らない（T23）ので、続けて送った仕様外の文字列の返事で、締切が済んだことを確かめる
-    host.ws.send('sync');
-    await nextOf(host, 'error');
+    await nextOf(host, 'revealed');
 
     expect(await answer(taro, q1)).toEqual({ type: 'error', code: 'not_accepting' });
     expect(await readAnswers(stub)).toEqual([]);
