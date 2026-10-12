@@ -1,32 +1,49 @@
 import { CLOSE_CODES } from '@zubatto-quiz/protocol';
 
-import { setAttachment, type Attachment } from './attachment';
+import { getAttachment, setAttachment, type Attachment } from './attachment';
 
-/** 1部屋で受け付ける WebSocket の上限。未確認の接続・置き換えの途中の古い接続・ホストの接続を含む（ADR 0004） */
+/**
+ * 回答者用の入口から受け付ける WebSocket の上限。未確認の接続と、置き換えの途中の古い接続を含む（ADR 0004）。
+ * 回答者50名に対して約2倍の余裕を持たせる
+ */
 export const MAX_CONNECTIONS = 100;
 
 /**
- * 部屋の DO が受け付けている接続のうち、開いているものの本数を数える。
+ * ホスト用の入口から受け付ける WebSocket の上限。回答者用の100本とは別に数える（ADR 0004）。
+ * 部屋の URL を知る人が回答者用の100本を埋めても、ホストがつなげて進行を止めないようにするため。
+ * PC とスマホの両方で開いたり、リロードが重なったりしても足りる本数にする
+ */
+export const MAX_HOST_CONNECTIONS = 5;
+
+/**
+ * 部屋の DO が受け付けている接続のうち、開いているものの本数を、ホスト用と回答者用の枠に分けて数える。
+ * 回答者用（player）には、未確認の接続も含む。
  *
  * getWebSockets() は、DO が close() したあとも、相手が close を返すまでは CLOSING の接続を返す。
  * それも数えると、閉じた接続が枠を使い続けるので、readyState が OPEN のものだけを数える（ADR 0004）
  */
-export function countOpenConnections(ctx: DurableObjectState): number {
+export function countOpenConnections(ctx: DurableObjectState): Record<RoomEntry['role'], number> {
   const websockets = ctx.getWebSockets();
   const openSockets = websockets.filter((websocket) => websocket.readyState === WebSocket.OPEN);
-  return openSockets.length;
+  const roleHost = openSockets
+    .map((openSocket) => getAttachment(openSocket))
+    .filter((attachment) => attachment?.role === 'host');
+  return { host: roleHost.length, player: openSockets.length - roleHost.length };
 }
 
 /**
- * 接続を受け付けて、101 の応答を返す。上限に達していれば、受け付けずに 4503 で閉じる（ADR 0004）。
+ * 接続を受け付けて、101 の応答を返す。その接続の枠が上限に達していれば、受け付けずに 4503 で閉じる（ADR 0004）。
  *
  * 本数の確認から acceptWebSocket までに await を挟まない。DO は1つのスレッドで動くので、
- * 同時に来た接続も1本ずつここを通り、間に別の接続が割り込んで100本を超えることがない
+ * 同時に来た接続も1本ずつここを通り、間に別の接続が割り込んで上限を超えることがない
  */
 export function acceptConnection(ctx: DurableObjectState, attachment: Attachment): Response {
   const { 0: client, 1: server } = new WebSocketPair();
+  // ホスト用の接続はホストの枠、回答者用の接続（attachment が null）は回答者用の枠と比べる
+  const role = attachment?.role === 'host' ? 'host' : 'player';
+  const limit = role === 'host' ? MAX_HOST_CONNECTIONS : MAX_CONNECTIONS;
 
-  if (countOpenConnections(ctx) >= MAX_CONNECTIONS) {
+  if (countOpenConnections(ctx)[role] >= limit) {
     // HTTP の 503 で断ると、ブラウザには理由のない切断（1006）にしか見えない。いったん開いて code で理由を伝え、
     // 端末が間を空けて再接続できるようにする。accept() で受けた接続は休止の対象にならず、getWebSockets() にも数えない
     server.accept();
