@@ -1,6 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
 
 import type { StoredQuestion } from '../question-sets/repository';
+import { acceptConnection, readRoomEntry } from './connections';
 import { migrate } from './migrate';
 
 /** initialize に渡す値。部屋の作成で D1 から1回だけ読んだ、問題セットの全体（正解を含む）と持ち主 */
@@ -10,7 +11,7 @@ export type RoomInit = { ownerId: string; title: string; questions: readonly Sto
  * 1部屋につき1つ作る Durable Object。部屋の状態・得点・回答の唯一の正本になる（ADR 0001）。
  * 表は schema.ts、接続ごとの情報は attachment.ts にある。
  *
- * WebSocket は Hibernation API で受ける。接続を受け付ける処理とハンドラの中身は、T18 以降で書く。
+ * WebSocket は Hibernation API で受ける。受け付けと本数の上限は connections.ts にある。ハンドラの中身は T19 以降で書く。
  */
 export class RoomDurableObject extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
@@ -58,6 +59,30 @@ export class RoomDurableObject extends DurableObject<Env> {
         );
       }
     });
+  }
+
+  /**
+   * WebSocket の接続を受け付ける。Worker が Origin・部屋 ID・ホストのセッションを確かめたあと、roomRequest で作った要求だけが来る。
+   *
+   * async にせず、await を1つも書かない。本数の確認から acceptWebSocket までに、別の接続が割り込まないようにするため（ADR 0004）
+   */
+  override fetch(request: Request): Response {
+    const entry = readRoomEntry(request);
+    // initialize の済んでいない ID でも DO はでき、room の表が空になる。ない部屋として断る
+    const room = this.ctx.storage.sql.exec<{ owner_id: string }>('SELECT owner_id FROM room').toArray()[0];
+    if (!entry || !room) {
+      return new Response(null, { status: 404 });
+    }
+
+    if (entry.role === 'player') {
+      return acceptConnection(this.ctx, null);
+    }
+    // ホスト用の入口。Worker がセッションから決めた ownerId が、部屋の持ち主と一致したときだけ host として受け付ける（S1・ADR 0003）。
+    // 他人の部屋は、ない部屋と同じ 404 にする（HTTP API と同じ）
+    if (entry.ownerId !== room.owner_id) {
+      return new Response(null, { status: 404 });
+    }
+    return acceptConnection(this.ctx, entry);
   }
 
   override async webSocketMessage(_ws: WebSocket, _message: string | ArrayBuffer): Promise<void> {}

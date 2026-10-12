@@ -90,6 +90,8 @@ S1 では、ホスト以外は管理画面を開けず、進行操作もでき�
 - 対応事項: ブラウザでの確認は、開発者ツールの Network で Cookie のヘッダーを見て行う。ローカル（http://localhost）では T13・T18・T24 で、それぞれの Issue の作ったものを確かめる。本番（https の workers.dev）では、本番の環境ができる T35 で3つをまとめて確かめる。結果がここに書いたことと違えば、この ADR を見直す
   - T13: GitHub からのコールバックの要求に `state` の Cookie が付き、ログインできる。ログイン Cookie に `HttpOnly` と `SameSite=Lax` が付いている。本番では、さらに `Secure` が付き、名前が `__Secure-` で始まる
   - T18: 同じオリジンの画面から開いたホスト用の WebSocket に、ログイン Cookie が付く。別のオリジンの `Origin` が付いた接続を拒否することを、自動テストで確かめる
+    - 2026-10-12 に `vite dev` で、GitHub でログインした画面のコンソールから `/api/rooms/:roomId/ws/host` を開き、Network で確かめた。応答は `101 Switching Protocols` で、要求の `Cookie` にログイン Cookie が付き、持ち主として受け付けられた（接続は閉じられなかった）
+    - 別のサイト・同じサイトの別のオリジン（`workers.dev` の別の Worker、localhost の別のポート）・`Origin` のない接続を、どちらの入口でも Cookie を読む前に 403 で断ることは、`apps/api/src/routes/ws.test.ts` で確かめる
   - T24: Service binding で転送しても、`Cookie` と `Origin` のヘッダーが API の Worker に届く
 - 対応事項: SPA と API の Worker の構成は [ADR 0006](0006-spa-and-api-worker-layout.md) で決めた。画面の Worker が `/api/*` を Service binding で API の Worker へ転送し、ブラウザからは同じオリジンにする。そのため、Better Auth の `crossSubDomainCookies` と、Cookie を送る CORS の設定は使わない
 - 対応事項: Better Auth のログインの有効期限は7日（使っていれば1日ごとに延びる）とし、本番中に切れないようにする。期限が切れたら GitHub でログインし直す
