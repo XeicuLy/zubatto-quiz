@@ -53,6 +53,9 @@ importers:
       '@zubatto-quiz/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+      '@zubatto-quiz/scoring':
+        specifier: workspace:*
+        version: link:../../packages/scoring
       better-auth:
         specifier: 1.7.7
         version: 1.7.7(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(kysely@0.29.6))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@4.1.11(@types/node@24.19.1)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))

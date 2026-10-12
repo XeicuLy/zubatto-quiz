@@ -5,6 +5,7 @@ import type { StoredQuestion } from '../question-sets/repository';
 import { scheduleAlarm } from './alarm';
 import { getAttachment } from './attachment';
 import { acceptConnection, readRoomEntry } from './connections';
+import { handleAnswer } from './handlers/answer';
 import { closeAnsweringIfDue, handleHostCommand } from './handlers/host-commands';
 import { handleJoin } from './handlers/join';
 import { handleResume } from './handlers/resume';
@@ -131,10 +132,13 @@ export class RoomDurableObject extends DurableObject<Env> {
       return handleHostCommand(this.ctx, ws, message);
     }
 
-    // 確かめ済みの接続は、もう join も resume もできない。回答（T22）は、その Issue で足す
-    if (message.type === 'join' || message.type === 'resume') {
-      send(ws, { type: 'error', code: 'invalid_state' });
+    // 回答は回答者の接続からだけ受け付け、participantId は attachment から取る。
+    // 本文に participantId を書いても decode が取り除くので、他人として答えられない（S4・ADR 0004）
+    if (message.type === 'answer' && attachment.role === 'player') {
+      return handleAnswer(this.ctx, ws, attachment.participantId, message);
     }
+    // 確かめ済みの接続は、もう join も resume もできない。ホストの接続は回答者ではないので、回答もできない
+    send(ws, { type: 'error', code: 'invalid_state' });
   }
 
   /**
