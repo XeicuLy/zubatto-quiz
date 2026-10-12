@@ -5,6 +5,7 @@ import type { StoredQuestion } from '../question-sets/repository';
 import { getAttachment } from './attachment';
 import { acceptConnection, readRoomEntry } from './connections';
 import { handleJoin } from './handlers/join';
+import { handleResume } from './handlers/resume';
 import { migrate } from './migrate';
 import { closeExpiredPending, nextPendingDeadline } from './pending-timeout';
 import { send } from './send';
@@ -110,15 +111,15 @@ export class RoomDurableObject extends DurableObject<Env> {
       if (message.type === 'join') {
         return handleJoin(this.ctx, ws, message);
       }
-      if (message.type !== 'resume') {
-        send(ws, { type: 'error', code: 'not_verified' });
+      if (message.type === 'resume') {
+        return handleResume(this.ctx, ws, message);
       }
-      // resume は T20 で受け付ける
+      send(ws, { type: 'error', code: 'not_verified' });
       return;
     }
 
-    // 確かめ済みの接続は、もう join できない。回答（T22）と進行操作（T21）は、それぞれの Issue で足す
-    if (message.type === 'join') {
+    // 確かめ済みの接続は、もう join も resume もできない。回答（T22）と進行操作（T21）は、それぞれの Issue で足す
+    if (message.type === 'join' || message.type === 'resume') {
       send(ws, { type: 'error', code: 'invalid_state' });
     }
   }

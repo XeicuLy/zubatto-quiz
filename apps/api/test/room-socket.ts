@@ -1,3 +1,4 @@
+import type { Joined } from '@zubatto-quiz/protocol';
 import { env } from 'cloudflare:workers';
 import { expect } from 'vitest';
 
@@ -69,4 +70,23 @@ export function newToken(): string {
     .replaceAll('+', '-')
     .replaceAll('/', '_')
     .replace(/=+$/, '');
+}
+
+/** 回答者用の入口につなぎ、join を通して participantId を返す */
+export async function joinPlayer(stub: RoomStub, name: string, token = newToken()) {
+  const ws = await connect(stub, { role: 'player' });
+  const next = messageReader(ws);
+  const closed = closeOf(ws);
+  ws.send(JSON.stringify({ type: 'join', name, token }));
+  const { participantId } = (await next()) as Joined;
+  return { ws, next, closed, participantId };
+}
+
+/** 回答者用の入口に新しくつなぎ、resume を送る */
+export async function resumePlayer(stub: RoomStub, token: string) {
+  const ws = await connect(stub, { role: 'player' });
+  const next = messageReader(ws);
+  const closed = closeOf(ws);
+  ws.send(JSON.stringify({ type: 'resume', token }));
+  return { ws, next, closed };
 }
