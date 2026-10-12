@@ -20,10 +20,19 @@ export function send(ws: WebSocket, message: ServerMessageInput): void {
  * 未確認の接続には送らない。部屋の URL を知るだけの人に、参加者の名前などを見せないため
  */
 export function broadcast(ctx: DurableObjectState, message: ServerMessageInput): void {
+  sendWhere(ctx, message, (ws) => getAttachment(ws) !== null);
+}
+
+/** ホスト用の、開いている接続のすべてへ送る。回答数のように、進行画面にだけ出すもの */
+export function sendToHosts(ctx: DurableObjectState, message: ServerMessageInput): void {
+  sendWhere(ctx, message, (ws) => getAttachment(ws)?.role === 'host');
+}
+
+function sendWhere(ctx: DurableObjectState, message: ServerMessageInput, isTarget: (ws: WebSocket) => boolean): void {
   // 仕様の検査と JSON にするのは、送る相手の数によらず1回で済ませる
   const data = encodeServerMessage(message);
   for (const ws of ctx.getWebSockets()) {
-    if (ws.readyState === WebSocket.OPEN && getAttachment(ws) !== null) {
+    if (ws.readyState === WebSocket.OPEN && isTarget(ws)) {
       ws.send(data);
     }
   }

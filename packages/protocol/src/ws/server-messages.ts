@@ -133,7 +133,10 @@ export const answerAcceptedSchema = z.object({
 });
 export type AnswerAccepted = z.infer<typeof answerAcceptedSchema>;
 
-/** 回答した人数（「回答 12 / 18 人」）。受付中に全員へ送る */
+/**
+ * 回答した人数（「回答 12 / 18 人」）。受付中に、回答を受け付けるたびにホストへだけ送る。
+ * 回答者の画面には出さないので、締切の直前に50人が一斉に答えても、送るのは回答1件につきホストの接続の数だけで済む
+ */
 export const answerProgressSchema = z.object({
   type: z.literal('answerProgress'),
   questionId: questionIdSchema,
