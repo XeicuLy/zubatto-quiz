@@ -1,8 +1,13 @@
+import { decodeClientMessage } from '@zubatto-quiz/protocol';
 import { DurableObject } from 'cloudflare:workers';
 
 import type { StoredQuestion } from '../question-sets/repository';
+import { getAttachment } from './attachment';
 import { acceptConnection, readRoomEntry } from './connections';
+import { handleJoin } from './handlers/join';
 import { migrate } from './migrate';
+import { closeExpiredPending, nextPendingDeadline } from './pending-timeout';
+import { send } from './send';
 
 /** initialize に渡す値。部屋の作成で D1 から1回だけ読んだ、問題セットの全体（正解を含む）と持ち主 */
 export type RoomInit = { ownerId: string; title: string; questions: readonly StoredQuestion[] };
@@ -11,7 +16,7 @@ export type RoomInit = { ownerId: string; title: string; questions: readonly Sto
  * 1部屋につき1つ作る Durable Object。部屋の状態・得点・回答の唯一の正本になる（ADR 0001）。
  * 表は schema.ts、接続ごとの情報は attachment.ts にある。
  *
- * WebSocket は Hibernation API で受ける。受け付けと本数の上限は connections.ts にある。ハンドラの中身は T19 以降で書く。
+ * WebSocket は Hibernation API で受ける。受け付けと本数の上限は connections.ts、メッセージごとの処理は handlers/ にある。
  */
 export class RoomDurableObject extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
@@ -75,7 +80,10 @@ export class RoomDurableObject extends DurableObject<Env> {
     }
 
     if (entry.role === 'player') {
-      return acceptConnection(this.ctx, null);
+      const response = acceptConnection(this.ctx, null);
+      // 受け付けた未確認の接続を時間切れで閉じられるよう、alarm を予定し直す
+      this.scheduleAlarm();
+      return response;
     }
     // ホスト用の入口。Worker がセッションから決めた ownerId が、部屋の持ち主と一致したときだけ host として受け付ける（S1・ADR 0003）。
     // 他人の部屋は、ない部屋と同じ 404 にする（HTTP API と同じ）
@@ -85,7 +93,56 @@ export class RoomDurableObject extends DurableObject<Env> {
     return acceptConnection(this.ctx, entry);
   }
 
-  override async webSocketMessage(_ws: WebSocket, _message: string | ArrayBuffer): Promise<void> {}
+  /**
+   * 端末からのメッセージを、protocol の zod で確かめてから、接続の attachment で振り分ける。
+   * 休止から起きたときも、attachment は残っているので、同じ接続を同じ回答者として扱える（A1）
+   */
+  override async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer): Promise<void> {
+    const decoded = decodeClientMessage(raw);
+    if (!decoded.success) {
+      send(ws, { type: 'error', code: 'invalid_message' });
+      return;
+    }
+    const message = decoded.data;
+
+    // 未確認の接続からは join と resume だけを受け付ける（ADR 0004）
+    if (getAttachment(ws) === null) {
+      if (message.type === 'join') {
+        return handleJoin(this.ctx, ws, message);
+      }
+      if (message.type !== 'resume') {
+        send(ws, { type: 'error', code: 'not_verified' });
+      }
+      // resume は T20 で受け付ける
+      return;
+    }
+
+    // 確かめ済みの接続は、もう join できない。回答（T22）と進行操作（T21）は、それぞれの Issue で足す
+    if (message.type === 'join') {
+      send(ws, { type: 'error', code: 'invalid_state' });
+    }
+  }
+
+  /**
+   * 時間を過ぎた未確認の接続を閉じ、次の alarm を予定し直す（ADR 0004）。
+   * alarm は少なくとも1回動き、2回動くこともある。閉じた接続は数え直さないので、2回動いても結果は変わらない
+   */
+  override alarm(): void {
+    closeExpiredPending(this.ctx, Date.now());
+    this.scheduleAlarm();
+  }
+
+  /**
+   * 次に alarm で起きる時刻を、今の状態から計算し直して予定する（ADR 0004）。
+   * DO の alarm は1つしかなく、setAlarm は前の予定を上書きする。getAlarm() で読んだ予定に頼らず、毎回計算し直すので、
+   * 締切（T21）を足すときも、ここで早いほうを選べば片方の予定を消さずに済む。
+   *
+   * setAlarm は await しない。fetch を同期のままにするためで、書き込みが終わるまで応答は端末に届かない（出力ゲート）
+   */
+  private scheduleAlarm(): void {
+    const next = nextPendingDeadline(this.ctx);
+    void (next === null ? this.ctx.storage.deleteAlarm() : this.ctx.storage.setAlarm(next));
+  }
 
   override async webSocketClose(_ws: WebSocket, _code: number, _reason: string, _wasClean: boolean): Promise<void> {}
 

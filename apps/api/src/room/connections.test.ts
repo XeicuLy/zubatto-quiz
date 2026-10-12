@@ -2,23 +2,12 @@ import { CLOSE_CODES } from '@zubatto-quiz/protocol';
 import { runInDurableObject } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 
-import { closeOf, newRoom, openSocket } from '../../test/room-socket';
+import { closeOf, connect, newRoom, type RoomStub } from '../../test/room-socket';
 import { getAttachment } from './attachment';
-import {
-  countOpenConnections,
-  MAX_CONNECTIONS,
-  MAX_HOST_CONNECTIONS,
-  roomRequest,
-  type RoomEntry,
-} from './connections';
-
-type RoomStub = Awaited<ReturnType<typeof newRoom>>;
+import { countOpenConnections, MAX_CONNECTIONS, MAX_HOST_CONNECTIONS, type RoomEntry } from './connections';
 
 const player = { role: 'player' } satisfies RoomEntry;
 const host = { role: 'host', ownerId: 'alice' } satisfies RoomEntry;
-
-/** Worker を通さず、部屋の DO へ直接つなぐ */
-const connect = async (stub: RoomStub, entry: RoomEntry) => openSocket(await stub.fetch(roomRequest(entry)));
 
 /** 部屋の DO が受け付けている接続の attachment を、すべて読む */
 const readAttachments = (stub: RoomStub) =>
