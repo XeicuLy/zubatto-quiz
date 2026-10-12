@@ -4,16 +4,25 @@ import { expect } from 'vitest';
 
 import { roomRequest, type RoomEntry } from '../src/room/connections';
 
+/** newRoom が作る問題。n 問目（1始まり）の ID は q-n で、制限時間は10秒。正解はどれも0番目 */
+export const testQuestion = (n: number) => ({
+  id: `q-${n}`,
+  text: n === 1 ? '社長の好物は？' : `第${n}問`,
+  choices: ['寿司', '焼肉'],
+  correctIndex: 0,
+  limitMs: 10_000,
+});
+
 /**
- * 持ち主が alice で、問題が1問ある部屋の DO を作る。newUniqueId なので、ほかのテストの部屋と混ざらない。
+ * 持ち主が alice で、問題が questionCount 問（既定は1問）ある部屋の DO を作る。newUniqueId なので、ほかのテストの部屋と混ざらない。
  * joined などに入れる部屋の要約は、問題が1問以上ないと仕様に合わない（questionCount は1以上）
  */
-export async function newRoom(ownerId = 'alice') {
+export async function newRoom(ownerId = 'alice', questionCount = 1) {
   const stub = env.ROOM.get(env.ROOM.newUniqueId());
   await stub.initialize({
     ownerId,
     title: 'テストの部屋',
-    questions: [{ id: 'q-1', text: '社長の好物は？', choices: ['寿司', '焼肉'], correctIndex: 0, limitMs: 10_000 }],
+    questions: Array.from({ length: questionCount }, (_, i) => testQuestion(i + 1)),
   });
   return stub;
 }

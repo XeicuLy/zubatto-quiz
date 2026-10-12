@@ -80,7 +80,7 @@ export const playerMessageSchema = z.discriminatedUnion('type', [joinSchema, res
 export type PlayerMessage = z.infer<typeof playerMessageSchema>;
 
 /**
- * 問題を対象にする進行操作。questionIndex が今の状態と合わないときは、部屋の DO が無視する。
+ * 問題を対象にする進行操作。questionIndex が今の状態と合わないときは、部屋の DO が状態を変えずに invalid_state を返す。
  * ボタンの2度押しや、つなぎ直した直後の古い画面からの操作で、問題を飛ばさないため
  */
 function questionCommandSchema<const T extends string>(type: T) {
@@ -97,7 +97,7 @@ export const closeAnsweringSchema = questionCommandSchema('closeAnswering');
 export const revealFastestSchema = questionCommandSchema('revealFastest');
 /** ③ 途中経過を出す。最後の2問では受け付けない */
 export const showStandingsSchema = questionCommandSchema('showStandings');
-/** 問題のやり直し（A3）。その問題の回答を捨てて、出題の前に戻る */
+/** 問題のやり直し（A3）。締切の前の問題だけ。その問題の回答を捨てて、出題の段階に戻し、questionShown を配り直す */
 export const retryQuestionSchema = questionCommandSchema('retryQuestion');
 /** 最後の問題のあとに、最終ランキングを出す */
 export const showFinalRankingSchema = z.object({ type: z.literal('showFinalRanking') });
