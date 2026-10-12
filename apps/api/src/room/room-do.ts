@@ -1,6 +1,10 @@
 import { DurableObject } from 'cloudflare:workers';
 
+import type { StoredQuestion } from '../question-sets/repository';
 import { migrate } from './migrate';
+
+/** initialize に渡す値。部屋の作成で D1 から1回だけ読んだ、問題セットの全体（正解を含む）と持ち主 */
+export type RoomInit = { ownerId: string; title: string; questions: readonly StoredQuestion[] };
 
 /**
  * 1部屋につき1つ作る Durable Object。部屋の状態・得点・回答の唯一の正本になる（ADR 0001）。
@@ -14,6 +18,46 @@ export class RoomDurableObject extends DurableObject<Env> {
     // 休止から起きたときも、ここを通ってから WebSocket のハンドラが呼ばれる。
     // マイグレーションが終わるまで、ほかの要求を受けない。失敗すれば DO が作り直され、次の要求でやり直す
     void ctx.blockConcurrencyWhile(async () => migrate(ctx.storage));
+  }
+
+  /**
+   * 部屋を作るときに1回だけ呼ぶ RPC（ADR 0002）。持ち主と問題セットの写しを、1つのトランザクションで書く。
+   *
+   * ここで書いた問題が、この部屋の正本になる。このあとは D1 を読まないので、元の問題セットを編集しても部屋は変わらない（F7）。
+   * 途中で失敗したら何も残らない。2回目の呼び出しは断り、1回目の持ち主と問題を書き換えさせない
+   */
+  initialize({ ownerId, title, questions }: RoomInit): void {
+    const { sql } = this.ctx.storage;
+    // 中で例外が出れば、それまでに書いた行もまとめて取り消される
+    this.ctx.storage.transactionSync(() => {
+      // 1. room の表にもう行があれば、2回目の初期化なので断る
+      const { count } = sql.exec<{ count: number }>('SELECT count(*) AS count FROM room').one();
+      if (count > 0) {
+        throw new Error('部屋はもう作られている');
+      }
+
+      // 2. 部屋の1行を書く。current_position と ended_at は NULL のまま
+      sql.exec(
+        'INSERT INTO room (id, owner_id, title, phase, created_at) VALUES (1, ?, ?, ?, ?)',
+        ownerId,
+        title,
+        'lobby',
+        Date.now(),
+      );
+
+      // 3. 問題を1問ずつ書く。entries() は [添字, 要素] を返すので、添字を position にする
+      for (const [position, question] of questions.entries()) {
+        sql.exec(
+          'INSERT INTO questions (id, position, text, choices, correct_index, limit_ms) VALUES (?, ?, ?, ?, ?, ?)',
+          question.id,
+          position,
+          question.text,
+          JSON.stringify(question.choices),
+          question.correctIndex,
+          question.limitMs,
+        );
+      }
+    });
   }
 
   override async webSocketMessage(_ws: WebSocket, _message: string | ArrayBuffer): Promise<void> {}

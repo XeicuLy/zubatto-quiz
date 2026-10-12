@@ -1,5 +1,6 @@
 export * from './http/errors.ts';
 export * from './http/question-sets.ts';
+export * from './http/rooms.ts';
 export * from './question-set.ts';
 export * from './redact.ts';
 export * from './ws/client-messages.ts';

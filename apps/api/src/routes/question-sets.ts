@@ -1,8 +1,6 @@
-import { zValidator } from '@hono/zod-validator';
 import {
   questionSetSchema,
   type CreateQuestionSetResponse,
-  type HttpError,
   type ListQuestionSetsResponse,
   type QuestionSetDetail,
 } from '@zubatto-quiz/protocol';
@@ -18,16 +16,10 @@ import {
   listQuestionSets,
   updateQuestionSet,
 } from '../question-sets/repository';
+import { jsonBody, notFound } from './common';
 
-/** 本文を questionSetSchema で確かめる（F4・F9）。合わなければ、項目ごとの理由は付けずに 400 を返す */
-const questionSetBody = zValidator('json', questionSetSchema, (result, c) => {
-  if (!result.success) {
-    return c.json({ error: 'invalid_request' } satisfies HttpError, 400);
-  }
-});
-
-/** 他人のセットとないセットに返す本文。403 にすると、そのセットがあることが漏れるので、どちらも 404 にする（S1） */
-const notFound = { error: 'not_found' } satisfies HttpError;
+/** 本文を questionSetSchema で確かめる（F4・F9） */
+const questionSetBody = jsonBody(questionSetSchema);
 
 /**
  * 問題セットを管理する HTTP API（F4・F7）。要求と応答の形は protocol の http/question-sets.ts にある。
@@ -59,7 +51,12 @@ export const questionSetRoutes = new Hono<HostEnv>()
     if (!set) {
       return c.json(notFound, 404);
     }
-    return c.json(set satisfies QuestionSetDetail);
+    // 問題の id は部屋の DO へのコピーで使うもので、編集画面の形（QuestionSetDetail）には含めない
+    const { questions, ...rest } = set;
+    return c.json({
+      ...rest,
+      questions: questions.map(({ id: _id, ...question }) => question),
+    } satisfies QuestionSetDetail);
   })
   .put('/:id', questionSetBody, async (c) => {
     const updated = await updateQuestionSet(createDb(c.env.DB), {

@@ -34,8 +34,11 @@ export async function listQuestionSets(db: Db, { ownerId }: Owner): Promise<Ques
     .orderBy(desc(questionSets.updatedAt));
 }
 
+/** D1 に入っている問題。id は部屋の DO でも questionId としてそのまま使う（ADR 0002） */
+export type StoredQuestion = Question & { id: string };
+
 /** 正解を含むセットの全体。ホストの編集画面と、部屋の作成（部屋の DO へのコピー）だけで使う（S2） */
-export type StoredQuestionSet = QuestionSet & { id: string };
+export type StoredQuestionSet = Omit<QuestionSet, 'questions'> & { id: string; questions: StoredQuestion[] };
 
 /**
  * セットの全体（正解を含む）を、問題の順番どおりに1回のクエリで読む（ADR 0002）。
@@ -47,7 +50,7 @@ export async function getQuestionSet(db: Db, owned: OwnedSet): Promise<StoredQue
     where: ownedSet(owned),
     with: {
       questions: {
-        columns: { text: true, choices: true, correctIndex: true, limitMs: true },
+        columns: { id: true, text: true, choices: true, correctIndex: true, limitMs: true },
         orderBy: [asc(questions.position)],
       },
     },
