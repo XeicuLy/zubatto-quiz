@@ -144,6 +144,21 @@ describe('部屋の DO の SQLite のスキーマ', () => {
     });
   });
 
+  it('受付の締切の時刻（deadline_at）を持ち、部屋を作ったときは NULL になる（F9・v2）', async () => {
+    const stub = env.ROOM.getByName('schema-deadline-at');
+
+    const deadlines = await runInDurableObject(stub, (_instance, state) => {
+      const { sql } = state.storage;
+      insertRoom(sql);
+      const before = sql.exec<{ deadline_at: number | null }>('SELECT deadline_at FROM room').one().deadline_at;
+      sql.exec('UPDATE room SET deadline_at = ?', 12_345);
+      const after = sql.exec<{ deadline_at: number | null }>('SELECT deadline_at FROM room').one().deadline_at;
+      return { before, after };
+    });
+
+    expect(deadlines).toEqual({ before: null, after: 12_345 });
+  });
+
   it('入室1回で書くのは参加者の1行だけで、得点の合計は確定した得点から求める（ADR 0004 の DD7）', async () => {
     const stub = env.ROOM.getByName('schema-join-one-row');
 

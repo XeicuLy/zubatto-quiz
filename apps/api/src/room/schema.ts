@@ -93,8 +93,14 @@ CREATE TABLE question_scores (
 ) STRICT, WITHOUT ROWID;
 `;
 
+const v2 = `
+-- 回答の受付の締切の時刻（F9）。受付を始めたときに「今 + 制限時間」を入れ、受付中でなくなったら NULL に戻す。
+-- alarm の時刻はここから計算し直すので、休止や再起動のあとも締切が消えない（A3）
+ALTER TABLE room ADD COLUMN deadline_at INTEGER;
+`;
+
 /** 版ごとの SQL。配列の位置 + 1 が版の番号になる */
-export const ROOM_MIGRATIONS: readonly string[] = [v1];
+export const ROOM_MIGRATIONS: readonly string[] = [v1, v2];
 
 /** 最新の版 */
 export const ROOM_SCHEMA_VERSION = ROOM_MIGRATIONS.length;

@@ -1,13 +1,15 @@
-import { decodeClientMessage } from '@zubatto-quiz/protocol';
+import { decodeClientMessage, isHostCommand } from '@zubatto-quiz/protocol';
 import { DurableObject } from 'cloudflare:workers';
 
 import type { StoredQuestion } from '../question-sets/repository';
+import { scheduleAlarm } from './alarm';
 import { getAttachment } from './attachment';
 import { acceptConnection, readRoomEntry } from './connections';
+import { closeAnsweringIfDue, handleHostCommand } from './handlers/host-commands';
 import { handleJoin } from './handlers/join';
 import { handleResume } from './handlers/resume';
 import { migrate } from './migrate';
-import { closeExpiredPending, nextPendingDeadline } from './pending-timeout';
+import { closeExpiredPending } from './pending-timeout';
 import { send } from './send';
 
 /** initialize に渡す値。部屋の作成で D1 から1回だけ読んだ、問題セットの全体（正解を含む）と持ち主 */
@@ -83,7 +85,7 @@ export class RoomDurableObject extends DurableObject<Env> {
     if (entry.role === 'player') {
       const response = acceptConnection(this.ctx, null);
       // 受け付けた未確認の接続を時間切れで閉じられるよう、alarm を予定し直す
-      this.scheduleAlarm();
+      scheduleAlarm(this.ctx);
       return response;
     }
     // ホスト用の入口。Worker がセッションから決めた ownerId が、部屋の持ち主と一致したときだけ host として受け付ける（S1・ADR 0003）。
@@ -107,7 +109,8 @@ export class RoomDurableObject extends DurableObject<Env> {
     const message = decoded.data;
 
     // 未確認の接続からは join と resume だけを受け付ける（ADR 0004）
-    if (getAttachment(ws) === null) {
+    const attachment = getAttachment(ws);
+    if (attachment === null) {
       if (message.type === 'join') {
         return handleJoin(this.ctx, ws, message);
       }
@@ -118,31 +121,31 @@ export class RoomDurableObject extends DurableObject<Env> {
       return;
     }
 
-    // 確かめ済みの接続は、もう join も resume もできない。回答（T22）と進行操作（T21）は、それぞれの Issue で足す
+    // 進行操作は、attachment の role が host の接続からだけ受け付ける（S1・ADR 0003）。
+    // 操作のたびに D1 を見ず、接続を開くときに書いた attachment だけで決める（P1）
+    if (isHostCommand(message)) {
+      if (attachment.role !== 'host') {
+        send(ws, { type: 'error', code: 'not_host' });
+        return;
+      }
+      return handleHostCommand(this.ctx, ws, message);
+    }
+
+    // 確かめ済みの接続は、もう join も resume もできない。回答（T22）は、その Issue で足す
     if (message.type === 'join' || message.type === 'resume') {
       send(ws, { type: 'error', code: 'invalid_state' });
     }
   }
 
   /**
-   * 時間を過ぎた未確認の接続を閉じ、次の alarm を予定し直す（ADR 0004）。
-   * alarm は少なくとも1回動き、2回動くこともある。閉じた接続は数え直さないので、2回動いても結果は変わらない
+   * 時間を過ぎた未確認の接続を閉じ、締切を過ぎた受付を締め切ってから、次の alarm を予定し直す（ADR 0004）。
+   * alarm は少なくとも1回動き、2回動くこともある。閉じた接続も、締め切った問題も、2回目には何もしないので、結果は変わらない
    */
   override alarm(): void {
-    closeExpiredPending(this.ctx, Date.now());
-    this.scheduleAlarm();
-  }
-
-  /**
-   * 次に alarm で起きる時刻を、今の状態から計算し直して予定する（ADR 0004）。
-   * DO の alarm は1つしかなく、setAlarm は前の予定を上書きする。getAlarm() で読んだ予定に頼らず、毎回計算し直すので、
-   * 締切（T21）を足すときも、ここで早いほうを選べば片方の予定を消さずに済む。
-   *
-   * setAlarm は await しない。fetch を同期のままにするためで、書き込みが終わるまで応答は端末に届かない（出力ゲート）
-   */
-  private scheduleAlarm(): void {
-    const next = nextPendingDeadline(this.ctx);
-    void (next === null ? this.ctx.storage.deleteAlarm() : this.ctx.storage.setAlarm(next));
+    const now = Date.now();
+    closeExpiredPending(this.ctx, now);
+    closeAnsweringIfDue(this.ctx, now);
+    scheduleAlarm(this.ctx);
   }
 
   override async webSocketClose(_ws: WebSocket, _code: number, _reason: string, _wasClean: boolean): Promise<void> {}
