@@ -21,6 +21,13 @@ type InsertResult =
  * DO は1つのスレッドで動くので、同時に来た2件の join が、両方とも49名を見て50名を超えることがない
  */
 export async function handleJoin(ctx: DurableObjectState, ws: WebSocket, { name, token }: Join): Promise<void> {
+  // 見えない文字だけの名前は、protocol の検査を通っても、画面では空に見える。仕様に合わない名前として断る
+  const normalizedName = normalizeName(name);
+  if (normalizedName === '') {
+    send(ws, { type: 'error', code: 'invalid_message' });
+    return;
+  }
+
   const tokenHash = await hashToken(token);
 
   // await のあいだに、同じ接続から送られた別の join が通っているかもしれない。1本の接続で2人を登録しない
@@ -40,7 +47,6 @@ export async function handleJoin(ctx: DurableObjectState, ws: WebSocket, { name,
     if (count >= MAX_PARTICIPANTS) {
       return { ok: false, reason: 'room_full' };
     }
-    const normalizedName = normalizeName(name);
     const taken = sql.exec('SELECT 1 FROM participants WHERE normalized_name = ?', normalizedName).toArray();
     if (taken.length > 0) {
       return { ok: false, reason: 'name_taken' };

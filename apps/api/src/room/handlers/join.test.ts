@@ -57,6 +57,7 @@ describe('join（F2・ADR 0004）', () => {
     ['全角と半角の英数字', 'TARO1', 'ＴＡＲＯ１'],
     ['半角と全角のカタカナ', 'タロウ', 'ﾀﾛｳ'],
     ['前後の空白', 'たろう', '\u3000たろう\u3000'],
+    ['見えない文字（異体字セレクタ）を足しただけ', 'たろう', 'たろう\uFE0F'],
   ])('%s のかぶりは 4409 name_taken で閉じ、参加者を増やさない', async (_case, first, second) => {
     const stub = await newRoom();
     await (await joinAs(stub, first)).next();
@@ -65,6 +66,19 @@ describe('join（F2・ADR 0004）', () => {
 
     expect(await closed).toEqual({ code: CLOSE_CODES.name_taken, reason: 'name_taken' });
     expect(await readParticipants(stub)).toHaveLength(1);
+  });
+
+  it.each([
+    ['ハングルのフィラー', '\u3164'],
+    ['異体字セレクタと空白', '\uFE0F \uFE0F'],
+  ])('見えない文字（%s）だけの名前は invalid_message で断り、参加者を登録しない', async (_case, name) => {
+    const stub = await newRoom();
+
+    const { next } = await joinAs(stub, name);
+
+    expect(await next()).toEqual({ type: 'error', code: 'invalid_message' });
+    expect(await readParticipants(stub)).toEqual([]);
+    expect(await readAttachments(stub)).toEqual([null]);
   });
 
   it('部屋が終わったあとの join は 4410 room_ended で閉じる', async () => {
