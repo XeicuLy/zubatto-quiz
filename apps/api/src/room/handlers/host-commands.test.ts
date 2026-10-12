@@ -10,7 +10,7 @@ const syncReply = { type: 'error', code: 'invalid_message' };
 
 /**
  * メッセージを送り、それを処理するあいだにこの接続へ届いたメッセージを返す。
- * ①②③ への遷移はまだ何も配らない（T23）ので、送ったあとに仕様に合わない文字列を続けて送り、その invalid_message が届くまでを1回分とみなす。
+ * 操作によっては何も届かないので、送ったあとに仕様に合わない文字列を続けて送り、その invalid_message が届くまでを1回分とみなす。
  * 同じ接続のメッセージは、部屋の DO が届いた順に1つずつ処理する
  */
 async function exchange(socket: { ws: WebSocket; next: () => Promise<unknown> }, message: ClientMessage) {
@@ -231,12 +231,18 @@ describe('締切（F9）', () => {
     // alarm は最大1分ほど遅れることがある。締切を過ぎても、alarm はまだ動かさない
     advance(LIMIT_MS);
 
-    expect(await host.send({ type: 'retryQuestion', questionIndex: 0 })).toEqual([invalidState]);
+    // 操作の前に締め切るので、① の結果が先に届き、そのあとにやり直しが断られる
+    expect(await host.send({ type: 'retryQuestion', questionIndex: 0 })).toEqual([
+      expect.objectContaining({ type: 'revealed' }),
+      invalidState,
+    ]);
     const answers = await runInDurableObject(stub, (_instance, state) =>
       state.storage.sql.exec('SELECT question_id FROM answers').toArray(),
     );
     expect(answers).toEqual([{ question_id: 'q-1' }]);
-    expect(await host.send({ type: 'revealFastest', questionIndex: 0 })).toEqual([]);
+    expect(await host.send({ type: 'revealFastest', questionIndex: 0 })).toEqual([
+      expect.objectContaining({ type: 'fastest' }),
+    ]);
     expect(await readRoom(stub)).toMatchObject({ phase: 'fastest', deadlineAt: null });
   });
 
@@ -323,7 +329,9 @@ describe('締切のあとの順番（F14・F15）', () => {
     await closeQuestion(host, 0);
     await host.send({ type: 'revealFastest', questionIndex: 0 });
     // 第1問（3問のうち、最後の2問ではない）では出せる
-    expect(await host.send({ type: 'showStandings', questionIndex: 0 })).toEqual([]);
+    expect(await host.send({ type: 'showStandings', questionIndex: 0 })).toEqual([
+      expect.objectContaining({ type: 'standings' }),
+    ]);
 
     await host.send({ type: 'showQuestion', questionIndex: 1 });
     await host.send({ type: 'startAnswering', questionIndex: 1 });
@@ -340,7 +348,7 @@ describe('締切のあとの順番（F14・F15）', () => {
     await closeQuestion(host, 0);
     await host.send({ type: 'revealFastest', questionIndex: 0 });
 
-    expect(await host.send({ type: 'showFinalRanking' })).toEqual([]);
+    expect(await host.send({ type: 'showFinalRanking' })).toEqual([expect.objectContaining({ type: 'finalRanking' })]);
     expect(await readRoom(stub)).toMatchObject({ phase: 'final', questionIndex: 0 });
   });
 });

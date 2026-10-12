@@ -1,4 +1,4 @@
-import type { Joined } from '@zubatto-quiz/protocol';
+import type { Joined, ServerMessage } from '@zubatto-quiz/protocol';
 import { env } from 'cloudflare:workers';
 import { expect } from 'vitest';
 
@@ -70,6 +70,18 @@ export function messageReader(ws: WebSocket): () => Promise<unknown> {
   });
   return () =>
     received.length > 0 ? Promise.resolve(received.shift()) : new Promise((resolve) => waiting.push(resolve));
+}
+
+export type Socket = { ws: WebSocket; next: () => Promise<unknown> };
+
+/** 指定した種類のメッセージが届くまで読み進める。参加者一覧や出題など、そのテストで見ないものは読み飛ばす */
+export async function nextOf<T extends ServerMessage['type']>(socket: Socket, type: T) {
+  for (;;) {
+    const message = (await socket.next()) as ServerMessage;
+    if (message.type === type) {
+      return message as Extract<ServerMessage, { type: T }>;
+    }
+  }
 }
 
 /** 端末が作るのと同じ、32バイトの乱数を base64url（= なし）にした秘密 */
