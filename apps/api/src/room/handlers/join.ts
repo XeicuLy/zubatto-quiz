@@ -17,7 +17,7 @@ type InsertResult =
  * 未確認の接続から来た join を受ける（F2・ADR 0004）。name と token は decodeClientMessage が確かめたもの。
  * token が32バイトでなければ、decode の時点で invalid_message になり、ここへは来ない。
  *
- * await は秘密のハッシュを求める1回だけで、そのあとの確認から挿入までは同期で行う。
+ * await は秘密のハッシュを求める1回だけで、そのあとの確認から挿入までは同期で行う。await のあとには、接続が開いていて未確認のままかを確かめ直す。
  * DO は1つのスレッドで動くので、同時に来た2件の join が、両方とも49名を見て50名を超えることがない
  */
 export async function handleJoin(ctx: DurableObjectState, ws: WebSocket, { name, token }: Join): Promise<void> {
@@ -30,6 +30,11 @@ export async function handleJoin(ctx: DurableObjectState, ws: WebSocket, { name,
 
   const tokenHash = await hashToken(token);
 
+  // hashToken はストレージの操作ではないので、await のあいだに alarm や新しい接続の受け付けが割り込み、
+  // 時間切れでこの接続を閉じることがある。閉じた接続を登録すると、つながっていない参加者が枠と名前を使い続けるので、何もせずに終える
+  if (ws.readyState !== WebSocket.OPEN) {
+    return;
+  }
   // await のあいだに、同じ接続から送られた別の join が通っているかもしれない。1本の接続で2人を登録しない
   if (getAttachment(ws) !== null) {
     send(ws, { type: 'error', code: 'invalid_state' });

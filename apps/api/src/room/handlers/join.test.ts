@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { closeOf, connect, messageReader, newRoom, newToken, type RoomStub } from '../../../test/room-socket';
 import { getAttachment } from '../attachment';
 import { hashToken } from '../token-hash';
-import { MAX_PARTICIPANTS } from './join';
+import { handleJoin, MAX_PARTICIPANTS } from './join';
 
 const player = { role: 'player' } as const;
 
@@ -79,6 +79,25 @@ describe('join（F2・ADR 0004）', () => {
     expect(await next()).toEqual({ type: 'error', code: 'invalid_message' });
     expect(await readParticipants(stub)).toEqual([]);
     expect(await readAttachments(stub)).toEqual([null]);
+  });
+
+  it('秘密のハッシュを求めているあいだに接続が閉じられたら、参加者を登録しない', async () => {
+    const stub = await newRoom();
+    const ws = await connect(stub, player);
+
+    await runInDurableObject(stub, async (_instance, state) => {
+      const [server] = state.getWebSockets();
+      if (!server) {
+        throw new Error('接続がない');
+      }
+      // handleJoin は hashToken の await で止まる。そのすきに、時間切れの alarm と同じように接続を閉じる
+      const joining = handleJoin(state, server, { type: 'join', name: 'たろう', token: newToken() });
+      server.close(CLOSE_CODES.join_timeout, 'join_timeout');
+      await joining;
+    });
+
+    expect(await readParticipants(stub)).toEqual([]);
+    ws.close();
   });
 
   it('部屋が終わったあとの join は 4410 room_ended で閉じる', async () => {
