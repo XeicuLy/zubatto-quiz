@@ -1,4 +1,4 @@
-import type { Joined, ServerMessage } from '@zubatto-quiz/protocol';
+import type { ClientMessage, Joined, ServerMessage } from '@zubatto-quiz/protocol';
 import { env } from 'cloudflare:workers';
 import { expect } from 'vitest';
 
@@ -82,6 +82,45 @@ export async function nextOf<T extends ServerMessage['type']>(socket: Socket, ty
       return message as Extract<ServerMessage, { type: T }>;
     }
   }
+}
+
+/**
+ * ホスト用の入口につなぎ、受け付けたときに届く hostReady と参加者一覧を読み終えた状態で返す。
+ * 待機中の部屋なら、このあとに届くのは進行の配信だけになる
+ */
+export async function connectHost(stub: RoomStub, ownerId = 'alice') {
+  const ws = await connect(stub, { role: 'host', ownerId });
+  const socket = { ws, next: messageReader(ws) };
+  const closed = closeOf(ws);
+  await nextOf(socket, 'hostReady');
+  await nextOf(socket, 'participants');
+  return { ...socket, closed };
+}
+
+/** drain が送る、仕様に合わない文字列への返事 */
+const syncReply = JSON.stringify({ type: 'error', code: 'invalid_message' });
+
+/**
+ * これまでの処理でこの接続へ届いたメッセージを、まとめて返す。
+ * 送るものがない処理もあるので、仕様に合わない文字列を送り、その invalid_message が届くまでを1回分とみなす。
+ * 同じ接続のメッセージは、部屋の DO が届いた順に1つずつ処理する
+ */
+export async function drain(socket: Socket): Promise<ServerMessage[]> {
+  socket.ws.send('sync');
+  const received: ServerMessage[] = [];
+  for (;;) {
+    const reply = await socket.next();
+    if (JSON.stringify(reply) === syncReply) {
+      return received;
+    }
+    received.push(reply as ServerMessage);
+  }
+}
+
+/** メッセージを送り、それを処理するあいだにこの接続へ届いたメッセージを返す */
+export async function exchange(socket: Socket, message: ClientMessage): Promise<ServerMessage[]> {
+  socket.ws.send(JSON.stringify(message));
+  return drain(socket);
 }
 
 /** 端末が作るのと同じ、32バイトの乱数を base64url（= なし）にした秘密 */

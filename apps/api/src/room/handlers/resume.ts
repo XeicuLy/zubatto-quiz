@@ -2,8 +2,9 @@ import { CLOSE_CODES, type CloseReason, type Resume } from '@zubatto-quiz/protoc
 
 import { getAttachment, setAttachment } from '../attachment';
 import { closeReplacedConnections } from '../replace-connection';
+import { resendCurrentPhase } from '../resend';
 import { send } from '../send';
-import { readRoomSnapshot } from '../snapshot';
+import { readParticipants, readRoomSnapshot } from '../snapshot';
 import { hashToken } from '../token-hash';
 
 /** resume を通す、入室からの時間（F19・ADR 0004） */
@@ -86,4 +87,7 @@ export async function handleResume(ctx: DurableObjectState, ws: WebSocket, { tok
     score,
     room: readRoomSnapshot(sql),
   });
+  // 切れているあいだに入った人もいるので、参加者一覧も送る。ほかの人の一覧は変わらないので、本人にだけ送る
+  send(ws, { type: 'participants', participants: readParticipants(sql) });
+  resendCurrentPhase(ctx, ws, Date.now());
 }

@@ -1,11 +1,12 @@
-import type { Answer, ErrorCode } from '@zubatto-quiz/protocol';
+import type { Answer, AnswerProgress, ErrorCode } from '@zubatto-quiz/protocol';
 import { normalizeElapsedMs } from '@zubatto-quiz/scoring';
 
+import { answerProgressOf } from '../resend';
 import { send, sendToHosts } from '../send';
 import { closeAnsweringIfDue } from './host-commands';
 
 type AcceptResult =
-  | { ok: true; elapsedMs: number; answeredCount: number; participantCount: number }
+  | { ok: true; elapsedMs: number; progress: AnswerProgress }
   | { ok: false; code: Extract<ErrorCode, 'not_accepting' | 'invalid_choice' | 'already_answered'> };
 
 /** 受付中の問題。正解（correct_index）は読まない（S2） */
@@ -79,16 +80,7 @@ export function handleAnswer(ctx: DurableObjectState, ws: WebSocket, participant
       return { ok: false, code: 'already_answered' };
     }
 
-    const { answeredCount } = sql
-      .exec<{ answeredCount: number }>(
-        'SELECT count(*) AS answeredCount FROM answers WHERE question_id = ?',
-        question.id,
-      )
-      .one();
-    const { participantCount } = sql
-      .exec<{ participantCount: number }>('SELECT count(*) AS participantCount FROM participants')
-      .one();
-    return { ok: true, elapsedMs, answeredCount, participantCount };
+    return { ok: true, elapsedMs, progress: answerProgressOf(sql, question.id) };
   });
 
   if (!result.ok) {
@@ -102,10 +94,5 @@ export function handleAnswer(ctx: DurableObjectState, ws: WebSocket, participant
     elapsedMs: result.elapsedMs,
   });
   // 回答数は進行画面にだけ出す。回答者へは送らず、締切の直前の一斉回答でも送る数を抑える
-  sendToHosts(ctx, {
-    type: 'answerProgress',
-    questionId: answer.questionId,
-    answeredCount: result.answeredCount,
-    participantCount: result.participantCount,
-  });
+  sendToHosts(ctx, result.progress);
 }

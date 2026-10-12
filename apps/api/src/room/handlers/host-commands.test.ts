@@ -2,35 +2,15 @@ import { CLOSE_CODES, type ClientMessage, type RoomPhase } from '@zubatto-quiz/p
 import { evictDurableObject, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { closeOf, connect, joinPlayer, messageReader, newRoom, type RoomStub } from '../../../test/room-socket';
+import { closeOf, connect, connectHost, exchange, joinPlayer, newRoom, type RoomStub } from '../../../test/room-socket';
 import { JOIN_TIMEOUT_MS } from '../pending-timeout';
 
 const LIMIT_MS = 10_000;
-const syncReply = { type: 'error', code: 'invalid_message' };
 
-/**
- * メッセージを送り、それを処理するあいだにこの接続へ届いたメッセージを返す。
- * 操作によっては何も届かないので、送ったあとに仕様に合わない文字列を続けて送り、その invalid_message が届くまでを1回分とみなす。
- * 同じ接続のメッセージは、部屋の DO が届いた順に1つずつ処理する
- */
-async function exchange(socket: { ws: WebSocket; next: () => Promise<unknown> }, message: ClientMessage) {
-  socket.ws.send(JSON.stringify(message));
-  socket.ws.send('sync');
-  const received: unknown[] = [];
-  for (;;) {
-    const reply = await socket.next();
-    if (JSON.stringify(reply) === JSON.stringify(syncReply)) {
-      return received;
-    }
-    received.push(reply);
-  }
-}
-
-/** alice の部屋のホスト用の入口につなぐ */
-async function connectHost(stub: RoomStub) {
-  const ws = await connect(stub, { role: 'host', ownerId: 'alice' });
-  const socket = { ws, next: messageReader(ws) };
-  return { ...socket, closed: closeOf(ws), send: (message: ClientMessage) => exchange(socket, message) };
+/** alice の部屋のホスト用の入口につなぎ、hostReady と参加者一覧を読み終えた状態で返す */
+async function connectHostWithSend(stub: RoomStub) {
+  const host = await connectHost(stub);
+  return { ...host, send: (message: ClientMessage) => exchange(host, message) };
 }
 
 /** 回答者を入室させ、入室のときの参加者一覧を読み終えた状態で返す */
@@ -89,7 +69,7 @@ describe('進行操作を受け付ける接続（S1・ADR 0003）', () => {
 
   it('ホスト用の接続からの進行操作は受け付ける', async () => {
     const stub = await newRoom();
-    const host = await connectHost(stub);
+    const host = await connectHostWithSend(stub);
 
     expect(await host.send({ type: 'showQuestion', questionIndex: 0 })).toEqual([questionShown(1, 1)]);
     expect(await readRoom(stub)).toMatchObject({ phase: 'question', questionIndex: 0 });
@@ -100,7 +80,7 @@ describe('出題と受付開始（F8・S2）', () => {
   it('出題では問題文だけを全員に配り、受付開始で初めて選択肢を配る', async () => {
     const stub = await newRoom();
     const player = await connectPlayer(stub);
-    const host = await connectHost(stub);
+    const host = await connectHostWithSend(stub);
 
     await host.send({ type: 'showQuestion', questionIndex: 0 });
     expect(await player.next()).toEqual(questionShown(1, 1));
@@ -114,7 +94,7 @@ describe('出題と受付開始（F8・S2）', () => {
   it('締切の前に回答者に届くメッセージに、正解が含まれない（S2・ADR 0002）', async () => {
     const stub = await newRoom();
     const player = await joinPlayer(stub, 'たろう');
-    const host = await connectHost(stub);
+    const host = await connectHostWithSend(stub);
 
     await host.send({ type: 'showQuestion', questionIndex: 0 });
     await host.send({ type: 'startAnswering', questionIndex: 0 });
@@ -127,7 +107,7 @@ describe('出題と受付開始（F8・S2）', () => {
 
   it('今の段階と合わない操作は、送った人に invalid_state を返し、状態を変えない', async () => {
     const stub = await newRoom();
-    const host = await connectHost(stub);
+    const host = await connectHostWithSend(stub);
 
     // 出題の前に受付を始める
     expect(await host.send({ type: 'startAnswering', questionIndex: 0 })).toEqual([invalidState]);
@@ -151,7 +131,7 @@ describe('締切（F9）', () => {
 
   /** 第1問を出して受付を始めたホスト */
   async function startAnswering(stub: RoomStub) {
-    const host = await connectHost(stub);
+    const host = await connectHostWithSend(stub);
     await host.send({ type: 'showQuestion', questionIndex: 0 });
     await host.send({ type: 'startAnswering', questionIndex: 0 });
     return host;
@@ -282,7 +262,7 @@ describe('締切前の問題のやり直し（A3）', () => {
   it('休止のあと、受付中だった問題を出題からやり直せる。消すのはその問題の回答だけ', async () => {
     const stub = await newRoom('alice', 3);
     const player = await connectPlayer(stub);
-    const host = await connectHost(stub);
+    const host = await connectHostWithSend(stub);
     for (const command of [
       { type: 'showQuestion', questionIndex: 0 },
       { type: 'startAnswering', questionIndex: 0 },
@@ -308,7 +288,7 @@ describe('締切前の問題のやり直し（A3）', () => {
 
 describe('締切のあとの順番（F14・F15）', () => {
   /** 第 index 問（0始まり）を締め切るまで進めたホスト */
-  async function closeQuestion(host: Awaited<ReturnType<typeof connectHost>>, questionIndex: number) {
+  async function closeQuestion(host: Awaited<ReturnType<typeof connectHostWithSend>>, questionIndex: number) {
     for (const type of ['showQuestion', 'startAnswering', 'closeAnswering'] as const) {
       await host.send({ type, questionIndex });
     }
@@ -316,7 +296,7 @@ describe('締切のあとの順番（F14・F15）', () => {
 
   it('① のあとに ② を飛ばして次の問題は出せない', async () => {
     const stub = await newRoom('alice', 3);
-    const host = await connectHost(stub);
+    const host = await connectHostWithSend(stub);
     await closeQuestion(host, 0);
 
     expect(await host.send({ type: 'showQuestion', questionIndex: 1 })).toEqual([invalidState]);
@@ -325,7 +305,7 @@ describe('締切のあとの順番（F14・F15）', () => {
 
   it('最後の2問では、途中経過を出す操作が拒否される', async () => {
     const stub = await newRoom('alice', 3);
-    const host = await connectHost(stub);
+    const host = await connectHostWithSend(stub);
     await closeQuestion(host, 0);
     await host.send({ type: 'revealFastest', questionIndex: 0 });
     // 第1問（3問のうち、最後の2問ではない）では出せる
@@ -344,7 +324,7 @@ describe('締切のあとの順番（F14・F15）', () => {
 
   it('最後の問題の ② のあとに、最終ランキングへ進める', async () => {
     const stub = await newRoom();
-    const host = await connectHost(stub);
+    const host = await connectHostWithSend(stub);
     await closeQuestion(host, 0);
     await host.send({ type: 'revealFastest', questionIndex: 0 });
 
@@ -358,7 +338,7 @@ describe('部屋を終える', () => {
     const stub = await newRoom();
     const player = await connectPlayer(stub);
     const pending = closeOf(await connect(stub, { role: 'player' }));
-    const host = await connectHost(stub);
+    const host = await connectHostWithSend(stub);
 
     host.ws.send(JSON.stringify({ type: 'endRoom' }));
 
@@ -372,7 +352,7 @@ describe('進行操作から配信まで（P1・ADR 0003）', () => {
   it('D1 にも外部にも問い合わせない', async () => {
     const stub = await newRoom();
     const player = await connectPlayer(stub);
-    const host = await connectHost(stub);
+    const host = await connectHostWithSend(stub);
     // 部屋の DO も同じ isolate で動くので、DO の env の D1 と、グローバルの fetch を見張れる
     const spies = await runInDurableObject(stub, (instance) => {
       const db = (instance as unknown as { env: Env }).env.DB;
