@@ -1,6 +1,7 @@
 import { CLOSE_CODES } from '@zubatto-quiz/protocol';
 
 import { getAttachment, setAttachment, type Attachment } from './attachment';
+import { acceptedAtTag, closeExpiredPending } from './pending-timeout';
 
 /**
  * 回答者用の入口から受け付ける WebSocket の上限。未確認の接続と、置き換えの途中の古い接続を含む（ADR 0004）。
@@ -35,13 +36,18 @@ export function countOpenConnections(ctx: DurableObjectState): Record<RoomEntry[
  * 接続を受け付けて、101 の応答を返す。その接続の枠が上限に達していれば、受け付けずに 4503 で閉じる（ADR 0004）。
  *
  * 本数の確認から acceptWebSocket までに await を挟まない。DO は1つのスレッドで動くので、
- * 同時に来た接続も1本ずつここを通り、間に別の接続が割り込んで上限を超えることがない
+ * 同時に来た接続も1本ずつここを通り、間に別の接続が割り込んで上限を超えることがない。
+ *
+ * 数える前に、時間を過ぎた未確認の接続を閉じる。alarm は最大1分ほど遅れることがあるので、
+ * 遅れても未確認の接続が枠を埋めていられる時間を10秒ほどに抑えるため（ADR 0004）
  */
 export function acceptConnection(ctx: DurableObjectState, attachment: Attachment): Response {
   const { 0: client, 1: server } = new WebSocketPair();
   // ホスト用の接続はホストの枠、回答者用の接続（attachment が null）は回答者用の枠と比べる
   const role = attachment?.role === 'host' ? 'host' : 'player';
   const limit = role === 'host' ? MAX_HOST_CONNECTIONS : MAX_CONNECTIONS;
+  const now = Date.now();
+  closeExpiredPending(ctx, now);
 
   if (countOpenConnections(ctx)[role] >= limit) {
     // HTTP の 503 で断ると、ブラウザには理由のない切断（1006）にしか見えない。いったん開いて code で理由を伝え、
@@ -51,10 +57,13 @@ export function acceptConnection(ctx: DurableObjectState, attachment: Attachment
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  ctx.acceptWebSocket(server);
-  // 回答者用の接続は何も書かず、null（未確認）のままにする。join か resume が通ったら player を書く（T19）
+  // 回答者用の接続は attachment を書かず、null（未確認）のままにする。join か resume が通ったら player を書く。
+  // 未確認のあいだの時間切れを確かめられるよう、受け付けた時刻をタグに入れる
   if (attachment) {
+    ctx.acceptWebSocket(server);
     setAttachment(server, attachment);
+  } else {
+    ctx.acceptWebSocket(server, [acceptedAtTag(now)]);
   }
   return new Response(null, { status: 101, webSocket: client });
 }
