@@ -2,6 +2,7 @@ import { CLOSE_CODES, type CloseReason, type Join } from '@zubatto-quiz/protocol
 
 import { getAttachment, setAttachment } from '../attachment';
 import { normalizeName } from '../normalize-name';
+import { resendCurrentPhase } from '../resend';
 import { broadcast, send } from '../send';
 import { readParticipants, readRoomSnapshot } from '../snapshot';
 import { hashToken } from '../token-hash';
@@ -79,4 +80,6 @@ export async function handleJoin(ctx: DurableObjectState, ws: WebSocket, { name,
   // 秘密は端末が持っているので返さない
   send(ws, { type: 'joined', participantId: result.participantId, room: readRoomSnapshot(sql) });
   broadcast(ctx, { type: 'participants', participants: readParticipants(sql) });
+  // 出題のあとに入った人も、今の画面から始められるようにする
+  resendCurrentPhase(ctx, ws, Date.now());
 }

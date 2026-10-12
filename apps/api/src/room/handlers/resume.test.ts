@@ -2,7 +2,7 @@ import { CLOSE_CODES, type Participants } from '@zubatto-quiz/protocol';
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { connect, joinPlayer, messageReader, newRoom, newToken, resumePlayer } from '../../../test/room-socket';
+import { connect, connectHost, joinPlayer, newRoom, newToken, resumePlayer } from '../../../test/room-socket';
 import { getAttachment } from '../attachment';
 import { handleResume, RESUME_WINDOW_MS } from './resume';
 
@@ -21,6 +21,8 @@ describe('resume（F19・ADR 0004）', () => {
     const { ws, next } = await resumePlayer(stub, token);
 
     expect(await next()).toEqual({ type: 'resumed', participantId, name: 'たろう', score: 0, room: lobby });
+    // 切れているあいだに入った人もいるので、参加者一覧も本人に届く
+    expect(await next()).toEqual({ type: 'participants', participants: [{ participantId, name: 'たろう' }] });
     // 戻った接続は確認済みになるので、join は断られる
     ws.send(JSON.stringify({ type: 'join', name: 'じろう', token: newToken() }));
     expect(await next()).toEqual({ type: 'error', code: 'invalid_state' });
@@ -102,7 +104,7 @@ describe('resume（F19・ADR 0004）', () => {
 describe('つなぎ直し（A1・A3・ADR 0004）', () => {
   it('join の応答が届く前に接続が切れても、保存した秘密の resume で同じ participantId に戻れる', async () => {
     const stub = await newRoom();
-    const host = messageReader(await connect(stub, { role: 'host', ownerId: 'alice' }));
+    const { next: host } = await connectHost(stub);
     const token = newToken();
     const ws = await connect(stub, { role: 'player' });
 

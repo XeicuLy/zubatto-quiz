@@ -1,6 +1,7 @@
 import { CLOSE_CODES, type HostCommand, type RoomPhase } from '@zubatto-quiz/protocol';
 
 import { scheduleAlarm } from '../alarm';
+import { answeringStartedOf, questionShownOf, readQuestionRow } from '../resend';
 import { broadcast, send } from '../send';
 import { transition, type RoomState, type TransitionResult } from '../state-machine';
 import { scoreQuestion, sendResults } from './close-question';
@@ -11,9 +12,6 @@ type RoomRow = {
   ended_at: number | null;
   deadline_at: number | null;
 };
-
-/** 問題の1行。正解（correct_index）は締切まで DO の外へ出さないので、ここでは読まない。締切の集計（close-question.ts）でだけ読む（S2） */
-type QuestionRow = { id: string; position: number; text: string; choices: string; limit_ms: number };
 
 const readRoomRow = (sql: SqlStorage): RoomRow =>
   sql.exec<RoomRow>('SELECT phase, current_position, ended_at, deadline_at FROM room').one();
@@ -39,15 +37,8 @@ function applyHostCommand(ctx: DurableObjectState, command: HostCommand, now: nu
     return result;
   }
   const { next } = result;
-  const question =
-    next.questionIndex === null
-      ? undefined
-      : sql
-          .exec<QuestionRow>(
-            'SELECT id, position, text, choices, limit_ms FROM questions WHERE position = ?',
-            next.questionIndex,
-          )
-          .one();
+  // 正解（correct_index）は締切まで DO の外へ出さないので、ここでは読まない。締切の集計（close-question.ts）でだけ読む（S2）
+  const question = next.questionIndex === null ? undefined : readQuestionRow(sql, next.questionIndex);
 
   ctx.storage.transactionSync(() => {
     // やり直しでは、その問題の回答だけを消す。締切まで終えた問題の得点は残す（A3）
@@ -82,24 +73,11 @@ function applyHostCommand(ctx: DurableObjectState, command: HostCommand, now: nu
   }
   // 出題とやり直しは問題文だけ、受付開始で選択肢を配る。①②③と最終ランキングは、締切で確定した得点から作って配る
   if (next.phase === 'question') {
-    broadcast(ctx, {
-      type: 'questionShown',
-      questionId: question.id,
-      questionIndex: question.position,
-      questionCount: count,
-      text: question.text,
-      limitMs: question.limit_ms,
-    });
+    broadcast(ctx, questionShownOf(question, count));
   } else if (next.phase === 'accepting') {
     // 締切を alarm に入れる。未確認の接続の時刻と比べて、早いほうに予定する
     scheduleAlarm(ctx);
-    broadcast(ctx, {
-      type: 'answeringStarted',
-      questionId: question.id,
-      choices: JSON.parse(question.choices) as string[],
-      limitMs: question.limit_ms,
-      remainingMs: question.limit_ms,
-    });
+    broadcast(ctx, answeringStartedOf(question, question.limit_ms));
   } else {
     sendResults(ctx, next.phase, question.position);
   }

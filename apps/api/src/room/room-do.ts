@@ -4,14 +4,16 @@ import { DurableObject } from 'cloudflare:workers';
 import type { StoredQuestion } from '../question-sets/repository';
 import { scheduleAlarm } from './alarm';
 import { getAttachment } from './attachment';
-import { acceptConnection, readRoomEntry } from './connections';
+import { acceptConnection, readRoomEntry, refuseConnection } from './connections';
 import { handleAnswer } from './handlers/answer';
 import { closeAnsweringIfDue, handleHostCommand } from './handlers/host-commands';
 import { handleJoin } from './handlers/join';
 import { handleResume } from './handlers/resume';
 import { migrate } from './migrate';
 import { closeExpiredPending } from './pending-timeout';
+import { resendCurrentPhase } from './resend';
 import { send } from './send';
+import { readParticipants, readRoomSnapshot } from './snapshot';
 
 /** initialize に渡す値。部屋の作成で D1 から1回だけ読んだ、問題セットの全体（正解を含む）と持ち主 */
 export type RoomInit = { ownerId: string; title: string; questions: readonly StoredQuestion[] };
@@ -78,13 +80,16 @@ export class RoomDurableObject extends DurableObject<Env> {
   override fetch(request: Request): Response {
     const entry = readRoomEntry(request);
     // initialize の済んでいない ID でも DO はでき、room の表が空になる。ない部屋として断る
-    const room = this.ctx.storage.sql.exec<{ owner_id: string }>('SELECT owner_id FROM room').toArray()[0];
+    const { sql } = this.ctx.storage;
+    const room = sql
+      .exec<{ owner_id: string; ended_at: number | null }>('SELECT owner_id, ended_at FROM room')
+      .toArray()[0];
     if (!entry || !room) {
       return new Response(null, { status: 404 });
     }
 
     if (entry.role === 'player') {
-      const response = acceptConnection(this.ctx, null);
+      const { response } = acceptConnection(this.ctx, null);
       // 受け付けた未確認の接続を時間切れで閉じられるよう、alarm を予定し直す
       scheduleAlarm(this.ctx);
       return response;
@@ -94,7 +99,18 @@ export class RoomDurableObject extends DurableObject<Env> {
     if (entry.ownerId !== room.owner_id) {
       return new Response(null, { status: 404 });
     }
-    return acceptConnection(this.ctx, entry);
+    // 終えた部屋は進められない。join・resume と同じ理由で閉じ、まだ続いているように見せない
+    if (room.ended_at !== null) {
+      return refuseConnection('room_ended');
+    }
+    const { response, accepted } = acceptConnection(this.ctx, entry);
+    // 上限を超えて閉じた接続には送らない。101 を返す前に送っても、端末には開いたあとに届く
+    if (accepted) {
+      send(accepted, { type: 'hostReady', room: readRoomSnapshot(sql) });
+      send(accepted, { type: 'participants', participants: readParticipants(sql) });
+      resendCurrentPhase(this.ctx, accepted, Date.now());
+    }
+    return response;
   }
 
   /**

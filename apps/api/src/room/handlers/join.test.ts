@@ -2,7 +2,15 @@ import { CLOSE_CODES, type Joined } from '@zubatto-quiz/protocol';
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { closeOf, connect, messageReader, newRoom, newToken, type RoomStub } from '../../../test/room-socket';
+import {
+  closeOf,
+  connect,
+  connectHost,
+  messageReader,
+  newRoom,
+  newToken,
+  type RoomStub,
+} from '../../../test/room-socket';
 import { getAttachment } from '../attachment';
 import { hashToken } from '../token-hash';
 import { handleJoin, MAX_PARTICIPANTS } from './join';
@@ -229,7 +237,7 @@ describe('秘密と個人情報（S5・ADR 0004）', () => {
 describe('参加者一覧（F3）', () => {
   it('入室のたびに、ホストと入室した回答者の全員へ届き、未確認の接続には届かない', async () => {
     const stub = await newRoom();
-    const host = messageReader(await connect(stub, { role: 'host', ownerId: 'alice' }));
+    const { next: host } = await connectHost(stub);
     const pendingWs = await connect(stub, player);
     const pending = messageReader(pendingWs);
 
