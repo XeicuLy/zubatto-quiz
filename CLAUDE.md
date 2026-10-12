@@ -65,7 +65,8 @@ The first release is all TypeScript on Cloudflare's free plan. After the first e
   - `participantId` always comes from the attachment, never from the message body.
   - A new connection for the same participant closes the old one, and the old tab does not auto-reconnect.
 - **Concurrency invariants**:
-  - Count `getWebSockets()` against the 100-connection cap before `acceptWebSocket`, with no `await` in between. `countOpenConnections` counts only `OPEN` sockets, because a socket the DO closed stays in the list as `CLOSING`.
+  - Count `getWebSockets()` against the connection cap before `acceptWebSocket`, with no `await` in between. `countOpenConnections` counts only `OPEN` sockets, because a socket the DO closed stays in the list as `CLOSING`.
+  - The cap is per entry: 100 for the player entry (unverified sockets included) and a separate 5 for host sockets, told apart by the attachment role. A flood on the player entry must never lock the host out (#69).
   - Over the cap, `acceptConnection` calls `server.accept()` (not hibernatable, not in `getWebSockets()`) and closes with 4503 `connection_limit`, so the client can tell it apart from other failures.
   - Run the `join` checks (name collision after NFKC normalization and trim, 50-player cap) and the insert as synchronous SQL with no `await`.
   - Enforce one answer per question with `UNIQUE(question_id, participant_id)` and an accepting-answers check in one transaction.

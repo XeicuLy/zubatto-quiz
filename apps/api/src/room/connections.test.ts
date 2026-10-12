@@ -4,7 +4,13 @@ import { describe, expect, it } from 'vitest';
 
 import { closeOf, newRoom, openSocket } from '../../test/room-socket';
 import { getAttachment } from './attachment';
-import { countOpenConnections, MAX_CONNECTIONS, roomRequest, type RoomEntry } from './connections';
+import {
+  countOpenConnections,
+  MAX_CONNECTIONS,
+  MAX_HOST_CONNECTIONS,
+  roomRequest,
+  type RoomEntry,
+} from './connections';
 
 type RoomStub = Awaited<ReturnType<typeof newRoom>>;
 
@@ -50,39 +56,47 @@ describe('1部屋の接続の上限（ADR 0004）', () => {
     expect(await readAttachments(stub)).toHaveLength(MAX_CONNECTIONS);
   });
 
-  it('100本には、未確認の接続とホストの接続を含める', async () => {
-    const stub = await newRoom();
-    await connect(stub, host);
-    await fill(stub, MAX_CONNECTIONS - 1);
-
-    const overflow = await connect(stub, player);
-
-    expect(await closeOf(overflow)).toEqual({ code: CLOSE_CODES.connection_limit, reason: 'connection_limit' });
-    const attachments = await readAttachments(stub);
-    expect(attachments.filter((attachment) => attachment === null)).toHaveLength(MAX_CONNECTIONS - 1);
-    expect(attachments.filter((attachment) => attachment?.role === 'host')).toHaveLength(1);
-  });
-
-  it('回答者の接続で100本が埋まっていれば、ホストの接続も 4503 で閉じられる', async () => {
+  it('回答者用の入口から100本を埋めても、部屋の持ち主のホストはつなげる', async () => {
     const stub = await newRoom();
     await fill(stub, MAX_CONNECTIONS);
 
-    const lateHost = await connect(stub, host);
+    await connect(stub, host);
 
-    expect(await closeOf(lateHost)).toEqual({ code: CLOSE_CODES.connection_limit, reason: 'connection_limit' });
+    const attachments = await readAttachments(stub);
+    expect(attachments.filter((attachment) => attachment === null)).toHaveLength(MAX_CONNECTIONS);
+    expect(attachments.filter((attachment) => attachment?.role === 'host')).toHaveLength(1);
+  });
+
+  it('ホストの接続は回答者用の100本に数えず、5本までつなげる', async () => {
+    const stub = await newRoom();
+    for (let i = 0; i < MAX_HOST_CONNECTIONS; i++) {
+      await connect(stub, host);
+    }
+    await fill(stub, MAX_CONNECTIONS);
+
+    // 次の接続を待つあいだに close が届くので、開いたらすぐ待ち受ける
+    const extraHost = closeOf(await connect(stub, host));
+    const extraPlayer = closeOf(await connect(stub, player));
+
+    expect(await extraHost).toEqual({ code: CLOSE_CODES.connection_limit, reason: 'connection_limit' });
+    expect(await extraPlayer).toEqual({ code: CLOSE_CODES.connection_limit, reason: 'connection_limit' });
+    expect(await readAttachments(stub)).toHaveLength(MAX_HOST_CONNECTIONS + MAX_CONNECTIONS);
   });
 
   it('DO が閉じて、相手の close を待っている接続（CLOSING）は数えない', async () => {
     const stub = await newRoom();
+    await connect(stub, host);
     await fill(stub, MAX_CONNECTIONS);
 
     const counts = await runInDurableObject(stub, (_instance, state) => {
-      const [first] = state.getWebSockets();
-      first?.close(CLOSE_CODES.join_timeout, 'join_timeout');
+      // ホストの接続と、未確認の接続の1本ずつを閉じる
+      const sockets = state.getWebSockets();
+      sockets.find((ws) => getAttachment(ws)?.role === 'host')?.close(1000, 'bye');
+      sockets.find((ws) => getAttachment(ws) === null)?.close(CLOSE_CODES.join_timeout, 'join_timeout');
       // 同じ同期の処理の中なので、相手の close はまだ届いておらず、getWebSockets() には残っている
       return { listed: state.getWebSockets().length, open: countOpenConnections(state) };
     });
 
-    expect(counts).toEqual({ listed: MAX_CONNECTIONS, open: MAX_CONNECTIONS - 1 });
+    expect(counts).toEqual({ listed: MAX_CONNECTIONS + 1, open: { host: 0, player: MAX_CONNECTIONS - 1 } });
   });
 });

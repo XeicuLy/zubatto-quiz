@@ -20,7 +20,7 @@ export const CLOSE_CODES = {
   name_taken: 4409,
   /** 部屋が終わった（410 Gone） */
   room_ended: 4410,
-  /** 部屋の接続が上限の100本に達している（503 Service Unavailable）。一時的なので、間を空けて自動で再接続する */
+  /** 部屋の接続が上限（回答者用の100本、ホスト用の5本）に達している（503 Service Unavailable）。一時的なので、間を空けて自動で再接続する */
   connection_limit: 4503,
 } as const satisfies Record<string, number>;
 
