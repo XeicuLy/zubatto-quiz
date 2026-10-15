@@ -216,6 +216,33 @@ describe('秘密を外に出さない（ADR 0004）', () => {
   });
 });
 
+describe('回答を送る（F10・P2）', () => {
+  const ANSWER = { questionId: 'q-1', choiceIndex: 2, elapsedMs: 1234 };
+
+  it('開いた接続に answer を送り、送れたら true を返す', () => {
+    const { server, player } = setup();
+
+    player.join('たろう');
+    server.latest.open();
+
+    expect(player.answer(ANSWER)).toBe(true);
+    expect(server.latest.received.at(-1)).toEqual({ type: 'answer', ...ANSWER });
+  });
+
+  it('接続が開いていなければ送らずに false を返す', () => {
+    const { server, player } = setup();
+
+    expect(player.answer(ANSWER)).toBe(false);
+    player.join('たろう');
+    expect(player.answer(ANSWER)).toBe(false);
+    server.latest.open();
+    server.latest.closeFromServer(1006);
+    expect(player.answer(ANSWER)).toBe(false);
+
+    expect(server.latest.received).toEqual([expect.objectContaining({ type: 'join' })]);
+  });
+});
+
 describe('部屋を離れるとき', () => {
   it('接続を閉じ、もうつなぎ直さない', async () => {
     const { server, player } = setup();

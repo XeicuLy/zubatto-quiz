@@ -156,6 +156,47 @@ describe('断られたとき・閉じられたとき（ADR 0004）', () => {
   });
 });
 
+describe('出題と回答（F8・F10・F17）', () => {
+  it('出題で問題文を出し、受付が始まったら選択肢を押して、回答を1回だけ送る', async () => {
+    const { server } = await openPlayerPage();
+    await joinAs('たろう');
+    act(() => {
+      server.latest.open();
+      server.latest.emit({ type: 'joined', participantId: ME, room: ROOM });
+      server.latest.emit({
+        type: 'questionShown',
+        questionId: 'q-1',
+        questionIndex: 0,
+        questionCount: 3,
+        text: '今年の社内ランチで一番人気の店は？',
+        limitMs: 10_000,
+      });
+    });
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('今年の社内ランチで一番人気の店は？');
+    expect(screen.queryAllByRole('button')).toEqual([]);
+
+    act(() =>
+      server.latest.emit({
+        type: 'answeringStarted',
+        questionId: 'q-1',
+        choices: ['ラーメン', 'カレー'],
+        limitMs: 10_000,
+        remainingMs: 10_000,
+      }),
+    );
+    // 選択肢を描くフレームで計測が始まる
+    await act(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    const curry = screen.getByRole('button', { name: /カレー/ });
+    fireEvent.click(curry);
+    fireEvent.click(curry);
+
+    const answers = server.latest.received.filter((message) => message.type === 'answer');
+    expect(answers).toEqual([{ type: 'answer', questionId: 'q-1', choiceIndex: 1, elapsedMs: expect.any(Number) }]);
+    expect(screen.getByText('締切を待っています')).toBeInTheDocument();
+  });
+});
+
 describe('画面の移動と接続', () => {
   it('部屋の画面を離れたら、接続を閉じる', async () => {
     const { server, router } = await openPlayerPage();

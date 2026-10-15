@@ -99,6 +99,9 @@ importers:
       '@zubatto-quiz/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+      '@zubatto-quiz/scoring':
+        specifier: workspace:*
+        version: link:../../packages/scoring
       react:
         specifier: 19.3.0
         version: 19.3.0
