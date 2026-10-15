@@ -3,10 +3,11 @@ import { useStore } from 'zustand';
 import { ConnectionNotice } from './ConnectionNotice';
 import { JoinForm } from './JoinForm';
 import type { PlayerEntry, PlayerRoom } from './player-room';
+import { QuestionView } from './QuestionView';
 import { WaitingRoom } from './WaitingRoom';
 
 /**
- * 回答者の画面（F2・F3）。どの画面を出すかは player-room の entry が決め、ここは描くだけ。
+ * 回答者の画面（F2・F3・F10・F17）。どの画面を出すかは player-room の entry が決め、ここは描くだけ。
  * 接続の開け閉めは route の onEnter・onLeave と「参加する」の押下が行うので、ここでは effect を使わない
  */
 export function PlayerPage({ player }: { player: PlayerRoom }) {
@@ -33,26 +34,69 @@ export function PlayerPage({ player }: { player: PlayerRoom }) {
         </main>
       );
     case 'room':
-      return <InRoom entry={entry} />;
+      return <InRoom entry={entry} onAnswer={player.answer} />;
   }
 }
 
-/** 接続を開いたあとの画面。出題からあとの画面は T27 で足す */
-function InRoom({ entry }: { entry: Extract<PlayerEntry, { screen: 'room' }> }) {
-  const { connection, closeReason, room, me, participants } = useStore(entry.room);
-
+/** 接続を開いたあとの画面。部屋の段階で出し分ける。結果と最終ランキングは T28 で足す */
+function InRoom({
+  entry,
+  onAnswer,
+}: {
+  entry: Extract<PlayerEntry, { screen: 'room' }>;
+  onAnswer: PlayerRoom['answer'];
+}) {
+  const { connection, closeReason } = useStore(entry.room);
   return (
     <ConnectionNotice connection={connection} closeReason={closeReason}>
-      {room === null ? (
-        <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
-          <p role="status" className="text-lg font-bold">
-            部屋に入っています…
-          </p>
-        </main>
-      ) : (
-        // join で入ったときは名前が届かないので、入れた名前を使う
-        <WaitingRoom name={me?.name ?? entry.name ?? ''} participants={participants} persisted={entry.persisted} />
-      )}
+      <RoomScreen entry={entry} onAnswer={onAnswer} />
     </ConnectionNotice>
+  );
+}
+
+function RoomScreen({
+  entry,
+  onAnswer,
+}: {
+  entry: Extract<PlayerEntry, { screen: 'room' }>;
+  onAnswer: PlayerRoom['answer'];
+}) {
+  const { room, me, question, participants } = useStore(entry.room);
+  // join で入ったときは名前が届かないので、入れた名前を使う
+  const name = me?.name ?? entry.name ?? '';
+
+  if (room === null) {
+    return <StatusScreen>部屋に入っています…</StatusScreen>;
+  }
+  if (room.phase === 'lobby') {
+    return <WaitingRoom name={name} participants={participants} persisted={entry.persisted} />;
+  }
+  if (room.phase === 'final') {
+    return <StatusScreen>最終の結果を発表しています</StatusScreen>;
+  }
+  if (question === null) {
+    // 出題からあとの段階でつなぎ直すと、resumed のすぐあとに今の問題が送り直される
+    return <StatusScreen>部屋に入っています…</StatusScreen>;
+  }
+  return (
+    <QuestionView
+      // 次の問題に移ったら作り直し、押した印と計測を前の問題から持ち越さない
+      key={question.questionId}
+      question={question}
+      phase={room.phase}
+      questionCount={room.questionCount}
+      name={name}
+      onAnswer={onAnswer}
+    />
+  );
+}
+
+function StatusScreen({ children }: { children: string }) {
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
+      <p role="status" className="text-lg font-bold">
+        {children}
+      </p>
+    </main>
   );
 }

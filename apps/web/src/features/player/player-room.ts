@@ -1,4 +1,4 @@
-import type { CloseReason } from '@zubatto-quiz/protocol';
+import type { Answer, CloseReason } from '@zubatto-quiz/protocol';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 
 import { connectRoom, playerHello, type RoomClient, type RoomSocket } from '../../realtime/client';
@@ -35,6 +35,11 @@ export interface PlayerRoom {
   join(name: string): void;
   /** 保存した秘密があれば、名前を聞かずに resume で入る */
   resumeSaved(): void;
+  /**
+   * 回答を送る（F10）。接続が開いていなければ送らずに false を返す。
+   * 1問に1回だけ送るのは画面（QuestionView）の役目で、部屋の DO も2回目を already_answered で断る
+   */
+  answer(answer: Omit<Answer, 'type'>): boolean;
   /** 部屋を離れる。接続を閉じ、もうつなぎ直さない */
   leave(): void;
 }
@@ -95,6 +100,9 @@ export function createPlayerRoom({ roomId, url, createSocket }: PlayerRoomOption
       if (token !== null) {
         connect(token, undefined, true);
       }
+    },
+    answer(answer) {
+      return client?.send({ type: 'answer', ...answer }) ?? false;
     },
     leave() {
       client?.close();
