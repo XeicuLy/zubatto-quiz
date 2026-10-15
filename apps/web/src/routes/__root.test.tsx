@@ -17,7 +17,7 @@ describe('画面の経路', () => {
     ['/', 'ズバクイ'],
     ['/admin', 'ホストの管理画面'],
     ['/rooms/room-1/host', '進行画面'],
-    ['/r/room-1', 'クイズに参加'],
+    [`/r/${'a'.repeat(64)}`, 'ズバッとクイズ'],
   ])('%s を開くと、見出し「%s」を出す', async (path, heading) => {
     await renderAt(path);
 
