@@ -8,3 +8,5 @@ dist/
 .wrangler/
 # ローカルのシークレット。値はリポジトリに入れない（ADR 0005）
 .dev.vars*
+# Playwright MCP のスクリーンショット・スナップショット・コンソールのログ。画面の確認だけに使う
+.playwright-mcp/
