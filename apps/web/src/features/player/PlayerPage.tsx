@@ -1,9 +1,11 @@
 import { useStore } from 'zustand';
 
+import { FinalRanking } from '../results/Ranking';
 import { ConnectionNotice } from './ConnectionNotice';
 import { JoinForm } from './JoinForm';
 import type { PlayerEntry, PlayerRoom } from './player-room';
 import { QuestionView } from './QuestionView';
+import { ResultView } from './ResultView';
 import { WaitingRoom } from './WaitingRoom';
 
 /**
@@ -38,7 +40,7 @@ export function PlayerPage({ player }: { player: PlayerRoom }) {
   }
 }
 
-/** 接続を開いたあとの画面。部屋の段階で出し分ける。結果と最終ランキングは T28 で足す */
+/** 接続を開いたあとの画面。部屋の段階で出し分ける */
 function InRoom({
   entry,
   onAnswer,
@@ -61,7 +63,7 @@ function RoomScreen({
   entry: Extract<PlayerEntry, { screen: 'room' }>;
   onAnswer: PlayerRoom['answer'];
 }) {
-  const { room, me, question, participants } = useStore(entry.room);
+  const { room, me, question, participants, finalRanking } = useStore(entry.room);
   // join で入ったときは名前が届かないので、入れた名前を使う
   const name = me?.name ?? entry.name ?? '';
 
@@ -72,11 +74,30 @@ function RoomScreen({
     return <WaitingRoom name={name} participants={participants} persisted={entry.persisted} />;
   }
   if (room.phase === 'final') {
-    return <StatusScreen>最終の結果を発表しています</StatusScreen>;
+    // つなぎ直したときは、hostReady などのすぐあとに finalRanking が送り直される
+    return finalRanking === null ? (
+      <StatusScreen>最終の結果を発表しています</StatusScreen>
+    ) : (
+      <main className="mx-auto min-h-dvh max-w-md px-5 pt-4 pb-24">
+        <FinalRanking ranking={finalRanking} variant="mobile" meId={me?.participantId} />
+      </main>
+    );
   }
   if (question === null) {
     // 出題からあとの段階でつなぎ直すと、resumed のすぐあとに今の問題が送り直される
     return <StatusScreen>部屋に入っています…</StatusScreen>;
+  }
+  if (question.myResult !== null && me !== null) {
+    // 締切の集計が届いたら結果を出す。届くまでは QuestionView が締切の表示を続ける
+    return (
+      <ResultView
+        question={question}
+        myResult={question.myResult}
+        phase={room.phase}
+        questionCount={room.questionCount}
+        meId={me.participantId}
+      />
+    );
   }
   return (
     <QuestionView

@@ -23,7 +23,7 @@ export interface QuestionViewProps {
  * 回答者の出題と回答の画面（F8・F10・F17）。段階で出し分ける。
  * - question: 問題文だけ。選択肢は受付開始まで届かない（P2）
  * - accepting: 選択肢を押せる。押したら確定し、締切を待つ
- * - revealed からあと: 押せない。結果の表示は T28 で足す
+ * - revealed からあと: 押せない。締切の集計（myResult）が届いたら、PlayerPage が ResultView に切り替える
  * 問題が変わったら作り直すよう、呼び出し側で questionId を key にする
  */
 export function QuestionView({ question, phase, questionCount, name, onAnswer }: QuestionViewProps) {
