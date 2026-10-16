@@ -197,6 +197,97 @@ describe('出題と回答（F8・F10・F17）', () => {
   });
 });
 
+describe('結果とランキング（F14・F15）', () => {
+  it('締切のあとは結果と自分の位置を出し、② で最速正解、③ で途中経過、最後に最終ランキングを出す', async () => {
+    const { server } = await openPlayerPage();
+    await joinAs('たろう');
+    act(() => {
+      server.latest.open();
+      server.latest.emit({ type: 'joined', participantId: ME, room: ROOM });
+      server.latest.emit({
+        type: 'questionShown',
+        questionId: 'q-1',
+        questionIndex: 0,
+        questionCount: 3,
+        text: '今年の社内ランチで一番人気の店は？',
+        limitMs: 10_000,
+      });
+      server.latest.emit({
+        type: 'answeringStarted',
+        questionId: 'q-1',
+        choices: ['ラーメン', 'カレー'],
+        limitMs: 10_000,
+        remainingMs: 10_000,
+      });
+    });
+
+    // ① 正解と自分の位置
+    act(() =>
+      server.latest.emit({
+        type: 'myResult',
+        questionId: 'q-1',
+        correctIndex: 1,
+        answer: { choiceIndex: 1, elapsedMs: 2370 },
+        correct: true,
+        points: 882,
+        totalScore: 882,
+        remainingMaxPoints: 2000,
+        position: { kind: 'chasing', rankUp: 0, gapToAbove: 30, gapToTop: 93 },
+      }),
+    );
+    expect(screen.getByRole('region', { name: 'この問題の結果' })).toHaveTextContent('○ 正解');
+    expect(screen.getByRole('region', { name: 'あなたの位置' })).toHaveTextContent('残り2問で、最大 2,000点 取れます');
+    expect(screen.queryByRole('region', { name: '最速正解' })).toBeNull();
+
+    // ② 最速正解は、① の結果の下に出る
+    act(() =>
+      server.latest.emit({
+        type: 'fastest',
+        questionId: 'q-1',
+        correctIndex: 1,
+        fastest: [{ participantId: OTHER, name: 'はなこ', elapsedMs: 840 }],
+        correctCount: 2,
+        answeredCount: 2,
+        ranksHidden: false,
+        biggestClimber: null,
+      }),
+    );
+    expect(screen.getByRole('region', { name: '最速正解' })).toHaveTextContent('はなこ0.84秒');
+    expect(screen.getByRole('region', { name: 'この問題の結果' })).toBeInTheDocument();
+
+    // ③ 途中経過では、自分の行を強調する
+    act(() =>
+      server.latest.emit({
+        type: 'standings',
+        questionId: 'q-1',
+        questionIndex: 0,
+        participantCount: 2,
+        entries: [
+          { participantId: OTHER, name: 'はなこ', rank: 1, totalScore: 975, points: 975 },
+          { participantId: ME, name: 'たろう', rank: 2, totalScore: 882, points: 882 },
+        ],
+      }),
+    );
+    const table = screen.getByRole('table', { name: '途中経過' });
+    expect(screen.getByText('あなた').closest('tr')).toHaveTextContent('2位たろう');
+    expect(table).toHaveTextContent('はなこ');
+
+    // 最終ランキング
+    act(() =>
+      server.latest.emit({
+        type: 'finalRanking',
+        questionCount: 3,
+        entries: [
+          { participantId: OTHER, name: 'はなこ', rank: 1, totalScore: 2900 },
+          { participantId: ME, name: 'たろう', rank: 2, totalScore: 2700 },
+        ],
+      }),
+    );
+    expect(screen.getByRole('region', { name: '優勝' })).toHaveTextContent('はなこ');
+    expect(screen.getByText('あなた').closest('li')).toHaveTextContent('2位たろう');
+  });
+});
+
 describe('画面の移動と接続', () => {
   it('部屋の画面を離れたら、接続を閉じる', async () => {
     const { server, router } = await openPlayerPage();
