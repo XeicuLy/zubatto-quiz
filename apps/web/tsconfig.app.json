@@ -6,7 +6,7 @@
     "jsx": "react-jsx",
     "types": ["vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "test/setup.ts", "test/fake-room-server.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "test/setup.ts", "test/fake-room-server.ts", "test/fake-api.ts"],
   // Worker の入口は tsconfig.worker.json で確かめる
   "exclude": ["src/server.ts", "src/server.test.ts"]
 }
