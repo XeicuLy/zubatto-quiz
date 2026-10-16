@@ -14,7 +14,7 @@ export const Route = createFileRoute('/login')({
     typeof search.error === 'string' ? { error: search.error } : {},
   beforeLoad: async ({ context }) => {
     // 覚えた値は使わず、毎回確かめる。ログインが切れて移ってきたときに、前のセッションで管理画面へ戻さない
-    const host = await context.queryClient.fetchQuery(hostSessionQueryOptions);
+    const host = await context.queryClient.query(hostSessionQueryOptions);
     if (host) {
       throw redirect({ to: '/admin' });
     }

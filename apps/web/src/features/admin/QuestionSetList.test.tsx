@@ -5,8 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { stubFakeApi } from '../../../test/fake-api';
 import { createAppRouter } from '../../router';
-import { DRAFT_QUESTION_SET } from './api';
-import { hostSessionQueryOptions } from './host-session';
+import { DRAFT_QUESTION_SET, questionSetsQueryOptions } from './api';
 
 const QUIZ: QuestionSetSummary = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -95,14 +94,16 @@ describe('問題セットの一覧（F7）', () => {
     expect(screen.getByRole('heading', { level: 2, name: WELCOME.title })).toBeInTheDocument();
   });
 
-  it('ログインが切れていたら、ログインし直すよう促す', async () => {
+  it('一覧を開いているあいだにログインが切れたら、読み直したときにログインし直すよう促す', async () => {
     const api = stubFakeApi({ questionSets: [QUIZ] });
-    // 画面はログインしていると思っているが、サーバーではセッションが切れている
-    const router = createAppRouter({ history: createMemoryHistory({ initialEntries: ['/admin'] }) });
-    await router.options.context.queryClient.fetchQuery(hostSessionQueryOptions);
+    const router = await openAdmin();
+    await rowOf(QUIZ.title);
+
+    // 入口のログインの確認を通ったあとで、サーバーのセッションが切れる
     api.expireSession();
-    render(<RouterProvider router={router} />);
-    await act(() => router.load());
+    await act(() =>
+      router.options.context.queryClient.invalidateQueries({ queryKey: questionSetsQueryOptions.queryKey }),
+    );
 
     expect(await screen.findByRole('alert')).toHaveTextContent('ログインが切れました');
     expect(screen.getByRole('link', { name: 'ログインし直す' })).toHaveAttribute('href', '/login');

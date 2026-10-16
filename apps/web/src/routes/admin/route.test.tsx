@@ -26,6 +26,19 @@ describe('管理画面のログインの確認（S1）', () => {
     },
   );
 
+  it('別のタブでのログアウトなどでセッションが切れたあとは、管理画面の中を移るときにログイン画面へ移す', async () => {
+    const api = stubFakeApi({ hostName: 'XeicuLy' });
+    const router = await openAt('/admin');
+    expect(await screen.findByRole('banner')).toHaveTextContent('XeicuLy');
+
+    api.expireSession();
+    await act(() =>
+      router.navigate({ to: '/admin/sets/$setId', params: { setId: '11111111-1111-4111-8111-111111111111' } }),
+    );
+
+    expect(router.state.location.pathname).toBe('/login');
+  });
+
   it('ログインしていれば、ホストの名前とログアウトのボタンを出す', async () => {
     stubFakeApi({ hostName: 'XeicuLy' });
 
