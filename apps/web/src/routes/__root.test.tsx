@@ -1,7 +1,8 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
+import { stubFakeApi } from '../../test/fake-api';
 import { ErrorScreen } from '../components/error-screen';
 import { createAppRouter } from '../router';
 
@@ -13,6 +14,11 @@ async function renderAt(path: string) {
 }
 
 describe('画面の経路', () => {
+  // ログインしていない人として開く。/admin はログイン画面へ移り、そこの見出しを出す
+  beforeEach(() => {
+    stubFakeApi({ hostName: null });
+  });
+
   it.each([
     ['/', 'ズバクイ'],
     ['/admin', 'ホストの管理画面'],

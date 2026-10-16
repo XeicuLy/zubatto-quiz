@@ -1,0 +1,60 @@
+import { questionSetSchema, type QuestionSetSummary } from '@zubatto-quiz/protocol';
+import { describe, expect, it } from 'vitest';
+
+import { stubFakeApi } from '../../../test/fake-api';
+import { ApiError, createDraftQuestionSet, deleteQuestionSet, DRAFT_QUESTION_SET, fetchQuestionSets } from './api';
+
+const set: QuestionSetSummary = {
+  id: '11111111-1111-4111-8111-111111111111',
+  title: '内輪クイズ',
+  questionCount: 10,
+  updatedAt: '2026-12-01T03:00:00.000Z',
+};
+
+describe('fetchQuestionSets', () => {
+  it('自分の問題セットの一覧を返す（F7）', async () => {
+    stubFakeApi({ questionSets: [set] });
+
+    expect(await fetchQuestionSets()).toEqual([set]);
+  });
+
+  it('ログインが切れていたら、401 の ApiError を投げる', async () => {
+    stubFakeApi({ hostName: null });
+
+    await expect(fetchQuestionSets()).rejects.toEqual(new ApiError(401));
+  });
+});
+
+describe('createDraftQuestionSet', () => {
+  it('下書きを保存し、新しいセットの ID を返す', async () => {
+    const api = stubFakeApi();
+
+    const id = await createDraftQuestionSet();
+
+    expect(id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(api.requestsTo('POST', '/api/question-sets')).toEqual([
+      expect.objectContaining({ body: DRAFT_QUESTION_SET }),
+    ]);
+  });
+
+  it('下書きは、API が受け付ける問題セットの形になっている', () => {
+    expect(questionSetSchema.safeParse(DRAFT_QUESTION_SET).success).toBe(true);
+  });
+});
+
+describe('deleteQuestionSet', () => {
+  it('その問題セットを消す', async () => {
+    const api = stubFakeApi({ questionSets: [set] });
+
+    await deleteQuestionSet(set.id);
+
+    expect(api.requestsTo('DELETE', `/api/question-sets/${set.id}`)).toHaveLength(1);
+    expect(await fetchQuestionSets()).toEqual([]);
+  });
+
+  it('ない問題セットなら、404 の ApiError を投げる', async () => {
+    stubFakeApi();
+
+    await expect(deleteQuestionSet(set.id)).rejects.toEqual(new ApiError(404));
+  });
+});

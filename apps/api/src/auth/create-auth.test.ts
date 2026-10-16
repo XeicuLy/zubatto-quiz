@@ -63,7 +63,8 @@ async function signInWithGithub() {
   const signIn = await exports.default.fetch(`${BASE_URL}/api/auth/sign-in/social`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', origin: BASE_URL },
-    body: JSON.stringify({ provider: 'github', callbackURL: '/host' }),
+    // 画面（apps/web の auth-client.ts）と同じく、拒否されたらログイン画面へ戻すよう頼む
+    body: JSON.stringify({ provider: 'github', callbackURL: '/host', errorCallbackURL: '/login' }),
   });
   expect(signIn.status).toBe(200);
   const { url } = await signIn.json<{ url: string }>();
@@ -88,7 +89,9 @@ describe('GitHub のログイン（S1・ADR 0003）', () => {
     const { callback } = await signInWithGithub();
 
     expect(callback.status).toBe(302);
-    expect(new URL(callback.headers.get('location')!, BASE_URL).searchParams.get('error')).toBe(HOST_NOT_ALLOWED);
+    const location = new URL(callback.headers.get('location')!, BASE_URL);
+    expect(location.pathname).toBe('/login');
+    expect(location.searchParams.get('error')).toBe(HOST_NOT_ALLOWED);
     expect(sessionCookieOf(callback)).toBeUndefined();
     expect(await db.select().from(user)).toEqual([]);
     expect(await countSessions()).toBe(0);
@@ -116,7 +119,9 @@ describe('GitHub のログイン（S1・ADR 0003）', () => {
     await db.delete(hostAllowlist).where(eq(hostAllowlist.githubUserId, '1001'));
     const { callback } = await signInWithGithub();
 
-    expect(new URL(callback.headers.get('location')!, BASE_URL).searchParams.get('error')).toBe(HOST_NOT_ALLOWED);
+    const location = new URL(callback.headers.get('location')!, BASE_URL);
+    expect(location.pathname).toBe('/login');
+    expect(location.searchParams.get('error')).toBe(HOST_NOT_ALLOWED);
     expect(sessionCookieOf(callback)).toBeUndefined();
     expect(await countSessions()).toBe(1);
   });

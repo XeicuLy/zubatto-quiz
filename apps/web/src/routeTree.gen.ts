@@ -10,8 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as RRoomIdRouteImport } from './routes/r/$roomId'
+import { Route as AdminSetsSetIdRouteImport } from './routes/admin/sets/$setId'
 import { Route as RoomsRoomIdHostRouteImport } from './routes/rooms/$roomId/host'
 
 const IndexRoute = IndexRouteImport.update({
@@ -19,15 +22,30 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
+const AdminRouteRoute = AdminRouteRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
 const RRoomIdRoute = RRoomIdRouteImport.update({
   id: '/r/$roomId',
   path: '/r/$roomId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSetsSetIdRoute = AdminSetsSetIdRouteImport.update({
+  id: '/sets/$setId',
+  path: '/sets/$setId',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
 const RoomsRoomIdHostRoute = RoomsRoomIdHostRouteImport.update({
   id: '/rooms/$roomId/host',
@@ -37,34 +55,64 @@ const RoomsRoomIdHostRoute = RoomsRoomIdHostRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteRouteWithChildren
+  '/login': typeof LoginRoute
   '/r/$roomId': typeof RRoomIdRoute
+  '/admin/': typeof AdminIndexRoute
+  '/admin/sets/$setId': typeof AdminSetsSetIdRoute
   '/rooms/$roomId/host': typeof RoomsRoomIdHostRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/login': typeof LoginRoute
   '/r/$roomId': typeof RRoomIdRoute
+  '/admin': typeof AdminIndexRoute
+  '/admin/sets/$setId': typeof AdminSetsSetIdRoute
   '/rooms/$roomId/host': typeof RoomsRoomIdHostRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteRouteWithChildren
+  '/login': typeof LoginRoute
   '/r/$roomId': typeof RRoomIdRoute
+  '/admin/': typeof AdminIndexRoute
+  '/admin/sets/$setId': typeof AdminSetsSetIdRoute
   '/rooms/$roomId/host': typeof RoomsRoomIdHostRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/r/$roomId' | '/rooms/$roomId/host'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/r/$roomId'
+    | '/admin/'
+    | '/admin/sets/$setId'
+    | '/rooms/$roomId/host'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/r/$roomId' | '/rooms/$roomId/host'
-  id: '__root__' | '/' | '/admin' | '/r/$roomId' | '/rooms/$roomId/host'
+  to:
+    | '/'
+    | '/login'
+    | '/r/$roomId'
+    | '/admin'
+    | '/admin/sets/$setId'
+    | '/rooms/$roomId/host'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/r/$roomId'
+    | '/admin/'
+    | '/admin/sets/$setId'
+    | '/rooms/$roomId/host'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
+  LoginRoute: typeof LoginRoute
   RRoomIdRoute: typeof RRoomIdRoute
   RoomsRoomIdHostRoute: typeof RoomsRoomIdHostRoute
 }
@@ -82,8 +130,22 @@ declare module '@tanstack/react-router' {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+      preLoaderRoute: typeof AdminRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
     '/r/$roomId': {
       id: '/r/$roomId'
@@ -91,6 +153,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/r/$roomId'
       preLoaderRoute: typeof RRoomIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/sets/$setId': {
+      id: '/admin/sets/$setId'
+      path: '/sets/$setId'
+      fullPath: '/admin/sets/$setId'
+      preLoaderRoute: typeof AdminSetsSetIdRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
     '/rooms/$roomId/host': {
       id: '/rooms/$roomId/host'
@@ -102,9 +171,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminSetsSetIdRoute: typeof AdminSetsSetIdRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+  AdminSetsSetIdRoute: AdminSetsSetIdRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
+  LoginRoute: LoginRoute,
   RRoomIdRoute: RRoomIdRoute,
   RoomsRoomIdHostRoute: RoomsRoomIdHostRoute,
 }
