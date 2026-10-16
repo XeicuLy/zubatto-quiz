@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterEach } from 'vitest';
+import { afterEach, vi } from 'vitest';
 
 // globals を使わないので、Testing Library は描いたものを自動では片付けない
 afterEach(() => {
@@ -12,3 +12,8 @@ afterEach(() => {
 if (typeof window !== 'undefined') {
   window.scrollTo = () => {};
 }
+
+// stubFakeApi（test/fake-api.ts）が差し替えた fetch を戻す
+afterEach(() => {
+  vi.unstubAllGlobals();
+});

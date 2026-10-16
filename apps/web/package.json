@@ -16,6 +16,7 @@
     "@tanstack/react-router": "1.170.42",
     "@zubatto-quiz/protocol": "workspace:*",
     "@zubatto-quiz/scoring": "workspace:*",
+    "better-auth": "1.7.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "zustand": "5.0.15"
