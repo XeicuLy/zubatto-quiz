@@ -1,0 +1,8 @@
+{
+  "name": "@zubatto-quiz/docs-check",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tsc": "tsc -p tsconfig.json"
+  }
+}
