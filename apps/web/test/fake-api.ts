@@ -1,4 +1,9 @@
-import { questionSetSchema, type QuestionSetDetail, type QuestionSetSummary } from '@zubatto-quiz/protocol';
+import {
+  createRoomRequestSchema,
+  questionSetSchema,
+  type QuestionSetDetail,
+  type QuestionSetSummary,
+} from '@zubatto-quiz/protocol';
 import { vi } from 'vitest';
 
 /** 偽の API が受け取った要求。本文は JSON として読んだ値 */
@@ -19,7 +24,7 @@ interface FakeApiOptions {
 
 /**
  * 画面のテスト用の、偽の API。グローバルの fetch を差し替えて、Better Auth（/api/auth/*）と
- * 問題セットの HTTP API（/api/question-sets）に答える。作成と更新の本文は、本物と同じく questionSetSchema で確かめ、
+ * 問題セットの HTTP API（/api/question-sets）と部屋の作成（POST /api/rooms）に答える。作成と更新の本文は、本物と同じく questionSetSchema で確かめ、
  * 通らなければ 400 を返す。Better Auth のクライアントも fetch を通るので、
  * 本物のクライアントの要求の形のまま確かめられる。
  *
@@ -33,6 +38,7 @@ export function stubFakeApi({ hostName = 'XeicuLy', questionSets = [], questionS
   };
   const received: ReceivedRequest[] = [];
   let nextId = 1;
+  let nextRoom = 1;
 
   async function handle(method: string, path: string, body: unknown): Promise<Response> {
     if (path === '/api/auth/get-session') {
@@ -63,6 +69,18 @@ export function stubFakeApi({ hostName = 'XeicuLy', questionSets = [], questionS
       state.details.set(id, { id, ...input.data });
       state.questionSets.unshift(summaryOf(id, input.data));
       return Response.json({ id }, { status: 201 });
+    }
+    if (path === '/api/rooms' && method === 'POST') {
+      const input = createRoomRequestSchema.safeParse(body);
+      if (!input.success) {
+        return Response.json({ error: 'invalid_request' }, { status: 400 });
+      }
+      // 本物と同じく、一覧にない（他人の）セットは 404
+      if (!state.questionSets.some((set) => set.id === input.data.questionSetId)) {
+        return Response.json({ error: 'not_found' }, { status: 404 });
+      }
+      const roomId = String(nextRoom++).padStart(64, '0');
+      return Response.json({ roomId, joinUrl: `http://localhost:3000/r/${roomId}` }, { status: 201 });
     }
     const setId = /^\/api\/question-sets\/([^/]+)$/.exec(path)?.[1];
     const detail = setId === undefined ? undefined : state.details.get(setId);

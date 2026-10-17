@@ -1,4 +1,4 @@
-import { CLOSE_CODES, type CloseReason, type Join } from '@zubatto-quiz/protocol';
+import { CLOSE_CODES, MAX_PARTICIPANTS, type CloseReason, type Join } from '@zubatto-quiz/protocol';
 
 import { getAttachment, setAttachment } from '../attachment';
 import { normalizeName } from '../normalize-name';
@@ -6,9 +6,6 @@ import { resendCurrentPhase } from '../resend';
 import { broadcast, send } from '../send';
 import { readParticipants, readRoomSnapshot } from '../snapshot';
 import { hashToken } from '../token-hash';
-
-/** 1部屋の回答者の上限（SC1） */
-export const MAX_PARTICIPANTS = 50;
 
 type InsertResult =
   | { ok: true; participantId: string }

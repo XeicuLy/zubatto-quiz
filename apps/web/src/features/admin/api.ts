@@ -1,15 +1,18 @@
 import { queryOptions } from '@tanstack/react-query';
 import {
   createQuestionSetResponseSchema,
+  createRoomResponseSchema,
   listQuestionSetsResponseSchema,
   questionSetDetailSchema,
+  type CreateRoomResponse,
   type QuestionSetDetail,
   type QuestionSetInput,
   type QuestionSetSummary,
 } from '@zubatto-quiz/protocol';
 
 /**
- * 問題セットの HTTP API（/api/question-sets）を呼ぶ（F4・F7）。要求と応答の形は protocol の http/question-sets.ts にある。
+ * 問題セットの HTTP API（/api/question-sets）と部屋の作成（POST /api/rooms）を呼ぶ（F1・F4・F7）。
+ * 要求と応答の形は protocol の http/question-sets.ts と http/rooms.ts にある。
  * Hono の RPC ではなく protocol のスキーマで読むので、画面は API の実装（Hono）に依存しない（ADR 0001）。
  *
  * Cookie は同じオリジンなので fetch が自動で付ける。csrf() は Origin と Sec-Fetch-Site で通す（ADR 0003・0006）
@@ -96,4 +99,13 @@ export async function createDraftQuestionSet(): Promise<string> {
 
 export async function deleteQuestionSet(id: string): Promise<void> {
   await request('DELETE', `/api/question-sets/${encodeURIComponent(id)}`);
+}
+
+/**
+ * 問題セットから部屋を作る（F1）。部屋は、この時点の問題セットを写して使うので、あとで編集しても反映されない（ADR 0002）。
+ * やり直すと部屋が2つできるので、useMutation の既定のまま、失敗してもやり直さない
+ */
+export async function createRoom(questionSetId: string): Promise<CreateRoomResponse> {
+  const response = await request('POST', '/api/rooms', { questionSetId });
+  return createRoomResponseSchema.parse(await response.json());
 }

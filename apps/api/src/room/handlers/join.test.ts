@@ -1,4 +1,4 @@
-import { CLOSE_CODES, type Joined } from '@zubatto-quiz/protocol';
+import { CLOSE_CODES, MAX_PARTICIPANTS, type Joined } from '@zubatto-quiz/protocol';
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,7 +13,7 @@ import {
 } from '../../../test/room-socket';
 import { getAttachment } from '../attachment';
 import { hashToken } from '../token-hash';
-import { handleJoin, MAX_PARTICIPANTS } from './join';
+import { handleJoin } from './join';
 
 const player = { role: 'player' } as const;
 

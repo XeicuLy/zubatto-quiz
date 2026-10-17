@@ -3,6 +3,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import type { QuestionSetSummary } from '@zubatto-quiz/protocol';
 import { useState } from 'react';
 
+import { CreateRoomButton } from '../host/CreateRoomButton';
 import { ApiError, createDraftQuestionSet, deleteQuestionSet, questionSetsQueryOptions } from './api';
 
 /** 更新した日。ホストは日本にいるので、端末の時刻の設定によらず日本の時刻で出す */
@@ -12,8 +13,7 @@ const primaryButton =
   'rounded-full bg-stage px-5 py-2.5 font-bold text-on-stage focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-stage disabled:opacity-60';
 
 /**
- * 自分の問題セットの一覧（F7）。作る・編集へ移る・消すができる。
- * 「部屋を作る」は T31 で足す
+ * 自分の問題セットの一覧（F1・F7）。作る・部屋を作る・編集へ移る・消すができる
  */
 export function QuestionSetList() {
   const sets = useQuery(questionSetsQueryOptions);
@@ -122,7 +122,9 @@ function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
           </button>
         </div>
       ) : (
-        <div className="flex shrink-0 gap-2">
+        // min-w-0: 「部屋を作る」の失敗の知らせ（w-full）が出たら、行の幅まで縮んで文を折り返す。shrink-0 だと文が1行に伸びてはみ出す
+        <div className="flex min-w-0 flex-wrap gap-2">
+          <CreateRoomButton questionSetId={set.id} />
           <Link
             to="/admin/sets/$setId"
             params={{ setId: set.id }}

@@ -1,3 +1,4 @@
+import { MAX_PARTICIPANTS } from '@zubatto-quiz/protocol';
 import { useStore } from 'zustand';
 
 import { FinalRanking } from '../results/Ranking';
@@ -31,7 +32,7 @@ export function PlayerPage({ player }: { player: PlayerRoom }) {
         <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
           <h1 className="font-display text-3xl leading-snug">この部屋は満員です</h1>
           <p className="mt-4 leading-relaxed text-on-stage-muted">
-            1つの部屋に入れるのは50人までです。ホストに、別の部屋を作れるか聞いてください。
+            1つの部屋に入れるのは{MAX_PARTICIPANTS}人までです。ホストに、別の部屋を作れるか聞いてください。
           </p>
         </main>
       );

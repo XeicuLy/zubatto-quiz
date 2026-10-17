@@ -57,6 +57,9 @@ export const roomSnapshotSchema = z.object({
 });
 export type RoomSnapshot = z.infer<typeof roomSnapshotSchema>;
 
+/** 1部屋の回答者の上限（SC1）。部屋の DO は51人目を room_full で断り、ホストの待機画面は「/ 50 人」と出す */
+export const MAX_PARTICIPANTS = 50;
+
 export const participantSummarySchema = z.object({
   participantId: participantIdSchema,
   name: displayNameSchema,
