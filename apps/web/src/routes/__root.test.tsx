@@ -14,7 +14,7 @@ async function renderAt(path: string) {
 }
 
 describe('画面の経路', () => {
-  // ログインしていない人として開く。/admin はログイン画面へ移り、そこの見出しを出す
+  // ログインしていない人として開く。/admin と進行画面はログイン画面へ移り、そこの見出しを出す
   beforeEach(() => {
     stubFakeApi({ hostName: null });
   });
@@ -22,7 +22,7 @@ describe('画面の経路', () => {
   it.each([
     ['/', 'ズバクイ'],
     ['/admin', 'ホストの管理画面'],
-    ['/rooms/room-1/host', '進行画面'],
+    [`/rooms/${'a'.repeat(64)}/host`, 'ホストの管理画面'],
     [`/r/${'a'.repeat(64)}`, 'ズバッとクイズ'],
   ])('%s を開くと、見出し「%s」を出す', async (path, heading) => {
     await renderAt(path);

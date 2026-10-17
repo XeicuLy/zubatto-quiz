@@ -1,14 +1,44 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, notFound } from '@tanstack/react-router';
+import { roomIdSchema } from '@zubatto-quiz/protocol';
 
-// ホストの待機と進行（T31・T32）
+import { requireHost } from '../../../features/admin/host-session';
+import { createHostRoom } from '../../../features/host/host-room';
+import { HostPage } from '../../../features/host/HostPage';
+import { roomJoinUrl, roomSocketUrl } from '../../../realtime/room-url';
+
+/**
+ * ホストの待機と進行（T31・T32）。一覧の「部屋を作る」が、作った部屋のここへ移る。
+ * 部屋に入るときに loader が操作役（host-room）を1つ作り、onEnter でホスト用の接続を開き、onLeave で閉じる。
+ * gcTime: 0 と shouldReload: false で、同じ部屋にいるあいだは作り直さず、離れたら捨てる
+ */
 export const Route = createFileRoute('/rooms/$roomId/host')({
-  component: HostPage,
+  beforeLoad: async ({ params, context }) => {
+    // 形の違う ID で開くと、API が 404 で断り、つなぎ直しが続くので、ログインを確かめるより先に止める
+    if (!roomIdSchema.safeParse(params.roomId).success) {
+      throw notFound();
+    }
+    // ホスト用の入口は Cookie のセッションで持ち主を確かめる。ログインしていなければ 401 でつなぎ直しが続くので、先にログイン画面へ移す
+    return requireHost({ context });
+  },
+  loader: ({ params, context }) => ({
+    host: createHostRoom({
+      url: roomSocketUrl(params.roomId, 'host', window.location),
+      createSocket: context.createRoomSocket,
+    }),
+    joinUrl: roomJoinUrl(params.roomId, window.location),
+  }),
+  gcTime: 0,
+  shouldReload: false,
+  onEnter: (match) => match.loaderData?.host.connect(),
+  onLeave: (match) => match.loaderData?.host.leave(),
+  component: HostRoute,
 });
 
-function HostPage() {
+function HostRoute() {
+  const { host, joinUrl } = Route.useLoaderData();
   return (
-    <main className="min-h-dvh bg-stage p-stage text-on-stage">
-      <h1 className="text-stage-title font-bold">進行画面</h1>
-    </main>
+    <div className="min-h-dvh bg-stage font-sans text-on-stage antialiased">
+      <HostPage host={host} joinUrl={joinUrl} />
+    </div>
   );
 }
