@@ -1,0 +1,108 @@
+name: Deploy
+
+# 本番のデプロイは、手で動かしたときだけ行う。main にマージしてもデプロイしない（ADR 0005）
+# 本番の最中は API の Worker をデプロイしない決まり（ADR 0006）を、マージで破らないため
+# 動かし方と、Cloudflare の API トークンの入れ方は docs/runbooks/deploy.md
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'web: 画面だけ（本番の最中でも部屋の接続は切れない） / all: マイグレーション → API → 画面（本番の最中は選ばない）'
+        type: choice
+        options:
+          - web
+          - all
+        default: web
+        required: true
+
+permissions:
+  contents: read
+
+# 2つのデプロイを同時に走らせない。あとから動かしたほうは、前のデプロイが終わるまで待つ（途中で止めない）
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+# Cloudflare の API トークンとアカウント ID は、Environment（production）の secret にだけ置く。
+# environment: production を書いた job だけが読める。PR の CI（ci.yaml）からは読めない（ADR 0005 の DD4）
+jobs:
+  migrate:
+    if: inputs.target == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: '0'
+
+      # D1 は名前（zubakui）で探す。ないとここで止まるので、初回だけ手元で wrangler d1 create を実行しておく（ADR 0005）
+      - name: Apply D1 migrations
+        run: pnpm run db:migrate:remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  deploy-api:
+    needs: migrate
+    if: inputs.target == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: '0'
+
+      # アプリのシークレットは手元の wrangler secret put で入れてあり、デプロイで引き継がれる（docs/runbooks/secrets.md）
+      - name: Deploy API Worker
+        run: pnpm run deploy:api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  deploy-web:
+    needs: deploy-api
+    # 状態の関数がない if には success() が付いたものとして扱われ、「画面だけ」で deploy-api が飛ばされると、ここも飛ばされてしまう。
+    # failure() は needs でつながった前の job のどれかが失敗すると true になるので、マイグレーションか API が失敗したら動かない
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: '0'
+
+      - name: Deploy web Worker
+        run: pnpm run deploy:web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

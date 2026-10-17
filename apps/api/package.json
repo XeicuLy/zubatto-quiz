@@ -6,6 +6,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply DB --local --persist-to ../web/.wrangler/state",
     "db:migrate:e2e": "wrangler d1 migrations apply DB --local --env e2e --persist-to ../web/.wrangler/e2e",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote --env=\"\"",
+    "deploy": "wrangler deploy --env=\"\"",
     "dev": "wrangler dev",
     "tsc": "wrangler types --check && tsc -p tsconfig.json && tsc -p tsconfig.node.json",
     "types": "wrangler types"

@@ -4,5 +4,8 @@
   "type": "module",
   "scripts": {
     "tsc": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "yaml": "2.9.1"
   }
 }
