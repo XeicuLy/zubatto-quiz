@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // リポジトリのファイルを node で読むテストだけのパッケージ
+    "types": ["node"]
+  },
+  "include": ["test/**/*.ts", "vitest.config.ts"]
+}

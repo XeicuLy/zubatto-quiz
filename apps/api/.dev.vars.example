@@ -1,0 +1,18 @@
+# ローカル（vite dev）で API の Worker が使う値。このファイルを .dev.vars に写して、空の値を埋める
+#   cp apps/api/.dev.vars.example apps/api/.dev.vars
+# 手順は docs/runbooks/secrets.md と docs/runbooks/github-oauth-apps.md にある。
+# .dev.vars があると、wrangler はそこからだけ値を探す。1つでも空だとログインできない
+# このファイルには本物の値を書かない（コミットされる）
+
+# Better Auth の baseURL。ブラウザから見える画面の Worker の URL（vite dev は http://localhost:5173）
+# GitHub の OAuth App（ローカル用）のコールバック URL は、この値 + /api/auth/callback/github
+BETTER_AUTH_URL=http://localhost:5173
+
+# Cookie の署名と、GitHub のトークンの暗号化に使う鍵。作り方: openssl rand -base64 32
+BETTER_AUTH_SECRET=
+
+# ローカル用の GitHub OAuth App の Client ID（Ov23li で始まる。設定ページの URL の数字ではない）
+GITHUB_CLIENT_ID=
+
+# 同じ App の Client Secret。作った画面でしか表示されないので、失くしたら作り直す
+GITHUB_CLIENT_SECRET=
