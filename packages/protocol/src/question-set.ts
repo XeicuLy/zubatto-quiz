@@ -45,7 +45,9 @@ export const questionSchema = z
   .refine((question) => question.correctIndex < question.choices.length, {
     message: '正解の番号が選択肢の数を超えている',
     path: ['correctIndex'],
-  });
+  })
+  // 書き写し忘れないよう、JSON Schema（openapi.json）の description にも出す
+  .meta({ description: 'correctIndex は choices の数より小さい（JSON Schema では表せない条件）' });
 export type Question = z.infer<typeof questionSchema>;
 
 export const questionSetSchema = z.object({
