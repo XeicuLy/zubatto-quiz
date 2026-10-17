@@ -53,6 +53,8 @@ describe('README と手順書のリンク', () => {
   });
 
   it.each(links)('$document の $target の先が、リポジトリの中にある', ({ url }) => {
+    // 外を指すリンクは、手元にたまたまファイルがあっても GitHub の上では切れる。先に確かめ、本当の理由で落とす
+    expect(url.href.startsWith(repoRoot.href)).toBe(true);
     expect(existsSync(url)).toBe(true);
   });
 

@@ -52,12 +52,12 @@ pnpm run fmt   # jq の出力は oxfmt の形と違うので、整えないと f
 
 ### CI の job 名を変えるとき
 
-必須のチェックは job 名で決まる。`ci.yaml` の job 名だけを変えると、`ci` という名前のチェックがいつまでも来ないので、どの PR もマージできなくなる。job 名を変えるときは、同じ PR で次の両方を行う。
+必須のチェックの名前は、job の表示名で決まる。表示名は `jobs.<job_id>.name` があればその値、なければ job ID（今は `ci`）になる。`ci.yaml` の job ID や `name:` だけを変えると、`ci` という名前のチェックがいつまでも来ないので、どの PR もマージできなくなる。job 名を変えるときは、同じ PR で次の両方を行う。
 
 1. ルールセットの必須のチェックの名前を、新しい job 名に変える
 2. `main-ruleset.json` の `context` も同じ名前にする
 
-`main-ruleset.json` の名前と `ci.yaml` の job 名がずれると、`tools/docs-check` のテストが落ちる。
+`main-ruleset.json` の名前が `ci.yaml` のどの job の表示名とも合わないと、`tools/docs-check` のテストが落ちる。テストは名前を決め打ちしていないので、テストを直す必要はない。
 
 ## CI が壊れて直せないとき
 
