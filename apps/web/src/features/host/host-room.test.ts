@@ -106,3 +106,103 @@ describe('ホスト用の接続（ADR 0003）', () => {
     expect(server.sockets).toHaveLength(2);
   });
 });
+
+describe('進行の操作（T32）', () => {
+  const QUESTION = {
+    type: 'questionShown',
+    questionId: 'q-1',
+    questionIndex: 0,
+    questionCount: 3,
+    text: '第1問',
+    limitMs: 10_000,
+  } as const;
+  const answeringStarted = (remainingMs: number) => ({
+    type: 'answeringStarted' as const,
+    questionId: 'q-1',
+    choices: ['A', 'B'],
+    limitMs: 10_000,
+    remainingMs,
+  });
+
+  /** 第1問の受付が始まったところまで進める */
+  function startAccepting(remainingMs = 10_000) {
+    const context = setup();
+    context.host.connect();
+    context.server.latest.open();
+    context.server.latest.emit({ type: 'hostReady', room: ROOM });
+    context.server.latest.emit(QUESTION);
+    context.server.latest.emit(answeringStarted(remainingMs));
+    return context;
+  }
+
+  const closeCommands = (server: FakeRoomServer) =>
+    server.sockets.flatMap((socket) => socket.received).filter((message) => message.type === 'closeAnswering');
+
+  it('send で進行の操作を送る', () => {
+    const { server, host } = setup();
+    host.connect();
+    server.latest.open();
+
+    expect(host.send({ type: 'showQuestion', questionIndex: 0 })).toBe(true);
+    expect(server.latest.received).toEqual([{ type: 'showQuestion', questionIndex: 0 }]);
+  });
+
+  it('接続が開いていなければ送らずに false を返す', () => {
+    const { host } = setup();
+    host.connect();
+
+    expect(host.send({ type: 'showQuestion', questionIndex: 0 })).toBe(false);
+  });
+
+  it('残りが0になったら、部屋の DO の alarm を待たずに締切を送る', () => {
+    const { server } = startAccepting();
+
+    vi.advanceTimersByTime(9_999);
+    expect(closeCommands(server)).toEqual([]);
+    vi.advanceTimersByTime(1);
+    expect(closeCommands(server)).toEqual([{ type: 'closeAnswering', questionIndex: 0 }]);
+  });
+
+  it('先に締め切られていたら（① が届いた）、締切を送らない', () => {
+    const { server } = startAccepting();
+
+    server.latest.emit({
+      type: 'revealed',
+      questionId: 'q-1',
+      correctIndex: 0,
+      choiceCounts: [0, 0],
+      answeredCount: 0,
+      participantCount: 0,
+    });
+    vi.advanceTimersByTime(10_000);
+
+    expect(closeCommands(server)).toEqual([]);
+  });
+
+  it('受付中にやり直したら（出題に戻った）、締切を送らない（A3）', () => {
+    const { server } = startAccepting();
+
+    vi.advanceTimersByTime(4_000);
+    server.latest.emit(QUESTION);
+    vi.advanceTimersByTime(6_000);
+
+    expect(closeCommands(server)).toEqual([]);
+  });
+
+  it('つなぎ直して残りが送り直されたら、その残りで1回だけ送る', () => {
+    const { server } = startAccepting();
+
+    vi.advanceTimersByTime(3_000);
+    server.latest.closeFromServer(1006);
+    vi.advanceTimersByTime(1_000);
+    server.latest.open();
+    server.latest.emit({ type: 'hostReady', room: { ...ROOM, phase: 'accepting', questionIndex: 0 } });
+    server.latest.emit(QUESTION);
+    server.latest.emit(answeringStarted(2_000));
+
+    vi.advanceTimersByTime(1_999);
+    expect(closeCommands(server)).toEqual([]);
+    vi.advanceTimersByTime(10_000);
+    expect(closeCommands(server)).toEqual([{ type: 'closeAnswering', questionIndex: 0 }]);
+  });
+});

@@ -16,7 +16,7 @@ interface HostLobbyProps {
  */
 export function HostLobby({ room, participants, joinUrl }: HostLobbyProps) {
   return (
-    <main className="flex min-h-dvh flex-col gap-stage p-stage">
+    <main className="flex flex-1 flex-col gap-stage p-stage">
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <h1 className="font-display text-stage-title wrap-anywhere">{room.title}</h1>
         <p className="text-stage-label text-on-stage-muted">全{room.questionCount}問</p>

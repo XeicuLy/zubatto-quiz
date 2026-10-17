@@ -1,4 +1,11 @@
-import type { FastestRevealed, FinalRanking, MyResult, Revealed, Standings } from '@zubatto-quiz/protocol';
+import {
+  canShowStandings,
+  type FastestRevealed,
+  type FinalRanking,
+  type MyResult,
+  type Revealed,
+  type Standings,
+} from '@zubatto-quiz/protocol';
 import {
   findBiggestClimber,
   findFastest,
@@ -9,8 +16,6 @@ import {
   type Competitor,
   type QuestionAnswer,
 } from '@zubatto-quiz/scoring';
-
-import { canShowStandings } from './state-machine';
 
 /**
  * 締切のあとに配る結果（① ② ③ と最終ランキング）を、締め切った問題の得点と回答から作る（F11・F13・F14・F15）。
