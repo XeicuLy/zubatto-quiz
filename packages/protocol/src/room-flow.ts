@@ -1,12 +1,19 @@
-import type { HostCommand, RoomPhase } from '@zubatto-quiz/protocol';
+import type { HostCommand } from './ws/client-messages.ts';
+import type { RoomPhase, RoomSnapshot } from './ws/server-messages.ts';
 
 /**
- * 部屋の進行の状態（docs/design/README.md の「1問の流れ」）。SQLite の room の行から読む。
+ * 進行の規則（docs/design/README.md の「1問の流れ」）。部屋の DO と進行画面の両方が使う。
+ * 部屋の DO は受け付けるかを決めるのに、進行画面はボタンを押せるかを決めるのに使うので、押したのに断られる食い違いが起きない。
+ * Go へ置き換えるときは、room-flow.test.ts の表をそのまま移す
+ */
+
+/**
+ * 部屋の進行の状態。部屋の DO は SQLite の room の行から読む。
  * 終えた部屋（ended）は、段階をそのまま残し、どの進行操作も受け付けない
  */
-export type RoomState = { phase: RoomPhase; questionIndex: number | null; ended: boolean };
+export type RoomFlowState = { phase: RoomPhase; questionIndex: number | null; ended: boolean };
 
-export type TransitionResult = { ok: true; next: RoomState } | { ok: false };
+export type TransitionResult = { ok: true; next: RoomFlowState } | { ok: false };
 
 const rejected: TransitionResult = { ok: false };
 const moveTo = (phase: RoomPhase, questionIndex: number | null): TransitionResult => ({
@@ -36,9 +43,9 @@ export const canShowStandings = (questionIndex: number, questionCount: number): 
 /**
  * 進行操作を今の状態に当てたときの、次の状態を返す。受け付けない操作なら { ok: false }。
  * DB も時刻も見ない純粋な関数にして、遷移の表をそのままテストできるようにする。
- * 何を SQLite に書き、何を配るかは handlers/host-commands.ts で決める
+ * 何を SQLite に書き、何を配るかは部屋の DO（apps/api の handlers/host-commands.ts）で決める
  */
-export function transition(state: RoomState, command: HostCommand, questionCount: number): TransitionResult {
+export function transition(state: RoomFlowState, command: HostCommand, questionCount: number): TransitionResult {
   if (state.ended) {
     return rejected;
   }
@@ -72,4 +79,13 @@ export function transition(state: RoomState, command: HostCommand, questionCount
       return moveTo(move.to, questionIndex);
     }
   }
+}
+
+/**
+ * 進行画面のボタンを押せるか。部屋の DO と同じ transition で決める。
+ * 終えた部屋の接続は閉じているので、進行画面から見える部屋は ended でない
+ */
+export function canSend(room: RoomSnapshot, command: HostCommand): boolean {
+  const state: RoomFlowState = { phase: room.phase, questionIndex: room.questionIndex, ended: false };
+  return transition(state, command, room.questionCount).ok;
 }

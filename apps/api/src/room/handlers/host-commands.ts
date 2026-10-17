@@ -1,9 +1,15 @@
-import { CLOSE_CODES, type HostCommand, type RoomPhase } from '@zubatto-quiz/protocol';
+import {
+  CLOSE_CODES,
+  transition,
+  type HostCommand,
+  type RoomFlowState,
+  type RoomPhase,
+  type TransitionResult,
+} from '@zubatto-quiz/protocol';
 
 import { scheduleAlarm } from '../alarm';
 import { answeringStartedOf, questionShownOf, readQuestionRow } from '../resend';
 import { broadcast, send } from '../send';
-import { transition, type RoomState, type TransitionResult } from '../state-machine';
 import { scoreQuestion, sendResults } from './close-question';
 
 type RoomRow = {
@@ -16,7 +22,7 @@ type RoomRow = {
 const readRoomRow = (sql: SqlStorage): RoomRow =>
   sql.exec<RoomRow>('SELECT phase, current_position, ended_at, deadline_at FROM room').one();
 
-const toState = (row: RoomRow): RoomState => ({
+const toState = (row: RoomRow): RoomFlowState => ({
   phase: row.phase,
   questionIndex: row.current_position,
   ended: row.ended_at !== null,
