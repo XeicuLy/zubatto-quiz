@@ -422,7 +422,20 @@ describe('CLOSE_CODES', () => {
 
   it('Issue で決めた閉じる理由をすべて持つ', () => {
     expect(Object.keys(CLOSE_CODES).sort()).toEqual(
-      ['connection_limit', 'join_timeout', 'name_taken', 'replaced', 'resume_failed', 'room_ended', 'room_full'].sort(),
+      [
+        'connection_limit',
+        'join_timeout',
+        'name_taken',
+        'replaced',
+        'resume_failed',
+        'room_ended',
+        'room_full',
+        'room_not_found',
+      ].sort(),
     );
+  });
+
+  it('ない部屋・他人の部屋は 4404（S1・ADR 0004）', () => {
+    expect(CLOSE_CODES.room_not_found).toBe(4_404);
   });
 });

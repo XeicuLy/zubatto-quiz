@@ -2,7 +2,7 @@ import { CLOSE_CODES, type CloseReason } from '@zubatto-quiz/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FakeRoomServer } from '../../../test/fake-room-server';
-import { createPlayerRoom, rejectionOf, type PlayerEntry } from './player-room';
+import { createPlayerRoom, entryAfter, rejectionOf, type PlayerEntry, type Rejection } from './player-room';
 import { createToken, loadToken, saveToken } from './token-storage';
 
 const ROOM_ID = 'a'.repeat(64);
@@ -148,6 +148,19 @@ describe('断られたとき（ADR 0004）', () => {
     expect(entry()).toEqual({ screen: 'full' });
   });
 
+  it('部屋がなければ、秘密を消して「部屋が見つかりません」の画面にし、つなぎ直さない', async () => {
+    const { server, player, entry } = setup();
+
+    player.join('たろう');
+    server.latest.open();
+    server.latest.closeFromServer(CLOSE_CODES.room_not_found);
+    await vi.runOnlyPendingTimersAsync();
+
+    expect(loadToken(ROOM_ID)).toBeNull();
+    expect(entry()).toEqual({ screen: 'not_found' });
+    expect(server.sockets).toHaveLength(1);
+  });
+
   it.each([
     ['replaced', CLOSE_CODES.replaced],
     ['room_ended', CLOSE_CODES.room_ended],
@@ -172,6 +185,7 @@ describe('閉じた理由のうち、秘密を消して入り直すもの', () =
     ['name_taken', 'name_taken'],
     ['resume_failed', 'resume_failed'],
     ['room_full', 'room_full'],
+    ['room_not_found', 'room_not_found'],
     ['replaced', null],
     ['room_ended', null],
     ['join_timeout', null],
@@ -179,6 +193,17 @@ describe('閉じた理由のうち、秘密を消して入り直すもの', () =
     [null, null],
   ])('%s → %s', (reason, expected) => {
     expect(rejectionOf(reason)).toBe(expected);
+  });
+});
+
+describe('断られた理由から次の画面を決める', () => {
+  it.each<[Rejection, PlayerEntry]>([
+    ['name_taken', { screen: 'form', notice: 'name_taken', name: 'たろう' }],
+    ['resume_failed', { screen: 'form', notice: 'resume_failed', name: 'たろう' }],
+    ['room_full', { screen: 'full' }],
+    ['room_not_found', { screen: 'not_found' }],
+  ])('%s → %o', (rejection, expected) => {
+    expect(entryAfter(rejection, 'たろう')).toEqual(expected);
   });
 });
 

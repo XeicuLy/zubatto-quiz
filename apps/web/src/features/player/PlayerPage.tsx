@@ -36,6 +36,13 @@ export function PlayerPage({ player }: { player: PlayerRoom }) {
           </p>
         </main>
       );
+    case 'not_found':
+      return (
+        <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
+          <h1 className="font-display text-3xl leading-snug">部屋が見つかりません</h1>
+          <p className="mt-4 leading-relaxed text-on-stage-muted">URL が正しいか、ホストに確かめてください。</p>
+        </main>
+      );
     case 'room':
       return <InRoom entry={entry} onAnswer={player.answer} />;
   }

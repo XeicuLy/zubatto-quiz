@@ -997,6 +997,11 @@
         },
         {
           "type": "number",
+          "const": 4404,
+          "title": "room_not_found"
+        },
+        {
+          "type": "number",
           "const": 4408,
           "title": "join_timeout"
         },

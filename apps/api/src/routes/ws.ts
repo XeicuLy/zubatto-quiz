@@ -2,8 +2,7 @@ import { Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
 
 import { requireHost, type HostEnv } from '../auth/require-host';
-import { roomRequest } from '../room/connections';
-import { notFound } from './common';
+import { refuseConnection, roomRequest } from '../room/connections';
 
 type WsEnv = { Bindings: Env; Variables: HostEnv['Variables'] & { room: DurableObjectStub } };
 
@@ -34,19 +33,22 @@ const requireUpgrade = createMiddleware<WsEnv>(async (c, next) => {
 const ROOM_ID = /^[0-9a-f]{64}$/;
 
 /**
- * 経路の部屋 ID から部屋の DO を決める。形が違う ID と、この名前空間で作られていない ID は 404 にする。
- * 作られていない部屋（initialize していない DO）は、DO の中で 404 にする
+ * 経路の部屋 ID から部屋の DO を決める。形が違う ID と、この名前空間で作られていない ID は、ない部屋として 4404 で閉じる。
+ * 作られていない部屋（initialize していない DO）と他人の部屋は、DO の中で同じ 4404 にする（ADR 0004）。
+ *
+ * 画面は ID の形を先に確かめるが、形が正しくても別の名前空間の ID は idFromString で落ちる。
+ * HTTP の 404 にすると、ブラウザには 1006 にしか見えず、端末がつなぎ直し続けるので、受け付けてから code で閉じる
  */
 const requireRoom = createMiddleware<WsEnv>(async (c, next) => {
   const roomId = c.req.param('roomId') ?? '';
   if (!ROOM_ID.test(roomId)) {
-    return c.json(notFound, 404);
+    return refuseConnection('room_not_found');
   }
   let id: DurableObjectId;
   try {
     id = c.env.ROOM.idFromString(roomId);
   } catch {
-    return c.json(notFound, 404);
+    return refuseConnection('room_not_found');
   }
   c.set('room', c.env.ROOM.get(id));
   await next();

@@ -14,6 +14,11 @@ export const CLOSE_CODES = {
   resume_failed: 4401,
   /** 部屋の回答者が上限の50名に達している（403 Forbidden, SC1） */
   room_full: 4403,
+  /**
+   * 部屋がない。ホスト用の入口では、持ち主でないホストにも同じ code を返し、他人の部屋があることを知らせない（404 Not Found, S1）。
+   * 端末は秘密を消し、つなぎ直さない
+   */
+  room_not_found: 4404,
   /** 未確認の接続が、10秒以内に join も resume も送らなかった（408 Request Timeout, T5）。間を空けて自動で再接続する */
   join_timeout: 4408,
   /** 同じ部屋に、NFKC で正規化して同じになる名前がある（409 Conflict, F2）。別の名前を入れてもらう */

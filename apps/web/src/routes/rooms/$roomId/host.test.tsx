@@ -106,6 +106,22 @@ describe('ホストの待機画面の入口（F1・F3・ADR 0003）', () => {
     expect(screen.getByRole('link', { name: '問題セットの一覧に戻る' })).toHaveAttribute('href', '/admin');
   });
 
+  it('ない部屋・他人の部屋なら「部屋が見つかりません」を出し、つなぎ直さない（S1）', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+
+    // 部屋の DO は hostReady を送らずに閉じる
+    act(() => {
+      server.latest.open();
+      server.latest.closeFromServer(CLOSE_CODES.room_not_found);
+    });
+
+    // 閉じた画面は、connectRoom がつなぎ直さずに止まった（closed）ときだけ出る。1006 なら「つなぎ直しています」になる
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('部屋が見つかりません');
+    expect(screen.getByRole('link', { name: '問題セットの一覧に戻る' })).toHaveAttribute('href', '/admin');
+    expect(server.sockets).toHaveLength(1);
+  });
+
   it('画面を離れたら接続を閉じる', async () => {
     stubFakeApi();
     const { server, router } = await openHostPage();

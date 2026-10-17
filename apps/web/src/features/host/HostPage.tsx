@@ -20,7 +20,7 @@ export function HostPage({ host, joinUrl }: { host: HostRoom; joinUrl: string })
 function HostScreen({ host, joinUrl }: { host: HostRoom; joinUrl: string }) {
   const { room, participants } = useStore(host.room);
 
-  // 他人の部屋やない部屋は、DO が Upgrade の前に 404 で断る。ブラウザには 1006 としか見えないので、ここでつなぎ直しが続く
+  // 他人の部屋やない部屋は、hostReady が届かずに 4404 で閉じられ、HostConnectionNotice が理由を出す
   if (room === null) {
     return <StatusScreen>部屋につないでいます…</StatusScreen>;
   }

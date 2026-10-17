@@ -36,10 +36,13 @@ export function countOpenConnections(ctx: DurableObjectState): Record<RoomEntry[
  * 接続を受け付けずに、理由の code で閉じる。101 の応答を返す。
  *
  * HTTP の 4xx や 503 で断ると、ブラウザには理由のない切断（1006）にしか見えない。いったん開いて code で理由を伝え、
- * 端末がつなぎ直すか（connection_limit）、やめるか（room_ended）を決められるようにする。
- * accept() で受けた接続は休止の対象にならず、getWebSockets() にも数えない
+ * 端末がつなぎ直すか（connection_limit）、やめるか（room_ended・room_not_found）を決められるようにする。
+ * accept() で受けた接続は休止の対象にならず、getWebSockets() にも数えない。
+ * WebSocketPair は DO の外でも使えるので、Worker の入口（routes/ws.ts）もこれで断る
  */
-export function refuseConnection(reason: Extract<CloseReason, 'connection_limit' | 'room_ended'>): Response {
+export function refuseConnection(
+  reason: Extract<CloseReason, 'connection_limit' | 'room_ended' | 'room_not_found'>,
+): Response {
   const { 0: client, 1: server } = new WebSocketPair();
   server.accept();
   server.close(CLOSE_CODES[reason], reason);
