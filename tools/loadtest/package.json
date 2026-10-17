@@ -1,0 +1,13 @@
+{
+  "name": "@zubatto-quiz/loadtest",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/run.ts",
+    "tsc": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@zubatto-quiz/protocol": "workspace:*",
+    "zod": "4.6.5"
+  }
+}

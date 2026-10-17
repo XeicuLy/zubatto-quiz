@@ -50,7 +50,7 @@ make check          # CI と同じ確認（整形・lint・型チェック・テ
 make e2e            # 通しの E2E（Playwright）。ホストのログインから最終ランキングまで
 pnpm run fmt        # 整形する
 pnpm run test       # すべてのテスト
-pnpm exec vitest run --project <名前>   # 1つのパッケージのテスト（api・api-bundle・web・protocol・scoring・docs など）
+pnpm exec vitest run --project <名前>   # 1つのパッケージのテスト（api・api-bundle・web・protocol・scoring・loadtest・docs など）
 ```
 
 - E2E を初めて走らせる前に、`pnpm exec playwright install chromium` でブラウザを入れる。E2E は本番と同じビルドを `vite preview`（`http://localhost:4173`）で動かすので、CSP の `_headers` も効く。ログインは GitHub を通らず、テスト専用の API の入口（`apps/api/test/e2e-entry.ts`、`wrangler.jsonc` の `env.e2e`）で行う。本番のデプロイには入らない（ADR 0003）
@@ -85,13 +85,14 @@ pnpm exec vitest run --project <名前>   # 1つのパッケージのテスト�
 
 ## 運用の手順書
 
-| 手順書                                                     | いつ使うか                                             |
-| ---------------------------------------------------------- | ------------------------------------------------------ |
-| [github-oauth-apps.md](docs/runbooks/github-oauth-apps.md) | GitHub OAuth App を作る・Client Secret を作り直す      |
-| [secrets.md](docs/runbooks/secrets.md)                     | `.dev.vars` を書く・本番のシークレットを入れる・変える |
-| [host-allowlist.md](docs/runbooks/host-allowlist.md)       | ホストを足す・外す（取り消す）                         |
-| [stop-and-usage.md](docs/runbooks/stop-and-usage.md)       | 本番の前後に使用量を確かめる・すぐに止める             |
-| [branch-protection.md](docs/runbooks/branch-protection.md) | main のルールセットを見る・作り直す・一時的に止める    |
+| 手順書                                                     | いつ使うか                                                 |
+| ---------------------------------------------------------- | ---------------------------------------------------------- |
+| [github-oauth-apps.md](docs/runbooks/github-oauth-apps.md) | GitHub OAuth App を作る・Client Secret を作り直す          |
+| [secrets.md](docs/runbooks/secrets.md)                     | `.dev.vars` を書く・本番のシークレットを入れる・変える     |
+| [host-allowlist.md](docs/runbooks/host-allowlist.md)       | ホストを足す・外す（取り消す）                             |
+| [stop-and-usage.md](docs/runbooks/stop-and-usage.md)       | 本番の前後に使用量を確かめる・すぐに止める                 |
+| [branch-protection.md](docs/runbooks/branch-protection.md) | main のルールセットを見る・作り直す・一時的に止める        |
+| [tools/loadtest/README.md](tools/loadtest/README.md)       | 本番の前に、ボットで同時参加を再現してリハーサルする（O2） |
 
 ## コントリビュート
 

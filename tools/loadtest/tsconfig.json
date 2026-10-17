@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // 手元の node で走らせるスクリプト。組み込みの WebSocket（undici）の型も node の型から来る
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "vitest.config.ts"]
+}
