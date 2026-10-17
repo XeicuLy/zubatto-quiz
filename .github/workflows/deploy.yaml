@@ -18,7 +18,9 @@ on:
 permissions:
   contents: read
 
-# 2つのデプロイを同時に走らせない。あとから動かしたほうは、前のデプロイが終わるまで待つ（途中で止めない）
+# 2つのデプロイを同時に走らせない。動いているデプロイは途中で止めない。
+# 待てる run は1つだけで、さらに動かすと、待っていた run は取り消されて新しいほうに置き換わる（docs/runbooks/deploy.md）。
+# queue: max（すべてを並べて順に動かす）は付けない。並んだ順に動く保証がなく、古いコミットがあとからデプロイされうる
 concurrency:
   group: deploy-production
   cancel-in-progress: false
