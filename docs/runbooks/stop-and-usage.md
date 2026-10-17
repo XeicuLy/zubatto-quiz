@@ -63,7 +63,7 @@ pnpm exec wrangler delete   # zubakui-api
 - 「Are you sure you want to delete ...? This action cannot be undone.」と聞かれるので `y` と答える
 - ダッシュボードからも消せる。Workers & Pages で Worker を選び、Settings の Delete から消す
 - 消したら、本番の URL を開いて、つながらないことを確かめる
-- 止めている間は、デプロイの workflow を動かさない。動かすとまた動き出す
+- 止めている間は、デプロイの workflow（[deploy.md](deploy.md)）を動かさない。動かすとまた動き出す
 
 ### 消えるものと残るもの
 
@@ -79,7 +79,7 @@ pnpm exec wrangler delete   # zubakui-api
 D1 は残っているので、作り直すのは Worker だけでよい。
 
 1. シークレットを入れ直す（[secrets.md](secrets.md#本番-wrangler-secret-put)）
-2. デプロイの workflow を動かす
+2. デプロイの workflow を「API と画面」（`all`）で動かす（[deploy.md](deploy.md#動かす)）。API の Worker を先に作り直さないと、画面の Worker の Service binding がつながらない
 
 ### D1 も消すとき
 
@@ -89,3 +89,5 @@ D1 は残っているので、作り直すのは Worker だけでよい。
 cd apps/api
 pnpm exec wrangler d1 delete zubakui
 ```
+
+デプロイの workflow に入れた Cloudflare の API トークンも消す（[deploy.md](deploy.md#トークンを作り直すやめる)）。
