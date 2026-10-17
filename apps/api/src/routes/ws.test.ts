@@ -1,9 +1,10 @@
+import { CLOSE_CODES } from '@zubatto-quiz/protocol';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { apiRequest, loginAs, ORIGIN, resetHosts } from '../../test/host-request';
-import { newRoom, openSocket } from '../../test/room-socket';
+import { closeOf, newRoom, openSocket } from '../../test/room-socket';
 import { getAttachment } from '../room/attachment';
 
 beforeEach(resetHosts);
@@ -34,6 +35,9 @@ const readAttachments = (roomId: string) =>
     state.getWebSockets().map(getAttachment),
   );
 
+/** ない部屋として、受け付けてから閉じられたときの code と reason */
+const roomNotFound = { code: CLOSE_CODES.room_not_found, reason: 'room_not_found' };
+
 describe('ホスト用の入口 /api/rooms/:roomId/ws/host（ADR 0003）', () => {
   it('部屋の持ち主が同じオリジンの画面から開くと、host として受け付ける', async () => {
     const roomId = await newRoomId();
@@ -43,12 +47,12 @@ describe('ホスト用の入口 /api/rooms/:roomId/ws/host（ADR 0003）', () =>
     expect(await readAttachments(roomId)).toEqual([{ role: 'host', ownerId: 'alice' }]);
   });
 
-  it('部屋の持ち主でないホストは受け付けず、ない部屋と同じ 404 を返す（S1）', async () => {
+  it('部屋の持ち主でないホストは受け付けず、ない部屋と同じ 4404 で閉じる（S1）', async () => {
     const roomId = await newRoomId();
 
-    const response = await wsRequest(roomId, 'host', { as: 'mallory' });
+    const ws = openSocket(await wsRequest(roomId, 'host', { as: 'mallory' }));
 
-    expect(response.status).toBe(404);
+    expect(await closeOf(ws)).toEqual(roomNotFound);
     expect(await readAttachments(roomId)).toEqual([]);
   });
 
@@ -132,18 +136,18 @@ describe.each(ENTRIES)('どちらの入口でも断る接続（%s）', (entry) =
     ['大文字の16進', 'A'.repeat(64)],
     // 形は正しいが、この DO の名前空間で作った ID ではないので、idFromString が例外を投げる
     ['ほかの名前空間の ID', 'f'.repeat(64)],
-  ])('部屋 ID が%sときは 404 を返す', async (_, roomId) => {
-    const response = await wsRequest(roomId, entry, { as: 'alice' });
+  ])('部屋 ID が%sときは、ない部屋として 4404 で閉じる', async (_, roomId) => {
+    const ws = openSocket(await wsRequest(roomId, entry, { as: 'alice' }));
 
-    expect(response.status).toBe(404);
+    expect(await closeOf(ws)).toEqual(roomNotFound);
   });
 
-  it('作られていない部屋（initialize していない DO）には 404 を返す', async () => {
+  it('作られていない部屋（initialize していない DO）は 4404 で閉じる', async () => {
     const roomId = env.ROOM.newUniqueId().toString();
 
-    const response = await wsRequest(roomId, entry, { as: 'alice' });
+    const ws = openSocket(await wsRequest(roomId, entry, { as: 'alice' }));
 
-    expect(response.status).toBe(404);
+    expect(await closeOf(ws)).toEqual(roomNotFound);
     expect(await readAttachments(roomId)).toEqual([]);
   });
 });

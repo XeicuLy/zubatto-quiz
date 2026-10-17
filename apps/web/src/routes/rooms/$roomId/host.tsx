@@ -13,7 +13,7 @@ import { roomJoinUrl, roomSocketUrl } from '../../../realtime/room-url';
  */
 export const Route = createFileRoute('/rooms/$roomId/host')({
   beforeLoad: async ({ params, context }) => {
-    // 形の違う ID で開くと、API が 404 で断り、つなぎ直しが続くので、ログインを確かめるより先に止める
+    // 形の違う ID は接続しなくても部屋がないと分かるので、ログインを確かめるより先に止め、接続も開かない
     if (!roomIdSchema.safeParse(params.roomId).success) {
       throw notFound();
     }

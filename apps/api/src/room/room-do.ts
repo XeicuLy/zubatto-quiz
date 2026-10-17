@@ -79,13 +79,18 @@ export class RoomDurableObject extends DurableObject<Env> {
    */
   override fetch(request: Request): Response {
     const entry = readRoomEntry(request);
-    // initialize の済んでいない ID でも DO はでき、room の表が空になる。ない部屋として断る
+    // roomRequest が作った要求でなければ、Worker の作りの誤り。端末からは来ないので、HTTP の 404 で断る
+    if (!entry) {
+      return new Response(null, { status: 404 });
+    }
+    // initialize の済んでいない ID でも DO はでき、room の表が空になる。ない部屋として断る。
+    // HTTP の 404 で断ると、ブラウザには 1006 にしか見えず、端末がつなぎ直し続けるので、受け付けてから code で閉じる
     const { sql } = this.ctx.storage;
     const room = sql
       .exec<{ owner_id: string; ended_at: number | null }>('SELECT owner_id, ended_at FROM room')
       .toArray()[0];
-    if (!entry || !room) {
-      return new Response(null, { status: 404 });
+    if (!room) {
+      return refuseConnection('room_not_found');
     }
 
     if (entry.role === 'player') {
@@ -95,9 +100,9 @@ export class RoomDurableObject extends DurableObject<Env> {
       return response;
     }
     // ホスト用の入口。Worker がセッションから決めた ownerId が、部屋の持ち主と一致したときだけ host として受け付ける（S1・ADR 0003）。
-    // 他人の部屋は、ない部屋と同じ 404 にする（HTTP API と同じ）
+    // 他人の部屋は、ない部屋と同じ 4404 にする（HTTP API の 404 と同じ）。終わったかどうかも知らせないよう、先に確かめる
     if (entry.ownerId !== room.owner_id) {
-      return new Response(null, { status: 404 });
+      return refuseConnection('room_not_found');
     }
     // 終えた部屋は進められない。join・resume と同じ理由で閉じ、まだ続いているように見せない
     if (room.ended_at !== null) {

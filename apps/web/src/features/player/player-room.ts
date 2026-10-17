@@ -15,7 +15,7 @@ import { clearToken, createToken, loadToken, saveToken } from './token-storage';
 export type JoinNotice = 'name_taken' | 'resume_failed';
 
 /** 秘密を消して入り直す理由。これ以外の閉じ方は、部屋の中の画面のまま ConnectionNotice が出す */
-export type Rejection = JoinNotice | 'room_full';
+export type Rejection = JoinNotice | 'room_full' | 'room_not_found';
 
 export type PlayerEntry =
   /** 名前の入力。name は入れ直すときに残しておく前回の名前 */
@@ -27,7 +27,9 @@ export type PlayerEntry =
    */
   | { screen: 'room'; room: RoomStore; name: string | null; persisted: boolean }
   /** 部屋が満員（SC1）。参加者は抜けないので、入れ直しても通らない */
-  | { screen: 'full' };
+  | { screen: 'full' }
+  /** 部屋がない。URL の打ち間違いなどで、入れ直しても通らない */
+  | { screen: 'not_found' };
 
 export interface PlayerRoom {
   readonly store: StoreApi<{ entry: PlayerEntry }>;
@@ -82,9 +84,7 @@ export function createPlayerRoom({ roomId, url, createSocket }: PlayerRoomOption
     }
     clearToken(roomId);
     client = undefined;
-    store.setState({
-      entry: rejection === 'room_full' ? { screen: 'full' } : { screen: 'form', notice: rejection, name },
-    });
+    store.setState({ entry: entryAfter(rejection, name) });
   }
 
   return {
@@ -116,10 +116,29 @@ export function createPlayerRoom({ roomId, url, createSocket }: PlayerRoomOption
  * connectRoom がつなぎ直さずに閉じたときだけ呼ばれる（つなぎ直す join_timeout・connection_limit はここに来ない）
  */
 export function rejectionOf(reason: CloseReason | null): Rejection | null {
-  // どれも部屋の DO に使える行がない秘密。かぶりと満員では行が作られず、resume_failed では合う行がないか期限切れ
-  if (reason === 'name_taken' || reason === 'resume_failed' || reason === 'room_full') {
+  // どれも部屋の DO に使える行がない秘密。かぶりと満員では行が作られず、resume_failed では合う行がないか期限切れ、
+  // room_not_found では部屋そのものがない
+  if (reason === 'name_taken' || reason === 'resume_failed' || reason === 'room_full' || reason === 'room_not_found') {
     return reason;
   }
   // replaced は別のタブが同じ秘密で使っているので、消すとそのタブが読み込み直したときに戻れなくなる
   return null;
+}
+
+/**
+ * 断られた理由から、次に出す画面を決める。秘密はもう消してある。
+ *
+ * - 名前を変えれば通るかもしれない理由（name_taken・resume_failed）は、名前の入力に戻す。name は入力欄に残す前回の名前
+ * - 入れ直しても通らない理由（room_full・room_not_found）は、それぞれの画面にして止める
+ */
+export function entryAfter(rejection: Rejection, name: string): PlayerEntry {
+  switch (rejection) {
+    case 'name_taken':
+    case 'resume_failed':
+      return { screen: 'form', notice: rejection, name };
+    case 'room_full':
+      return { screen: 'full' };
+    case 'room_not_found':
+      return { screen: 'not_found' };
+  }
 }

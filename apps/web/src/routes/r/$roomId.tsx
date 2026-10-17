@@ -12,7 +12,7 @@ import { roomSocketUrl } from '../../realtime/room-url';
  */
 export const Route = createFileRoute('/r/$roomId')({
   beforeLoad: ({ params }) => {
-    // 形の違う ID で開くと、API が 404 で断り、接続が切れてつなぎ直しが続くので、開く前に止める
+    // 形の違う ID は接続しなくても部屋がないと分かるので、名前を聞く前に止め、接続も開かない
     if (!roomIdSchema.safeParse(params.roomId).success) {
       throw notFound();
     }

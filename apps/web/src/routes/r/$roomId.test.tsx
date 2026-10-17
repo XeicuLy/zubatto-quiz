@@ -128,6 +128,21 @@ describe('断られたとき・閉じられたとき（ADR 0004）', () => {
     expect(screen.queryByLabelText('名前')).toBeNull();
   });
 
+  it('部屋がなければ、秘密を消して「部屋が見つかりません」を出す', async () => {
+    const { server } = await openPlayerPage();
+
+    await joinAs('たろう');
+    act(() => {
+      server.latest.open();
+      server.latest.closeFromServer(CLOSE_CODES.room_not_found);
+    });
+
+    expect(loadToken(ROOM_ID)).toBeNull();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('部屋が見つかりません');
+    expect(screen.queryByLabelText('名前')).toBeNull();
+    expect(server.sockets).toHaveLength(1);
+  });
+
   it('切れたら「再接続中」を出す', async () => {
     const { server } = await openPlayerPage();
 
