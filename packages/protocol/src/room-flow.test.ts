@@ -1,14 +1,15 @@
-import type { HostCommand, RoomPhase } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
-import { canShowStandings, transition, type RoomState } from './state-machine';
+import { canSend, canShowStandings, transition, type RoomFlowState } from './room-flow.ts';
+import type { HostCommand } from './ws/client-messages.ts';
+import type { RoomPhase, RoomSnapshot } from './ws/server-messages.ts';
 
 /** 5問の部屋。最後の2問は 3 と 4 */
 const QUESTION_COUNT = 5;
 
-const lobby: RoomState = { phase: 'lobby', questionIndex: null, ended: false };
-const at = (phase: RoomPhase, questionIndex: number): RoomState => ({ phase, questionIndex, ended: false });
-const ended = (state: RoomState): RoomState => ({ ...state, ended: true });
+const lobby: RoomFlowState = { phase: 'lobby', questionIndex: null, ended: false };
+const at = (phase: RoomPhase, questionIndex: number): RoomFlowState => ({ phase, questionIndex, ended: false });
+const ended = (state: RoomFlowState): RoomFlowState => ({ ...state, ended: true });
 
 const showQuestion = (questionIndex: number): HostCommand => ({ type: 'showQuestion', questionIndex });
 const startAnswering = (questionIndex: number): HostCommand => ({ type: 'startAnswering', questionIndex });
@@ -20,7 +21,7 @@ const showFinalRanking: HostCommand = { type: 'showFinalRanking' };
 const endRoom: HostCommand = { type: 'endRoom' };
 
 describe('transition: 進行の状態の移り変わり（F8・F14・F15）', () => {
-  it.each<[string, RoomState, HostCommand, RoomState]>([
+  it.each<[string, RoomFlowState, HostCommand, RoomFlowState]>([
     ['待機から第1問を出す', lobby, showQuestion(0), at('question', 0)],
     ['出題のあとに受付を始める（F8）', at('question', 0), startAnswering(0), at('accepting', 0)],
     ['受付中に締め切る', at('accepting', 0), closeAnswering(0), at('revealed', 0)],
@@ -37,7 +38,7 @@ describe('transition: 進行の状態の移り変わり（F8・F14・F15）', ()
     expect(transition(state, command, QUESTION_COUNT)).toEqual({ ok: true, next });
   });
 
-  it.each<[string, RoomState, HostCommand]>([
+  it.each<[string, RoomFlowState, HostCommand]>([
     ['待機から第2問を出す（問題を飛ばす）', lobby, showQuestion(1)],
     ['出題の前に受付を始める', lobby, startAnswering(0)],
     ['受付を始める前に締め切る', at('question', 0), closeAnswering(0)],
@@ -71,5 +72,26 @@ describe('canShowStandings: ③ 途中経過を出せるか（F15）', () => {
     [1, 2, false],
   ])('%i 問目（0始まり）・全 %i 問 → %s', (questionIndex, questionCount, expected) => {
     expect(canShowStandings(questionIndex, questionCount)).toBe(expected);
+  });
+});
+
+describe('canSend: 進行画面のボタンを押せるか（T32）', () => {
+  const snapshot = (phase: RoomPhase, questionIndex: number | null): RoomSnapshot => ({
+    title: '内輪クイズ',
+    questionCount: QUESTION_COUNT,
+    phase,
+    questionIndex,
+  });
+
+  it.each<[string, RoomSnapshot, HostCommand, boolean]>([
+    ['待機で第1問を出す', snapshot('lobby', null), showQuestion(0), true],
+    ['出題のあいだに受付を始める（F8）', snapshot('question', 0), startAnswering(0), true],
+    ['出題のあいだに締め切る', snapshot('question', 0), closeAnswering(0), false],
+    ['受付中にやり直す（A3）', snapshot('accepting', 1), retryQuestion(1), true],
+    ['① でやり直す', snapshot('revealed', 1), retryQuestion(1), false],
+    ['最後から2問目の ② で ③ を出す（F15）', snapshot('fastest', 3), showStandings(3), false],
+    ['最終ランキングで部屋を終える', snapshot('final', 4), endRoom, true],
+  ])('%s → %s', (_case, room, command, expected) => {
+    expect(canSend(room, command)).toBe(expected);
   });
 });

@@ -1,10 +1,11 @@
 import type { Answer, RoomPhase } from '@zubatto-quiz/protocol';
 import { formatSeconds, normalizeElapsedMs } from '@zubatto-quiz/scoring';
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 
 import type { CurrentQuestion } from '../../realtime/room-store';
-import { answerStartOf, elapsedMsAt, remainingMsAt } from './answer-timer';
+import { elapsedMsAt, remainingMsAt } from './answer-timer';
 import { AnswerButtons } from './AnswerButtons';
+import { useCountdown } from './use-countdown';
 
 type MyAnswer = NonNullable<CurrentQuestion['answer']>;
 
@@ -73,38 +74,12 @@ interface AnsweringProps {
 /** 受付中。表示の瞬間を起点に時間を測り、1回だけ送る（P2・F10） */
 function Answering({ question, choices, questionCount, onAnswer }: AnsweringProps) {
   const { questionId, limitMs } = question;
-  const remainingMs = question.remainingMs ?? limitMs;
-  /** 計測の起点。選択肢を描く直前のフレームで決まるまでは null */
-  const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [now, setNow] = useState<number | null>(null);
+  // 選択肢を描く直前のフレームを起点に数える。回答時間も同じ起点から測る（P2）
+  const { startedAt, leftMs, nextTickMs } = useCountdown(limitMs, question.remainingMs ?? limitMs);
   /** 押した瞬間に出す回答。answerAccepted が届いたら、そちらを使う */
   const [pending, setPending] = useState<MyAnswer | null>(null);
   /** 二度押しの印。state は次の描画まで変わらないので、同じフレームの2回目の押下を止めるには ref が要る */
   const sent = useRef(false);
-
-  useLayoutEffect(() => {
-    // useLayoutEffect は選択肢を DOM に入れたあと、描く前に動く。
-    // ここで頼んだ requestAnimationFrame は、選択肢を初めて描くフレームの直前に呼ばれるので、その時刻を表示の瞬間とする
-    const frame = requestAnimationFrame(() => {
-      const shownAt = performance.now();
-      setStartedAt(answerStartOf(shownAt, limitMs, remainingMs));
-      setNow(shownAt);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [limitMs, remainingMs]);
-
-  /** 締切までの残り。起点が決まるまでは、届いた残りのまま */
-  const leftMs = startedAt === null || now === null ? remainingMs : remainingMsAt(startedAt, limitMs, now);
-  /** 次に描き直すまでの時間。秒の変わり目ごとに描き直すので、締切の瞬間にもちょうど閉じる */
-  const nextTickMs = leftMs % 1000 || 1000;
-
-  useEffect(() => {
-    if (startedAt === null || leftMs === 0) {
-      return;
-    }
-    const timer = setTimeout(() => setNow(performance.now()), nextTickMs);
-    return () => clearTimeout(timer);
-  }, [startedAt, leftMs, nextTickMs]);
 
   const remainingSeconds = Math.ceil(leftMs / 1000);
   const answer = question.answer ?? pending;
