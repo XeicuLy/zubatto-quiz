@@ -189,6 +189,24 @@ describe('進行の操作（T32）', () => {
     expect(closeCommands(server)).toEqual([]);
   });
 
+  it('やり直したあとの受付開始を受け取る前に切れたら、前の受付のタイマーで締め切らない', () => {
+    const { server } = startAccepting();
+
+    // 4秒でやり直し、6秒で受付を始め直す。DO の新しい締切は16秒だが、answeringStarted が届く前に切れる
+    vi.advanceTimersByTime(4_000);
+    server.latest.emit(QUESTION);
+    vi.advanceTimersByTime(2_000);
+    server.latest.closeFromServer(1006);
+    // つなぎ直しの待ち時間（最初は0.5秒以内）のあとに開き直し、hostReady で受付中に戻る
+    vi.advanceTimersByTime(1_000);
+    server.latest.open();
+    server.latest.emit({ type: 'hostReady', room: { ...ROOM, phase: 'accepting', questionIndex: 0 } });
+    // 前の受付のタイマー（10秒）を過ぎても、送り直しの answeringStarted を待つ
+    vi.advanceTimersByTime(5_000);
+
+    expect(closeCommands(server)).toEqual([]);
+  });
+
   it('つなぎ直して残りが送り直されたら、その残りで1回だけ送る', () => {
     const { server } = startAccepting();
 

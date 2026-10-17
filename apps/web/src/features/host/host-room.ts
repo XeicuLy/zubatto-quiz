@@ -1,6 +1,6 @@
 import type { HostCommand, ServerMessage } from '@zubatto-quiz/protocol';
 
-import { connectRoom, type RoomClient, type RoomSocket } from '../../realtime/client';
+import { connectRoom, type ConnectionStatus, type RoomClient, type RoomSocket } from '../../realtime/client';
 import { createRoomStore, type RoomStore } from '../../realtime/room-store';
 
 /**
@@ -51,6 +51,18 @@ export function createHostRoom({ url, createSocket }: HostRoomOptions): HostRoom
     }, remainingMs);
   }
 
+  /**
+   * 切れたら、前の受付のタイマーを消す。切れているあいだにやり直しや受付開始があると、締切が変わっているかもしれない。
+   * つなぎ直すと部屋の DO が answeringStarted を送り直すので、そのときに今の残りで置き直す。
+   * 消さないと、hostReady で受付中に戻ってから送り直しを受け取るまでのあいだに古いタイマーが鳴り、早く締め切ってしまう
+   */
+  function onStatus(status: ConnectionStatus, closeCode?: number) {
+    if (status === 'reconnecting' || status === 'closed') {
+      clearTimeout(closeTimer);
+    }
+    connectionChanged(status, closeCode);
+  }
+
   function onMessage(message: ServerMessage) {
     receive(message);
     // つなぎ直したときも、部屋の DO が残りを短くして送り直すので、ここで置き直す
@@ -62,7 +74,7 @@ export function createHostRoom({ url, createSocket }: HostRoomOptions): HostRoom
   return {
     room,
     connect() {
-      client ??= connectRoom({ url, createSocket, onMessage, onStatus: connectionChanged });
+      client ??= connectRoom({ url, createSocket, onMessage, onStatus });
     },
     send,
     leave() {
