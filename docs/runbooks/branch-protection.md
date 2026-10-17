@@ -6,19 +6,19 @@ main ブランチは、リポジトリのルールセット（Settings → Rules
 
 ## 何を決めているか
 
-| 項目                                                 | 値                                                    | なぜ                                                                                                                     |
-| ---------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| 対象                                                 | 既定のブランチ（`~DEFAULT_BRANCH`）                   | main の名前を変えても、そのまま効く                                                                                      |
-| 削除の禁止（`deletion`）                             | あり                                                  | main を消せないようにする                                                                                                |
-| force push の禁止（`non_fast_forward`）              | あり                                                  | main の履歴を書き換えられないようにする                                                                                  |
-| PR 必須（`pull_request`）                            | 承認は0件                                             | 1人で開発しているので、承認は求めない。直接 push はできない                                                              |
-| マージの方法                                         | merge と squash                                       |                                                                                                                          |
-| CodeQL（`code_scanning`）                            | セキュリティの警告は high 以上、ほかは error で止める |                                                                                                                          |
-| Code Quality（`code_quality`）                       | error で止める                                        |                                                                                                                          |
-| 必須のステータスチェック（`required_status_checks`） | `ci`                                                  | CI の workflow（`.github/workflows/ci.yaml`）の job 名                                                                   |
-| チェックを送ってよいアプリ（`integration_id`）       | `15368`                                               | GitHub Actions のアプリの ID。ほかの仕組みが同じ `ci` という名前で成功を送ってきても、必須のチェックの結果として使わない |
-| strict（main に追いついていることを求める）          | なし                                                  | 1人で開発しているので、PR を出すたびに main を取り込み直す手間を省く                                                     |
-| bypass                                               | なし                                                  | admin も例外にしない。CI が通らない PR は、誰もマージできない                                                            |
+| 項目                                                 | 値                                                    | なぜ                                                                                                                            |
+| ---------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 対象                                                 | 既定のブランチ（`~DEFAULT_BRANCH`）                   | main の名前を変えても、そのまま効く                                                                                             |
+| 削除の禁止（`deletion`）                             | あり                                                  | main を消せないようにする                                                                                                       |
+| force push の禁止（`non_fast_forward`）              | あり                                                  | main の履歴を書き換えられないようにする                                                                                         |
+| PR 必須（`pull_request`）                            | 承認は0件                                             | 1人で開発しているので、承認は求めない。直接 push はできない                                                                     |
+| マージの方法                                         | merge と squash                                       |                                                                                                                                 |
+| CodeQL（`code_scanning`）                            | セキュリティの警告は high 以上、ほかは error で止める |                                                                                                                                 |
+| Code Quality（`code_quality`）                       | error で止める                                        |                                                                                                                                 |
+| 必須のステータスチェック（`required_status_checks`） | `ci`・`e2e`                                           | CI の workflow（`.github/workflows/ci.yaml`）の job 名。`e2e` は通しの E2E（Playwright）                                        |
+| チェックを送ってよいアプリ（`integration_id`）       | `15368`                                               | GitHub Actions のアプリの ID。ほかの仕組みが同じ `ci`・`e2e` という名前で成功を送ってきても、必須のチェックの結果として使わない |
+| strict（main に追いついていることを求める）          | なし                                                  | 1人で開発しているので、PR を出すたびに main を取り込み直す手間を省く                                                            |
+| bypass                                               | なし                                                  | admin も例外にしない。CI が通らない PR は、誰もマージできない                                                                   |
 
 ## 今の設定を見る
 
@@ -38,7 +38,7 @@ gh api -X POST repos/XeicuLy/zubatto-quiz/rulesets --input docs/runbooks/main-ru
 ```
 
 - `main-ruleset.json` には、`id`・`_links`・`created_at` など、GitHub が付ける項目を入れていない。入っていると作れないので、`gh api` で取り出した JSON から写すときは、これらを消す
-- 作ったら、適当な PR で `ci` が必須のチェックとして表示され、通るまでマージのボタンが押せないことを確かめる
+- 作ったら、適当な PR で `ci` と `e2e` が必須のチェックとして表示され、通るまでマージのボタンが押せないことを確かめる
 
 ## 設定を変える
 
@@ -50,9 +50,17 @@ gh api repos/XeicuLy/zubatto-quiz/rulesets/<id> \
 pnpm run fmt   # jq の出力は oxfmt の形と違うので、整えないと fmt:check が落ちる
 ```
 
+先に `main-ruleset.json` を直したとき（必須のチェックを足すなど）は、その PR をマージしたあとで、今のルールセットに当てる。マージの前に当てると、まだ新しい job を持たないほかの PR が、来ないチェックを待ってマージできなくなる。
+
+```sh
+gh api -X PUT repos/XeicuLy/zubatto-quiz/rulesets/<id> --input docs/runbooks/main-ruleset.json
+```
+
+当てたら、`gh api repos/XeicuLy/zubatto-quiz/rulesets/<id> --jq '.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks'` で、必須のチェックが `main-ruleset.json` と同じになったことを確かめる。
+
 ### CI の job 名を変えるとき
 
-必須のチェックの名前は、job の表示名で決まる。表示名は `jobs.<job_id>.name` があればその値、なければ job ID（今は `ci`）になる。`ci.yaml` の job ID や `name:` だけを変えると、`ci` という名前のチェックがいつまでも来ないので、どの PR もマージできなくなる。job 名を変えるときは、同じ PR で次の両方を行う。
+必須のチェックの名前は、job の表示名で決まる。表示名は `jobs.<job_id>.name` があればその値、なければ job ID（今は `ci` と `e2e`）になる。`ci.yaml` の job ID や `name:` だけを変えると、その名前のチェックがいつまでも来ないので、どの PR もマージできなくなる。job 名を変えるときは、同じ PR で次の両方を行う。
 
 1. ルールセットの必須のチェックの名前を、新しい job 名に変える
 2. `main-ruleset.json` の `context` も同じ名前にする

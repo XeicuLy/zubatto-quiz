@@ -10,12 +10,14 @@
     "mock:build": "tailwindcss -i docs/design/mock/mock.css -o docs/design/mock/dist/mock.css",
     "mock:watch": "tailwindcss -i docs/design/mock/mock.css -o docs/design/mock/dist/mock.css --watch",
     "lint": "oxlint --deny-warnings",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@commitlint/types": "^21.2.3",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/cli": "4.3.3",
     "@types/node": "^24.13.6",
     "consola": "^3.4.2",

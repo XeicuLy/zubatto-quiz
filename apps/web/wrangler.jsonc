@@ -19,4 +19,11 @@
     "redact_query_string": true,
     "logs": { "invocation_logs": true, "head_sampling_rate": 1 },
   },
+  // E2E（Playwright）だけで使う環境。転送先を、テスト専用の入口を持つ API の Worker（apps/api の env.e2e）に替える。
+  // services は env に引き継がれないので、ここに書く
+  "env": {
+    "e2e": {
+      "services": [{ "binding": "API", "service": "zubakui-api-e2e" }],
+    },
+  },
 }

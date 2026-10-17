@@ -5,5 +5,7 @@
     // テストは cloudflare:test の型を使う。本番のコードからの import は oxlint で止める
     "types": ["@cloudflare/vitest-plugin/types"]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "worker-configuration.d.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "worker-configuration.d.ts"],
+  // node の上で走るテスト。tsconfig.node.json で確かめる
+  "exclude": ["test/bundle"]
 }

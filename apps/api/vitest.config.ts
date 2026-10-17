@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 
 import { cloudflareTest, readD1Migrations } from '@cloudflare/vitest-plugin';
-import { defineProject } from 'vitest/config';
+import { configDefaults, defineProject } from 'vitest/config';
 
 // マイグレーションの SQL は node の側で読み、binding として Workers の実行環境へ渡す。当てるのは test/apply-migrations.ts
 // ルートの vitest から動かしても場所がずれないよう、このファイルからの相対で探す
@@ -30,6 +30,8 @@ export default defineProject({
   ],
   test: {
     name: 'api',
+    // test/bundle/ は wrangler を子のプロセスで動かすので、node の上で走らせる（vitest.bundle.config.ts）
+    exclude: [...configDefaults.exclude, 'test/bundle/**'],
     setupFiles: ['./test/apply-migrations.ts'],
   },
 });

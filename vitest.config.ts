@@ -21,7 +21,8 @@ function resolveProjects(globs: string[]): string[] | undefined {
 export default defineConfig({
   test: {
     // 各パッケージの vitest の設定を束ねて1回で走らせる。vitest-pool-workers を使うパッケージは自分の設定でプールを持つ
-    projects: resolveProjects(['apps/*', 'packages/*', 'tools/*']),
+    // apps/api は、Workers で走るテスト（apps/api/vitest.config.ts）とは別に、node で走るバンドルの確認も持つ
+    projects: resolveProjects(['apps/*', 'apps/api/vitest.bundle.config.ts', 'packages/*', 'tools/*']),
     // パッケージがまだ空でも CI を通す
     passWithNoTests: true,
   },

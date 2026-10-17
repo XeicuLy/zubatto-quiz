@@ -30,4 +30,17 @@
     "redact_query_string": true,
     "logs": { "invocation_logs": true, "head_sampling_rate": 1 },
   },
+  // E2E（Playwright）だけで使う環境。本番は先頭の設定（wrangler deploy --env=""）でデプロイする（ADR 0003）
+  // main をテスト専用の入口に替え、ホストのセッションを作る経路を足す。本番の入口（src/index.ts）からは import されない。
+  // Worker の名前は zubakui-api-e2e になり、本番の画面の Worker とはつながらない。誤って --env e2e でデプロイしても、
+  // この名前の Worker には秘密の値がないので、secrets.required に止められる
+  // durable_objects・d1_databases・secrets は env に引き継がれないので、同じものを書く
+  "env": {
+    "e2e": {
+      "main": "test/e2e-entry.ts",
+      "secrets": { "required": ["BETTER_AUTH_URL", "BETTER_AUTH_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"] },
+      "durable_objects": { "bindings": [{ "name": "ROOM", "class_name": "RoomDurableObject" }] },
+      "d1_databases": [{ "binding": "DB", "database_name": "zubakui", "migrations_dir": "migrations" }],
+    },
+  },
 }

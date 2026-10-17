@@ -49,7 +49,8 @@
   },
   "overrides": [
     {
-      "files": ["**/test/**", "**/*.test.*", "**/*.spec.*", "**/vitest.config.*"],
+      // E2E（e2e/ と playwright.config.ts）もテストのコード。@playwright/test は名前が **/test に当たる
+      "files": ["**/test/**", "**/*.test.*", "**/*.spec.*", "**/vitest.config.*", "e2e/**", "playwright.config.*"],
       "rules": {
         "no-restricted-imports": "off"
       }
