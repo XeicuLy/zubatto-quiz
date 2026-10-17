@@ -11,7 +11,10 @@
     "mock:watch": "tailwindcss -i docs/design/mock/mock.css -o docs/design/mock/dist/mock.css --watch",
     "lint": "oxlint --deny-warnings",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "db:migrate:remote": "pnpm --filter @zubatto-quiz/api run db:migrate:remote",
+    "deploy:api": "pnpm --filter @zubatto-quiz/api run deploy",
+    "deploy:web": "pnpm --filter @zubatto-quiz/web run deploy"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
