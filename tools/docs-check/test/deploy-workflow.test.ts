@@ -133,12 +133,14 @@ describe('Cloudflare の API トークン（ADR 0005 の DD4）', () => {
     }
   });
 
-  it('PR ごとの CI（ci.yaml）は、Environment を使わず、secret を読まない', () => {
+  it('PR ごとの CI（ci.yaml）は、Environment を使わず、どこからも secret を読まない', () => {
     // PR のブランチのコードが動くので、トークンを読めると、マージ前のコードで本番を書き換えられてしまう
     for (const job of Object.values(ciWorkflow.jobs)) {
       expect(job.environment).toBeUndefined();
-      expect(secretsReadBy(job)).toEqual([]);
     }
+    // job の外（workflow の先頭の env）も見る。secrets.X のほか、secrets['X']・toJSON(secrets)・secrets: inherit でも
+    // 読めるので、形を問わず secrets の語がないことを確かめる。コメントは YAML を読んだ時点で消える
+    expect(/\bsecrets\b/.test(JSON.stringify(ciWorkflow))).toBe(false);
   });
 });
 
