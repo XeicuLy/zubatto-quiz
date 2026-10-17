@@ -1,0 +1,9 @@
+# E2E（Playwright）の API の Worker が使う値。vite build --mode e2e（CLOUDFLARE_ENV=e2e）のとき、.dev.vars より先に読まれる
+# 手元の .dev.vars（本物の値）を E2E のビルドに写さないよう、テスト用の値をコミットしておく。本物の値は書かない
+# GitHub への通信はしない（ログインは test/e2e-entry.ts の経路で行う）ので、GitHub の値は使われない
+
+# vite preview --mode e2e のオリジン（apps/web の e2e:serve と playwright.config.ts のポートと同じ）
+BETTER_AUTH_URL=http://localhost:4173
+BETTER_AUTH_SECRET=e2e-secret-at-least-32-characters-long
+GITHUB_CLIENT_ID=e2e-github-client-id
+GITHUB_CLIENT_SECRET=e2e-github-client-secret

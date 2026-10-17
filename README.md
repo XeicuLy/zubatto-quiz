@@ -47,10 +47,14 @@ Cloudflare の無料プランの上で、TypeScript だけで動く。画面の 
 
 ```sh
 make check          # CI と同じ確認（整形・lint・型チェック・テスト）をまとめて走らせる
+make e2e            # 通しの E2E（Playwright）。ホストのログインから最終ランキングまで
 pnpm run fmt        # 整形する
 pnpm run test       # すべてのテスト
-pnpm exec vitest run --project <名前>   # 1つのパッケージのテスト（api・web・protocol・scoring・docs など）
+pnpm exec vitest run --project <名前>   # 1つのパッケージのテスト（api・api-bundle・web・protocol・scoring・docs など）
 ```
+
+- E2E を初めて走らせる前に、`pnpm exec playwright install chromium` でブラウザを入れる。E2E は本番と同じビルドを `vite preview`（`http://localhost:4173`）で動かすので、CSP の `_headers` も効く。ログインは GitHub を通らず、テスト専用の API の入口（`apps/api/test/e2e-entry.ts`、`wrangler.jsonc` の `env.e2e`）で行う。本番のデプロイには入らない（ADR 0003）
+- E2E の D1 と DO は `apps/web/.wrangler/e2e` に置き、走らせるたびに空から始める。`vite dev` のデータ（`.wrangler/state`）には触れない
 
 - テストは `.dev.vars` も Cloudflare のアカウントも要らない。D1 と DO は、ローカルの Workers の実行環境で動く
 - D1 のスキーマを変えたら `pnpm --filter @zubatto-quiz/api run db:generate --name <名前>` でマイグレーションを作り、`db:migrate:local` で当て直す

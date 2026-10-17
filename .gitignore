@@ -10,5 +10,10 @@ dist/
 .dev.vars*
 # 名前だけのひな形。値は空のままにする（tools/docs-check が確かめる）
 !.dev.vars.example
+# E2E のテスト用の値。本物の値は入れない（apps/api/.dev.vars.e2e の先頭）
+!.dev.vars.e2e
 # Playwright MCP のスクリーンショット・スナップショット・コンソールのログ。画面の確認だけに使う
 .playwright-mcp/
+# Playwright（E2E）の結果。失敗したときのトレースとレポート
+test-results/
+playwright-report/

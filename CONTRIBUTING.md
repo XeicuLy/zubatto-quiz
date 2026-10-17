@@ -7,9 +7,9 @@
 1. 何を変えるかを Issue に書く。設計の判断が要るときは、先に ADR（`docs/adr/`）で決める
 2. main からブランチを作る。名前は `feature/issues/<Issue の番号>` にする
 3. 変える。開発環境の作り方は [README](README.md#開発環境を作る) にある
-4. push の前に `make check` を通す。CI と同じ確認（整形・lint・型チェック・テスト）をまとめて走らせる
+4. push の前に `make check` を通す。CI と同じ確認（整形・lint・型チェック・テスト）をまとめて走らせる。画面や部屋の流れを変えたら、`make e2e` も通す
 5. main への PR を出す。本文に `closes #<Issue の番号>` を書く
-6. CI の `ci` が通ったらマージする。`ci` が通らない PR は、誰もマージできない（[main のルールセット](docs/runbooks/branch-protection.md)）
+6. CI の `ci` と `e2e` が通ったらマージする。どちらかが通らない PR は、誰もマージできない（[main のルールセット](docs/runbooks/branch-protection.md)）
 
 ## コミットメッセージ
 
