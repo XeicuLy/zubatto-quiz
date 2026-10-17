@@ -2,6 +2,8 @@ import { queryOptions } from '@tanstack/react-query';
 import {
   createQuestionSetResponseSchema,
   listQuestionSetsResponseSchema,
+  questionSetDetailSchema,
+  type QuestionSetDetail,
   type QuestionSetInput,
   type QuestionSetSummary,
 } from '@zubatto-quiz/protocol';
@@ -54,6 +56,28 @@ export const questionSetsQueryOptions = queryOptions({
   queryFn: fetchQuestionSets,
   retry: retryUnlessClientError,
 });
+
+/** 正解を含む問題セットの全体（S2: ホストの編集画面だけが読む） */
+export async function fetchQuestionSet(id: string): Promise<QuestionSetDetail> {
+  const response = await request('GET', `/api/question-sets/${encodeURIComponent(id)}`);
+  return questionSetDetailSchema.parse(await response.json());
+}
+
+/**
+ * 編集画面の loader で読む。キーが一覧の ['question-sets'] で始まるので、一覧を読み直すときは、こちらも古い扱いになる。
+ * staleTime は既定の0のままにし、開くたびに読み直す。別のタブで保存した内容を、古い値のまま編集し始めないため
+ */
+export const questionSetQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: ['question-sets', id],
+    queryFn: () => fetchQuestionSet(id),
+    retry: retryUnlessClientError,
+  });
+
+/** 問題セットを丸ごと書き換える。送る前に、画面で同じ questionSetSchema に通しておく */
+export async function saveQuestionSet(id: string, input: QuestionSetInput): Promise<void> {
+  await request('PUT', `/api/question-sets/${encodeURIComponent(id)}`, input);
+}
 
 /**
  * 「問題セットを作る」で保存する下書き。問題セットは1問以上ないと保存できないので、仮の1問を入れる。
