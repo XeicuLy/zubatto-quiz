@@ -17,9 +17,12 @@
 | Workers のリクエスト                 | 100,000                                          | Error 1027 のページが返り、画面も API も使えない                                                      |
 | Durable Objects のリクエスト         | 100,000（WebSocket のメッセージと alarm を含む） | 部屋の DO への要求が失敗する。部屋に入れず、進行もできない                                            |
 | Durable Objects の実行時間           | 13,000 GB-s                                      | 同上                                                                                                  |
+| Durable Objects の SQLite で読んだ行 | 5,000,000（下の注）                              | 部屋の DO の読み出しが失敗する。参加・回答・結果の配信ができない                                      |
 | Durable Objects の SQLite に書いた行 | 100,000                                          | 部屋の DO の書き込みが失敗する。参加・回答・締切の集計が保存できない                                  |
 | D1 で読んだ行                        | 5,000,000                                        | 読む・書くにかかわらず、D1 への問い合わせがすべて失敗する。ログイン・問題セット・部屋の作成ができない |
 | D1 に書いた行                        | 100,000                                          | 同上                                                                                                  |
+
+Durable Objects の SQLite で読んだ行は、Workers の料金のページでは 5,000,000、Cloudflare のプランの比較のページでは 50M と書かれていて、食い違っている。少ないほうで見積もる。
 
 D1 の動きは D1 の FAQ に書かれている。Durable Objects の1日ごとの上限は、超えたときの細かい動きまでは書かれていないので、その種類の操作が失敗するものとして、アプリで起きることを書いた。
 
@@ -41,7 +44,7 @@ D1 の動きは D1 の FAQ に書かれている。Durable Objects の1日ごと
 本番の前（当日の朝など）と、終わったあとに、次を見て数を控える。前の数が大きいときは、その日のうちにほかで使っていないかを確かめる。
 
 1. **Workers**: ダッシュボードの Workers & Pages で `zubakui-web` と `zubakui-api` をそれぞれ選び、Metrics でリクエスト数とエラーを見る
-2. **Durable Objects**: ダッシュボードの Durable Objects のページで `RoomDurableObject` を選び、リクエスト数・実行時間・書いた行を見る
+2. **Durable Objects**: ダッシュボードの Durable Objects のページで `RoomDurableObject` を選び、リクエスト数・実行時間・読んだ行・書いた行を見る
 3. **D1**: ダッシュボードの D1 で `zubakui` を選び、Metrics → Row Metrics で読んだ行と書いた行を見る
 
 エラーの中身は、Workers Logs（ダッシュボードの各 Worker の Logs）で見る（O1）。
