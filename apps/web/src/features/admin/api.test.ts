@@ -1,8 +1,16 @@
-import { questionSetSchema, type QuestionSetSummary } from '@zubatto-quiz/protocol';
+import { questionSetSchema, type QuestionSetDetail, type QuestionSetSummary } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
 import { stubFakeApi } from '../../../test/fake-api';
-import { ApiError, createDraftQuestionSet, deleteQuestionSet, DRAFT_QUESTION_SET, fetchQuestionSets } from './api';
+import {
+  ApiError,
+  createDraftQuestionSet,
+  deleteQuestionSet,
+  DRAFT_QUESTION_SET,
+  fetchQuestionSet,
+  fetchQuestionSets,
+  saveQuestionSet,
+} from './api';
 
 const set: QuestionSetSummary = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -56,5 +64,48 @@ describe('deleteQuestionSet', () => {
     stubFakeApi();
 
     await expect(deleteQuestionSet(set.id)).rejects.toEqual(new ApiError(404));
+  });
+});
+
+const detail: QuestionSetDetail = {
+  id: '22222222-2222-4222-8222-222222222222',
+  title: '新人歓迎会クイズ',
+  questions: [{ text: '部長の十八番は？', choices: ['演歌', 'アニソン'], correctIndex: 1, limitMs: 10_000 }],
+};
+
+describe('fetchQuestionSet', () => {
+  it('正解を含む問題セットの全体を返す（F7）', async () => {
+    stubFakeApi({ questionSetDetails: [detail] });
+
+    expect(await fetchQuestionSet(detail.id)).toEqual(detail);
+  });
+
+  it('ない（または他人の）問題セットなら、404 の ApiError を投げる', async () => {
+    stubFakeApi();
+
+    await expect(fetchQuestionSet(detail.id)).rejects.toEqual(new ApiError(404));
+  });
+});
+
+describe('saveQuestionSet', () => {
+  it('問題セットを書き換え、読み直すと同じ内容になる（F7）', async () => {
+    const api = stubFakeApi({ questionSetDetails: [detail] });
+    const input = {
+      title: '書き換えた名前',
+      questions: [{ text: '新しい問題', choices: ['A', 'B', 'C'], correctIndex: 2, limitMs: 30_000 }],
+    };
+
+    await saveQuestionSet(detail.id, input);
+
+    expect(api.requestsTo('PUT', `/api/question-sets/${detail.id}`)).toEqual([
+      expect.objectContaining({ body: input }),
+    ]);
+    expect(await fetchQuestionSet(detail.id)).toEqual({ id: detail.id, ...input });
+  });
+
+  it('ない（または他人の）問題セットなら、404 の ApiError を投げる', async () => {
+    stubFakeApi();
+
+    await expect(saveQuestionSet(detail.id, detail)).rejects.toEqual(new ApiError(404));
   });
 });
