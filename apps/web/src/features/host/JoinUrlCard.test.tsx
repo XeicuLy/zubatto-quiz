@@ -21,6 +21,13 @@ describe('参加用の URL（F1）', () => {
     expect(screen.getByText(JOIN_URL)).toBeInTheDocument();
   });
 
+  it('URL の横に、カメラで読み取れる QR コードを出す', () => {
+    render(<JoinUrlCard joinUrl={JOIN_URL} />);
+
+    expect(screen.getByRole('img', { name: '参加用 URL の QR コード' })).toBeInTheDocument();
+    expect(screen.getByText('カメラで読み取るか、この URL を開いて、名前を入れてください')).toBeInTheDocument();
+  });
+
   it('「URL をコピー」で、参加用の URL をクリップボードに書き込む', async () => {
     const writeText = vi.fn<Clipboard['writeText']>(async () => {});
     stubClipboard({ writeText });
