@@ -82,6 +82,22 @@ export function roomSocketUrl(origin: string, roomId: string, entry: 'host' | 'p
   return url.href;
 }
 
+/**
+ * closeAnswering を送ったあとの、ホストへの revealed の届き方
+ *
+ * - measured: 送ったあとに届いた。P1 締切と P4 を測る
+ * - not_revealed: 待つ上限のあいだに届かなかった。P4 の遅れか取りこぼしで、alarm のせいではない
+ * - alarm_first: 送る前に届いていた。ほぼ同時に alarm が締め切ったので、時間は測れない
+ */
+export type CloseTiming = 'measured' | 'not_revealed' | 'alarm_first';
+
+export function closeTimingOf(revealedAt: number | null, closedAt: number): CloseTiming {
+  if (revealedAt === null) {
+    return 'not_revealed';
+  }
+  return revealedAt >= closedAt ? 'measured' : 'alarm_first';
+}
+
 /** 1つのメッセージを待つ上限。これを過ぎたら、届かなかったものとして数える */
 const WAIT_MS = 10_000;
 
@@ -165,14 +181,16 @@ export async function playRoom(
       // 締切（P1）と、ホストが結果を出せるようになるまで（P4）
       const closedAt = send({ type: 'closeAnswering', questionIndex });
       const revealed = await host.waitFor(isRevealed, WAIT_MS);
-      if (revealed !== null && revealed.at >= closedAt) {
+      const timing = closeTimingOf(revealed?.at ?? null, closedAt);
+      if (revealed !== null && timing === 'measured') {
         metrics.latencies.results.samples.push(revealed.at - closedAt);
         await collect('closeAnswering', closedAt, isType('myResult', questionId));
       } else {
-        // 送ったのとほぼ同時に alarm が締め切った。結果は送る前に届いているので、時間は測れない
-        metrics.notes.push(
-          `${plan.label} 第${questionIndex + 1}問: 締切を送る前に結果が届いたので、締切は測っていない`,
-        );
+        const reason =
+          timing === 'not_revealed'
+            ? `締切を送ったが、${WAIT_MS / 1_000}秒のあいだに revealed が届かなかった`
+            : '締切を送る前に結果が届いた（alarm がほぼ同時に締め切った）ので、締切は測っていない';
+        metrics.notes.push(`${plan.label} 第${questionIndex + 1}問: ${reason}`);
         await collect(null, 0, isType('myResult', questionId));
       }
     }
