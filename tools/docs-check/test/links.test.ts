@@ -8,6 +8,8 @@ const repoRoot = new URL('../../../', import.meta.url);
 const documents = [
   'README.md',
   'CONTRIBUTING.md',
+  // O2 のリハーサルの手順（README の手順書の表から開く）
+  'tools/loadtest/README.md',
   ...readdirSync(new URL('docs/runbooks/', repoRoot))
     .filter((name) => name.endsWith('.md'))
     .map((name) => `docs/runbooks/${name}`),
