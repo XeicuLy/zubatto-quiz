@@ -77,7 +77,24 @@ gh workflow run deploy.yaml --ref main -f target=all   # マイグレーショ�
 gh run watch
 ```
 
-終わったら、本番の URL を開いて確かめる。`all` のときは `/login` からログインできることも確かめる。
+終わったら、[下の「デプロイのあとに確かめる」](#デプロイのあとに確かめる)を行う。
+
+## デプロイのあとに確かめる
+
+`web` のときは 1 と 2 だけでよい。`all` のときと、本番の環境を初めて作ったときは、すべて行う。
+
+1. 本番の URL（`https://zubakui-web.<サブドメイン>.workers.dev`）が開く
+2. 開発者ツールの Console に、`Content Security Policy` の違反が出ていない（ADR 0004）
+3. `/login` から GitHub でログインでき、`/admin` に入れる。開発者ツールの Network で、次を見る（ADR 0003・0006）
+   - `/api/auth/callback/github` の要求の Request Headers の `Cookie` に、`__Secure-better-auth.state` がある。GitHub から戻る要求は別のサイトからの移動なので、この Cookie が `SameSite=Lax` でないと付かず、ログインできない
+   - その応答の `Set-Cookie` の `__Secure-better-auth.session_token` に、`HttpOnly`・`SameSite=Lax`・`Secure` が付いている。名前が `__Secure-` で始まらないときは、`BETTER_AUTH_URL` が `https://` で始まっていない（[secrets.md](secrets.md)）
+4. 問題セットを作り、部屋を作る。Network を WS で絞り、`/api/rooms/<部屋の ID>/ws/host` の Request Headers の `Cookie` に `__Secure-better-auth.session_token` がある
+5. 別の端末か別のブラウザで参加用の URL を開いて参加し、最終ランキングまで通す。終わったら部屋を終える
+6. 1〜5 の間、`pnpm -s run logs:api` を動かしておき（[logs.md](logs.md#本番中に手元のファイルに残す)）、次を見る
+   - `/api/rooms/<部屋の ID>/ws/host` の呼び出しの `request.headers` に、`cookie`（値は `REDACTED`）と、本番の URL の `origin` がある。画面の Worker から Service binding で転送しても、2つのヘッダーが API の Worker に届いている（ADR 0006）
+   - `"outcome": "exception"` の呼び出しがない
+7. ダッシュボードの Observability でも、同じ時間帯にエラーがないことを見る（[logs.md](logs.md#ダッシュボードで見る)）
+8. 試しに作った問題セットは、管理画面から消してよい
 
 ## 失敗したとき
 

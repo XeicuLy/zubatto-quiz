@@ -35,27 +35,33 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 
 ## 本番: wrangler secret put
 
-Cloudflare のアカウントにログインしてから（`pnpm exec wrangler login`）、`apps/api` で1つずつ入れる。値は聞かれてから貼る。コマンドの引数に値を書くと、シェルの履歴に残る。
+Cloudflare のアカウントにログインしてから（`pnpm exec wrangler login`）、`apps/api` で1つずつ入れる。
 
 ```sh
 cd apps/api
-pnpm exec wrangler secret put BETTER_AUTH_URL
-pnpm exec wrangler secret put BETTER_AUTH_SECRET
-pnpm exec wrangler secret put GITHUB_CLIENT_ID
-pnpm exec wrangler secret put GITHUB_CLIENT_SECRET
+# 秘密の値ではないので、そのまま渡す。<サブドメイン> は github-oauth-apps.md の「本番の URL」
+printf %s 'https://zubakui-web.<サブドメイン>.workers.dev' | pnpm exec wrangler secret put BETTER_AUTH_URL --env=""
+# 作った値をそのまま流し込む。値は画面に出ない
+openssl rand -base64 32 | pnpm exec wrangler secret put BETTER_AUTH_SECRET --env=""
+# 値は聞かれてから貼る
+pnpm exec wrangler secret put GITHUB_CLIENT_ID --env=""
+pnpm exec wrangler secret put GITHUB_CLIENT_SECRET --env=""
 ```
 
-- 入れたら、名前だけを確かめる。値は表示されない
+- GitHub の2つは、コマンドの引数やパイプで渡さない。シェルの履歴に残る。「Enter a secret value:」と聞かれてから貼ると、画面にも出ない
+- パイプで渡した値は、末尾の改行が削られる（wrangler 4.149.0 のソースで 2026-10-18 に確かめた）
+- `--env=""` で、`wrangler.jsonc` の先頭の設定（`zubakui-api`）を選ぶ。付けなくても同じ Worker に入るが、`env.e2e` があるので「Multiple environments are defined」という警告が出る
+- 入れたら、名前だけを確かめる。値は表示されない。4つの名前が並ぶ
 
   ```sh
-  pnpm exec wrangler secret list
+  pnpm exec wrangler secret list --env=""
   ```
 
 - 画面の Worker（`apps/web`）にはシークレットがない
 
 ### はじめて入れるとき
 
-本番の API の Worker（`zubakui-api`）がまだないときは、「There doesn't seem to be a Worker called "zubakui-api". Do you want to create a new Worker with that name and add secrets to it?」と聞かれる。`y` と答えると、何もしない空の Worker が作られ、そこにシークレットが入る。
+本番の API の Worker（`zubakui-api`）がまだないときは、「There doesn't seem to be a Worker called "zubakui-api". Do you want to create a new Worker with that name and add secrets to it?」と聞かれる。`y` と答えると、何もしない空の Worker が作られ、そこにシークレットが入る。パイプで値を渡したときは聞かれず、yes として進む。
 
 この順番にしているのは、`secrets.required` のある Worker を初めてデプロイするとき、シークレットが入っていないと wrangler が「This Worker does not exist yet」というエラーで止まるため。先に `wrangler secret put` で Worker を作っておけば、デプロイはその Worker を中身ごと置き換え、シークレットは引き継がれる。デプロイの workflow に `--secrets-file` を渡さずに済むので、アプリのシークレットを GitHub Actions に置かなくてよい（ADR 0005）。wrangler 4.149.0 のソースで、2026-10-17 に確かめた。
 
