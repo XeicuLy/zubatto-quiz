@@ -5,7 +5,7 @@
 | 残し方                                 | 何が見えるか                                                        | どのくらい残るか                                     |
 | -------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------- |
 | Workers Logs（ダッシュボード）         | 2つの Worker の呼び出しごとのログ、エラー、捕まえていない例外       | 2026-11-30 までは3日。2026-12-01 からは7日（下の注） |
-| `wrangler tail` を手元のファイルに残す | 同じもの。ただし、動かしている間のものだけ。混むと間引かれる（注2） | 消すまで                                             |
+| `wrangler tail` を手元のファイルに残す | 同じもの。ただし、動かしている間のものだけ。混むと間引かれる（注2） | 最後に記録してから7日。そのあと消す                  |
 
 - 部屋の DO のログは、API の Worker（`zubakui-api`）のログに入る
 - アプリは自分ではログを出していない（`console.log` などを使っていない）。見えるのは、呼び出しごとのログと、Hono が 500 を返したときに出すエラーと、捕まえていない例外
@@ -33,19 +33,20 @@ pnpm -s run logs:web > "logs/web-$(date +%Y%m%d-%H%M).json"
 ```
 
 - 先に `pnpm exec wrangler login` でログインしておく（`apps/api` で）
-- `-s` を付ける。付けないと、pnpm が実行するコマンドの行をファイルの先頭に書いてしまう
+- `-s`（`--silent`）を付け、pnpm 自身の出力をファイルに混ぜない。`logs:api`・`logs:web` は中で pnpm をもう一度呼ぶので、そちらにも `--silent` を付けてある。pnpm 12.11.0 では、実行するコマンドの行（`$ wrangler tail ...`）は標準エラーに出て、ファイルには入らなかった（2026-10-18 に確かめた）
 - 中身は `wrangler tail --format json` の出力で、1件の呼び出しが1つの JSON になって並ぶ。接続が切れたときは、wrangler がつなぎ直す
 - 本番が終わったら Ctrl+C で止める
-- `logs/` は `.gitignore` に入っている。リポジトリには入れない。見終わって要らなくなったら消す
+- `logs/` は `.gitignore` に入っている。リポジトリには入れない
+- **最後に記録してから7日たつまでは消さない**（O1）。2026-11-30 までは Workers Logs が3日で消えるので、4〜7日目のログはこのファイルにしかない。7日たったら消す
 
 エラーを探すときは、`"outcome": "exception"` や `"level": "error"` で探す。
-
-- WebSocket の入口（`/api/rooms/<部屋>/ws/play` など）の `"outcome": "canceled"` は、開いていた接続が端末の側から切れたときにも付く。`exceptions` が空なら、エラーではない（2026-10-18 の通しの確認で、例外のない `canceled` だけが出た）
-- 部屋の DO の呼び出しは、`event` に `request` がなく、WebSocket のメッセージ（`getWebSocketEvent`）・alarm（`scheduledTime`）・RPC（`rpcMethod`）として並ぶ
 
 ```sh
 grep -n '"outcome": "exception"' logs/api-*.json
 ```
+
+- WebSocket の入口（`/api/rooms/<部屋>/ws/play` など）の `"outcome": "canceled"` は、開いていた接続が端末の側から切れたときにも付く。`exceptions` が空なら、エラーではない（2026-10-18 の通しの確認で、例外のない `canceled` だけが出た）
+- 部屋の DO の呼び出しは、`event` に `request` がなく、WebSocket のメッセージ（`getWebSocketEvent`）・alarm（`scheduledTime`）・RPC（`rpcMethod`）として並ぶ
 
 ## ログに残るもの・残らないもの
 
