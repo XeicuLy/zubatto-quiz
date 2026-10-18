@@ -17,3 +17,6 @@ dist/
 # Playwright（E2E）の結果。失敗したときのトレースとレポート
 test-results/
 playwright-report/
+
+# 本番中に wrangler tail で残したログ。リポジトリには入れない（docs/runbooks/logs.md）
+logs/

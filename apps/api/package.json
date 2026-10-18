@@ -10,7 +10,8 @@
     "deploy": "wrangler deploy --env=\"\"",
     "dev": "wrangler dev",
     "tsc": "wrangler types --check && tsc -p tsconfig.json && tsc -p tsconfig.node.json",
-    "types": "wrangler types"
+    "types": "wrangler types",
+    "logs": "wrangler tail --env=\"\" --format json"
   },
   "dependencies": {
     "@hono/zod-validator": "0.9.1",

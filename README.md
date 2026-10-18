@@ -68,18 +68,18 @@ pnpm exec vitest run --project <名前>   # 1つのパッケージのテスト�
 
    ```sh
    cd apps/api
-   pnpm exec wrangler d1 create zubakui --location apac
+   pnpm exec wrangler d1 create zubakui --location apac --update-config=false
    ```
 
-   - 「設定ファイルに足すか」と聞かれたら断る。D1 の ID はリポジトリに入れない。wrangler は名前（`zubakui`）で D1 を探す
-   - `--location apac` を付けないと、コマンドを実行した場所の近くに置かれる。あとから場所は変えられない
+   - `--update-config=false` で、D1 を `wrangler.jsonc` に足さない。D1 の ID はリポジトリに入れない。wrangler は名前（`zubakui`）で D1 を探す。付けないと「Would you like Wrangler to add it on your behalf?」と聞かれ、既定が yes なので、Enter だけで ID が書き込まれる（wrangler 4.149.0 で 2026-10-18 に確かめた）
+   - `--location apac` を付けないと、コマンドを実行した場所の近くに置かれる。あとから場所は変えられない。都市は選べず、地域だけを選べる。置かれた地域は `pnpm exec wrangler d1 info zubakui` の `running_in_region` で確かめる
 
 3. 本番用の GitHub OAuth App を作る（[github-oauth-apps.md](docs/runbooks/github-oauth-apps.md)）
 4. API の Worker にシークレットを入れる（[secrets.md](docs/runbooks/secrets.md#本番-wrangler-secret-put)）。初めてのときは、ここで空の API の Worker ができる
 5. Cloudflare の API トークンを作り、アカウント ID とあわせて GitHub の Environment（`production`）の secret に入れる（[deploy.md](docs/runbooks/deploy.md#はじめに一度だけ用意するもの)）
 6. GitHub Actions のデプロイの workflow を「API と画面」（`all`）で動かす（[deploy.md](docs/runbooks/deploy.md#動かす)）。マイグレーション → API の Worker → 画面の Worker の順に行われる。手元からはデプロイしない（ADR 0005）
 7. 本番の D1 の許可リストに自分を入れる（[host-allowlist.md](docs/runbooks/host-allowlist.md)）
-8. 本番の URL の `/login` から GitHub でログインできることを確かめる
+8. 本番の URL の `/login` から GitHub でログインし、最終ランキングまで通せることを確かめる（[deploy.md](docs/runbooks/deploy.md#デプロイのあとに確かめる)）
 9. リポジトリを作り直したときは、main のルールセットも作り直す（[branch-protection.md](docs/runbooks/branch-protection.md)）
 
 本番の最中は、API の Worker をデプロイしない。部屋の WebSocket がすべて切れる（ADR 0006）。画面だけを直すときは、workflow を「画面だけ」（`web`）で動かす。
@@ -93,6 +93,7 @@ pnpm exec vitest run --project <名前>   # 1つのパッケージのテスト�
 | [deploy.md](docs/runbooks/deploy.md)                       | 本番にデプロイする・API トークンを入れる・作り直す         |
 | [host-allowlist.md](docs/runbooks/host-allowlist.md)       | ホストを足す・外す（取り消す）                             |
 | [stop-and-usage.md](docs/runbooks/stop-and-usage.md)       | 本番の前後に使用量を確かめる・すぐに止める                 |
+| [logs.md](docs/runbooks/logs.md)                           | 本番中と本番のあとにエラーのログを見る・手元に残す（O1）   |
 | [branch-protection.md](docs/runbooks/branch-protection.md) | main のルールセットを見る・作り直す・一時的に止める        |
 | [tools/loadtest/README.md](tools/loadtest/README.md)       | 本番の前に、ボットで同時参加を再現してリハーサルする（O2） |
 

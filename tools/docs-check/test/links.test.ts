@@ -1,21 +1,8 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-const repoRoot = new URL('../../../', import.meta.url);
-
-/** 手順書をたどるときに読む文書。リンクが切れていると、環境を作り直す途中で迷う（ADR 0005） */
-const documents = [
-  'README.md',
-  'CONTRIBUTING.md',
-  // O2 のリハーサルの手順（README の手順書の表から開く）
-  'tools/loadtest/README.md',
-  ...readdirSync(new URL('docs/runbooks/', repoRoot))
-    .filter((name) => name.endsWith('.md'))
-    .map((name) => `docs/runbooks/${name}`),
-];
-
-const read = (url: URL) => readFileSync(url, 'utf8');
+import { documents, read, repoRoot } from './documents';
 
 /**
  * GitHub が見出しに付ける ID。小文字にし、文字・数字・空白・`-`・`_` 以外を消し、空白を `-` にする。
