@@ -3,10 +3,13 @@ import type { CloseReason } from '@zubatto-quiz/protocol';
 import type { ReactNode } from 'react';
 
 import type { ConnectionStatus } from '../../realtime/client';
+import type { RoomEnd } from '../results/room-end';
 
 interface HostConnectionNoticeProps {
   connection: ConnectionStatus;
   closeReason: CloseReason | null;
+  /** room_ended で閉じたときの段階（roomEndOf）。それ以外は null */
+  roomEnd: RoomEnd | null;
   /** 接続しているときの画面 */
   children: ReactNode;
 }
@@ -14,9 +17,13 @@ interface HostConnectionNoticeProps {
 /**
  * 進行画面の接続の状態（A1）。回答者の ConnectionNotice と同じ形で、投影しても読める大きさにする。
  * つなぎ直しているあいだは中身を薄くして押せなくし、上に帯を重ねる。
- * ホストには X1 の置き換えも名前の入力もないので、つなぎ直さずに閉じるのは、ほぼ部屋が終わったときか、部屋が見つからないときだけ
+ * ホストには X1 の置き換えも名前の入力もないので、つなぎ直さずに閉じるのは、ほぼ部屋が終わったときか、部屋が見つからないときだけ。
+ * 最終ランキングのあとに部屋が終わったときは、映している最終ランキングを残す。操作の帯の代わりの HostEndedBar は HostPage が出す（#97）
  */
-export function HostConnectionNotice({ connection, closeReason, children }: HostConnectionNoticeProps) {
+export function HostConnectionNotice({ connection, closeReason, roomEnd, children }: HostConnectionNoticeProps) {
+  if (roomEnd === 'after_final') {
+    return children;
+  }
   if (connection === 'closed') {
     return <ClosedScreen reason={closeReason} />;
   }
@@ -41,11 +48,13 @@ export function HostConnectionNotice({ connection, closeReason, children }: Host
   );
 }
 
+const roomEndedMessage = {
+  title: 'この部屋は終わりました',
+  body: 'また遊ぶときは、問題セットの一覧から新しく部屋を作ってください。',
+};
+
 const closedMessages: Partial<Record<CloseReason, { title: string; body: string }>> = {
-  room_ended: {
-    title: 'この部屋は終わりました',
-    body: 'また遊ぶときは、問題セットの一覧から新しく部屋を作ってください。',
-  },
+  room_ended: roomEndedMessage,
   // 他人の部屋も同じ code で閉じられる（S1）。どちらかは分からないので、ログインしているアカウントも確かめてもらう
   room_not_found: {
     title: '部屋が見つかりません',
@@ -62,12 +71,30 @@ function ClosedScreen({ reason }: { reason: CloseReason | null }) {
     <main className="flex min-h-dvh flex-col justify-center gap-4 p-stage">
       <h1 className="font-display text-stage-title">{message.title}</h1>
       <p className="text-stage-label leading-relaxed text-on-stage-muted">{message.body}</p>
-      <Link
-        to="/admin"
-        className="self-start text-stage-label font-bold underline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage"
-      >
-        問題セットの一覧に戻る
-      </Link>
+      <BackToListLink />
     </main>
+  );
+}
+
+/** 最終ランキングのあとに部屋が終わったとき、操作の帯の代わりに出す。接続は閉じたので、どの操作も送れない */
+export function HostEndedBar() {
+  return (
+    <footer className="sticky bottom-0 z-10 border-t border-stage-line bg-stage px-stage py-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2" role="status">
+        <p className="text-stage-label font-bold">{roomEndedMessage.title}</p>
+        <BackToListLink />
+      </div>
+    </footer>
+  );
+}
+
+function BackToListLink() {
+  return (
+    <Link
+      to="/admin"
+      className="self-start text-stage-label font-bold underline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage"
+    >
+      問題セットの一覧に戻る
+    </Link>
   );
 }

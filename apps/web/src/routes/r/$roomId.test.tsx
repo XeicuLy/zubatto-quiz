@@ -1,6 +1,6 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { CLOSE_CODES } from '@zubatto-quiz/protocol';
+import { CLOSE_CODES, type FinalRanking } from '@zubatto-quiz/protocol';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { FakeRoomServer } from '../../../test/fake-room-server';
@@ -300,6 +300,74 @@ describe('結果とランキング（F14・F15）', () => {
     );
     expect(screen.getByRole('region', { name: '優勝' })).toHaveTextContent('はなこ');
     expect(screen.getByText('あなた').closest('li')).toHaveTextContent('2位たろう');
+  });
+});
+
+describe('部屋が終わったとき（#97・F17）', () => {
+  const FINAL_RANKING: FinalRanking = {
+    type: 'finalRanking',
+    questionCount: 3,
+    entries: [
+      { participantId: OTHER, name: 'はなこ', rank: 1, totalScore: 2900 },
+      { participantId: ME, name: 'たろう', rank: 2, totalScore: 2700 },
+    ],
+  };
+
+  it('最終ランキングのあとに終わったら、手元の最終ランキングを残したまま、終わったことを出す', async () => {
+    const { server } = await openPlayerPage();
+    await joinAs('たろう');
+    act(() => {
+      server.latest.open();
+      server.latest.emit({ type: 'joined', participantId: ME, room: ROOM });
+      server.latest.emit(FINAL_RANKING);
+    });
+    const winner = screen.getByRole('region', { name: '優勝' });
+
+    act(() => server.latest.closeFromServer(CLOSE_CODES.room_ended));
+
+    expect(screen.getByRole('status')).toHaveTextContent('この部屋は終わりました');
+    // 作り直さずに同じ要素を残す。作り直すと、優勝の出てくるアニメーションがもう一度流れる
+    expect(winner).toBeInTheDocument();
+    expect(winner).toHaveTextContent('はなこ');
+    expect(screen.getByText('あなた').closest('li')).toHaveTextContent('2位たろう');
+    expect(server.sockets).toHaveLength(1);
+  });
+
+  it('問題の途中で終わったら、途中で終えたことを出す', async () => {
+    const { server } = await openPlayerPage();
+    await joinAs('たろう');
+    act(() => {
+      server.latest.open();
+      server.latest.emit({ type: 'joined', participantId: ME, room: ROOM });
+      server.latest.emit({
+        type: 'questionShown',
+        questionId: 'q-1',
+        questionIndex: 0,
+        questionCount: 3,
+        text: '今年の社内ランチで一番人気の店は？',
+        limitMs: 10_000,
+      });
+    });
+
+    act(() => server.latest.closeFromServer(CLOSE_CODES.room_ended));
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('この部屋は終わりました');
+    expect(screen.getByText(/ホストが部屋を途中で終えました/)).toBeInTheDocument();
+    expect(screen.queryByText('今年の社内ランチで一番人気の店は？')).toBeNull();
+  });
+
+  it('終わったあとに読み込み直したら、どこで終わったかは言わずに、終わったことだけを出す', async () => {
+    saveToken(ROOM_ID, createToken());
+    const { server } = await openPlayerPage();
+
+    // 部屋の DO は、終わった部屋への resume を resumed を送らずに閉じる
+    act(() => {
+      server.latest.open();
+      server.latest.closeFromServer(CLOSE_CODES.room_ended);
+    });
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('この部屋は終わりました');
+    expect(screen.getByText('遊んでくれてありがとうございました。')).toBeInTheDocument();
   });
 });
 
