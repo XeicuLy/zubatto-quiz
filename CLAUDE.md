@@ -22,7 +22,7 @@ pnpm run tsc        # root tsc --noEmit, then each package's own `tsc` script
 pnpm run test       # vitest run; root vitest.config.ts bundles apps/*, packages/* and tools/* as projects
 pnpm exec vitest run --project <name>   # one package; the project name is its vitest config `name`, else its package.json `name`, else its directory name
 make e2e            # pnpm run e2e: Playwright (e2e/); first run needs `pnpm exec playwright install chromium`
-pnpm -s run logs:api > logs/api-<date>.json   # O1 backup: wrangler tail --format json of zubakui-api (also logs:web); keep the files 7 days after the last entry (O1)
+mkdir -p logs && pnpm -s run logs:api > "logs/api-$(date +%Y%m%d-%H%M).json"   # O1 backup: wrangler tail --format json of zubakui-api (also logs:web); keep the files 7 days after the last entry (O1)
 ```
 
 - A Claude Code PostToolUse hook runs `oxfmt` on every file after Edit/Write, so don't format by hand.
