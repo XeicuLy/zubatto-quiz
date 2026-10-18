@@ -69,3 +69,22 @@ describe('本番中にログをファイルへ残すスクリプト（docs/runbo
     expect(rootPackage.scripts?.[name]).toMatch(/^pnpm --silent /);
   });
 });
+
+describe('ログをファイルへ残すコマンド', () => {
+  const saves = [...documents, 'CLAUDE.md'].flatMap((document) =>
+    [...read(new URL(document, repoRoot)).matchAll(/run logs:\w+ (>+) /g)].map(([command, redirect]) => ({
+      document,
+      command,
+      redirect,
+    })),
+  );
+
+  it('手順書に、ログをファイルへ残すコマンドがある', () => {
+    expect(saves.length).toBeGreaterThan(0);
+  });
+
+  it.each(saves)('$document の「$command」は追記（>>）で書く', ({ redirect }) => {
+    // > は同じ名前のファイルを空にしてから書く。tail を動かし直して名前がぶつかると、前のログが消える（O1）
+    expect(redirect).toBe('>>');
+  });
+});

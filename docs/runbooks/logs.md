@@ -28,14 +28,14 @@
 
 ```sh
 mkdir -p logs
-pnpm -s run logs:api > "logs/api-$(date +%Y%m%d-%H%M%S).json"
-pnpm -s run logs:web > "logs/web-$(date +%Y%m%d-%H%M%S).json"
+pnpm -s run logs:api >> "logs/api-$(date +%Y%m%d-%H%M%S).json"
+pnpm -s run logs:web >> "logs/web-$(date +%Y%m%d-%H%M%S).json"
 ```
 
 - 先に `pnpm exec wrangler login` でログインしておく（`apps/api` で）
 - `-s`（`--silent`）を付け、pnpm 自身の出力をファイルに混ぜない。`logs:api`・`logs:web` は中で pnpm をもう一度呼ぶので、そちらにも `--silent` を付けてある。pnpm 12.11.0 では、実行するコマンドの行（`$ wrangler tail ...`）は標準エラーに出て、ファイルには入らなかった（2026-10-18 に確かめた）
 - 中身は `wrangler tail --format json` の出力で、1件の呼び出しが1つの JSON になって並ぶ。接続が切れたときは、wrangler がつなぎ直す
-- ファイル名には秒まで入れる。`>` は同じ名前のファイルを空にしてから書くので、止まった tail をすぐに動かし直しても、前のファイルを消さないため
+- `>>`（追記）で書く。`>` は同じ名前のファイルを空にしてから書くので、止まった tail を動かし直したときに名前がぶつかると、前のログが消える。ファイル名に秒まで入れるのは、1回の実行を1つのファイルにして読みやすくするため
 - 本番が終わったら Ctrl+C で止める
 - `logs/` は `.gitignore` に入っている。リポジトリには入れない
 - **最後に記録してから7日たつまでは消さない**（O1）。2026-11-30 までは Workers Logs が3日で消えるので、4〜7日目のログはこのファイルにしかない。7日たったら消す
