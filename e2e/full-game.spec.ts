@@ -2,6 +2,7 @@ import { expect, test, type Browser, type BrowserContext, type Page } from '@pla
 
 import { collectCspViolations } from './helpers/csp';
 import { loginAsHost } from './helpers/login';
+import { joinRoom, PHONE } from './helpers/player';
 
 /** 作る問題セット。correct は正解の番号（0から）。たろうはいつも正解し、はなこは第2問だけ正解する */
 const QUESTIONS = [
@@ -14,9 +15,8 @@ const TITLE = 'E2E の問題セット';
 /** 締切はホストが「いま締め切る」で行う。制限時間は、テストが遅れても先に時間切れにならない長さにする（F9 の上限は60秒） */
 const LIMIT_SECONDS = '60';
 
-/** 投影する進行画面と、回答者のスマホの大きさ（docs/design/README.md） */
+/** 投影する進行画面の大きさ（docs/design/README.md） */
 const PROJECTOR = { width: 1600, height: 900 };
-const PHONE = { width: 390, height: 844 };
 
 interface Actor {
   context: BrowserContext;
@@ -44,15 +44,6 @@ async function fillQuestion(page: Page, index: number) {
   }
   await item.getByLabel(`選択肢${question.correct + 1}を正解にする`).check();
   await item.getByLabel('制限時間').fill(LIMIT_SECONDS);
-}
-
-/** 参加用の URL を開き、名前を入れて入る（F2） */
-async function join(player: Page, joinUrl: string, name: string) {
-  await player.goto(joinUrl);
-  await player.getByLabel('名前').fill(name);
-  await player.getByRole('button', { name: '参加する' }).click();
-  await expect(player.getByRole('heading', { name })).toBeVisible();
-  await expect(player.getByText('ホストが始めるのを待っています')).toBeVisible();
 }
 
 /**
@@ -102,8 +93,8 @@ test('ホストが問題セットを作って部屋を開き、2人が最後ま�
   expect(joinUrl).toMatch(/^http:\/\/localhost:4173\/r\/[0-9a-f]{64}$/);
 
   // 2人が入り、ホストの待機画面に並ぶ（F2・F3）
-  await join(taro.page, joinUrl!, 'たろう');
-  await join(hanako.page, joinUrl!, 'はなこ');
+  await joinRoom(taro.page, joinUrl!, 'たろう');
+  await joinRoom(hanako.page, joinUrl!, 'はなこ');
   const participants = host.page.getByRole('list', { name: '参加者' });
   await expect(participants.getByRole('listitem')).toHaveText(['たろう', 'はなこ']);
   await expect(hanako.page.getByRole('list', { name: '参加者' }).getByRole('listitem')).toHaveText([

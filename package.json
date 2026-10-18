@@ -23,6 +23,7 @@
     "@playwright/test": "1.63.0",
     "@tailwindcss/cli": "4.3.3",
     "@types/node": "^24.13.6",
+    "@zubatto-quiz/protocol": "workspace:*",
     "consola": "^3.4.2",
     "husky": "^9.1.7",
     "oxfmt": "^0.68.0",
