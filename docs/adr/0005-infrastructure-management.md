@@ -64,6 +64,7 @@ ADR 0001〜0004 で、基盤は Cloudflare Workers + Durable Objects（Free プ�
 - 良い影響: D1 の ID がリポジトリに入らないので、D1 を作り直しても設定ファイルを書き換えなくて済む
 - 悪い影響: CI からデプロイするので、Cloudflare の API トークンを GitHub に置く。漏れると、このアカウントの Worker と D1 を書き換えられる
 - 悪い影響: Workers のリクエスト数が上限に近づいたことを知らせる公式の通知は、見つけられなかった。D1 も、通知が来るのは上限に達したときで、近づいたときではない。そのため、要件 C4 を「課金が起きうる構成にするときは予算アラートを設定し、無料プランでは上限で止まることを受け入れて、使用量を本番の前後にダッシュボードで確かめる」に書き直した
+- 悪い影響: 回答者の IP アドレスと国が、Workers Logs と手元の `wrangler tail` のファイルに残る。S5 は、アプリが回答者に求め、保存するものの決まりと読むことにした（下の「ログに出すものと出さないもの」）
 - 対応事項: Worker・部屋の Durable Object（`new_sqlite_classes` のマイグレーション）・D1 の binding を `wrangler.jsonc` に書く。D1 の binding は、API の Worker の `apps/api/wrangler.jsonc` にだけ書く（ADR 0006）
   - テストには vitest-plugin（`@cloudflare/vitest-plugin`）を使う。この ADR を書いたときの名前は vitest-pool-workers（`@cloudflare/vitest-pool-workers`）だったが、名前が変わり、前の名前のパッケージは更新されなくなった（2026-10-11 に npm で確かめた）。ADR 0002〜0006 の本文も、新しい名前に直した
 - 対応事項: D1 の作り方と、本番のデプロイ・マイグレーションの仕方は、次のとおりにする。wrangler の仕様は、2026-10-11 時点の公式ドキュメント（context7 経由を含む）と、wrangler のソース（4.149.0）で確かめた
@@ -117,6 +118,13 @@ ADR 0001〜0004 で、基盤は Cloudflare Workers + Durable Objects（Free プ�
     - メッセージの検証に失敗したときも、受け取った値は出さず、エラーの種類と場所（どのキーか）だけを出す
     - 呼び出しごとのログ（invocation logs）は、`fetch` では「`<Method> <URL>`」、WebSocket ではイベントの種類（`message` など）を残す。メッセージの本文は残らない。リクエストのヘッダーのうち、`cookie` と、名前に `auth`・`token`・`secret` などを含むものは、値が `REDACTED` に置き換わる
     - URL のクエリは、既定ではそのまま残る。GitHub のログインから戻る URL（`/api/auth/callback/github?code=...&state=...`）の値が残らないよう、`redact_query_string` を有効にする
+    - 接続元の IP アドレス（`cf-connecting-ip`・`x-real-ip`）と国（`cf-ipcountry`）は、呼び出しごとのログのヘッダーにそのまま残る。回答者のものも残る。T35（#39）の本番の確認で見つけ、T51（#98）で次のとおり決めた。2026-10-18 に、本番の Workers Logs と、Cloudflare のドキュメント（context7 経由を含む）で確かめた
+      - 要件 S5（回答者について扱う個人情報は、自分で入力した名前だけ）は、アプリが回答者に求め、保存し、画面に出すものについての決まりと読む。基盤のログに IP アドレスと国が残ることは受け入れる。要件定義書の S5 にも書き足した
+      - 受け入れる理由: Workers Logs を見られるのは、Cloudflare のアカウントを持つ開発者だけ（O3）で、7日（2026-11-30 までは3日）で消える。手元の `wrangler tail` のファイルも、人に渡さず、最後に記録してから7日で消す。また、どの設定にしても、Cloudflare は配信のために IP アドレスを受け取る
+      - Workers Logs には、ヘッダーのうち IP アドレスだけを残さない設定がない。値が `REDACTED` になるヘッダーは名前で決まっていて（`cookie`・`set-cookie` と、名前に `auth`・`key`・`secret`・`token`・`jwt` を含むもの）、ほかにログの中身を変えられるのは `redact_query_string` だけ
+      - 選ばなかった方法: `invocation_logs` を止める。アプリは自分でログを出していないので、残るのは Hono が 500 のときに出す `console.error` と例外だけになる（止めたときに例外が残るか、ヘッダーが付くかは、ドキュメントに書かれていない）。断った要求（403・426 など）や、T35 で行った「Cookie と Origin が API の Worker に届いたか」の確認が、あとから見られなくなる。また、`wrangler tail` は別の仕組みなので、手元のファイルには IP アドレスが残る
+      - 選ばなかった方法: 本番中の `wrangler tail` の保存をやめる。O1 の予備がなくなり、12月からの料金の変更が遅れたときや、上限で取り込みが止まったときに、エラーを見られなくなる
+      - 選ばなかった方法: 手元のファイルに書く前に、jq で IP アドレスなどを除く。Workers Logs には残るので S5 の読み方は変わらず、スクリプトが増えるだけになる
   - T11（#15）で、`apps/api/wrangler.jsonc` に次の設定を書く。T24（#28）で、`apps/web/wrangler.jsonc` にも同じ設定を書く。画面の Worker も `/api/*` を転送するので、同じ URL がログに残るため。Traces は使わない（上限を分け合うため）
 
     ```jsonc

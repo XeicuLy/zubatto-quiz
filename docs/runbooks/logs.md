@@ -53,14 +53,15 @@ grep -n '"outcome": "exception"' logs/api-*.json
 
 ログに秘密を残さないよう、次のようにしている（ADR 0004・0005、S5）。
 
-| もの                                                                        | ログでは                                                           |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| URL の経路とメソッド                                                        | 残る（`GET /api/question-sets` など）                              |
-| URL のクエリ（GitHub から戻る URL の `code`・`state`）                      | 残らない（`wrangler.jsonc` の `redact_query_string`）              |
-| `cookie`・`set-cookie` と、名前に `auth`・`key`・`secret`・`token` を含む値 | `REDACTED` になる。ヘッダーがあったことだけが分かる                |
-| WebSocket のメッセージの本文（`join`・`resume` の秘密、回答者の名前、回答） | 残らない。WebSocket は、イベントの種類（`message` など）だけが残る |
+| もの                                                                          | ログでは                                                           |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| URL の経路とメソッド                                                          | 残る（`GET /api/question-sets` など）                              |
+| URL のクエリ（GitHub から戻る URL の `code`・`state`）                        | 残らない（`wrangler.jsonc` の `redact_query_string`）              |
+| `cookie`・`set-cookie` と、名前に `auth`・`key`・`secret`・`token` を含む値   | `REDACTED` になる。ヘッダーがあったことだけが分かる                |
+| WebSocket のメッセージの本文（`join`・`resume` の秘密、回答者の名前、回答）   | 残らない。WebSocket は、イベントの種類（`message` など）だけが残る |
+| 接続元の IP アドレス（`cf-connecting-ip`・`x-real-ip`）と国（`cf-ipcountry`） | 残る。回答者のものも残る（下の1つ目）                              |
 
-- 接続元の IP アドレス（`cf-connecting-ip`・`x-real-ip`）と国（`cf-ipcountry`）は、Workers Logs（`$workers.event.request.headers.cf-connecting-ip`）にも `wrangler tail` の出力にも残る。回答者のものも残る（2026-10-18 に確かめた）
+- IP アドレスと国は、Workers Logs（`$workers.event.request.headers.cf-connecting-ip` など）にも `wrangler tail` の出力にも残る（2026-10-18 に確かめた）。Workers Logs には、IP アドレスだけを残さない設定がない。これは受け入れている。S5（回答者の個人情報は名前だけ）は、アプリが回答者に求め、保存するものの決まりと読む。ログを見られるのは開発者だけで、7日で消えるため（ADR 0005）
 - `wrangler tail` の出力でも、Cookie などのヘッダーの値は `REDACTED` になり、`redact_query_string` で URL のクエリも消える（GitHub から戻る要求で、2026-10-18 に確かめた）。それでも IP アドレスが残るので、手元のファイルを人に渡したり、どこかに貼ったりしない
 - アプリにログを足すときは、`{ event: 'join_rejected', roomId, code }` のように決まったキーの値だけを出す。秘密とそのハッシュ、メッセージの本文、回答者の名前、Cookie やセッションの値は出さない（ADR 0005）
 
