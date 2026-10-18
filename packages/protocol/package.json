@@ -6,10 +6,13 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "schema": "node scripts/export-json-schema.ts && oxfmt schema/ws.schema.json",
+    "schema": "node scripts/export-json-schema.ts && oxfmt schema/ws.schema.json schema/openapi.json",
     "tsc": "tsc -p tsconfig.lib.json && tsc -p tsconfig.json"
   },
   "dependencies": {
     "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@readme/openapi-parser": "9.1.0"
   }
 }

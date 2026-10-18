@@ -22,7 +22,11 @@ export function buildWsJsonSchema() {
   };
 }
 
-function toDef(schema: z.ZodType, io: 'input' | 'output') {
+/**
+ * 1つの文書の中に置く JSON Schema にする。受け付ける入力は input、送る形は output で作る。
+ * openapi.json（openapi.ts）も同じ作り方にする
+ */
+export function toDef(schema: z.ZodType, io: 'input' | 'output') {
   // 1つのファイルにまとめるので、それぞれに付く $schema は外す
   const { $schema: _, ...def } = z.toJSONSchema(schema, { io });
   return def;
