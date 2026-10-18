@@ -14,7 +14,9 @@
     "e2e": "playwright test",
     "db:migrate:remote": "pnpm --filter @zubatto-quiz/api run db:migrate:remote",
     "deploy:api": "pnpm --filter @zubatto-quiz/api run deploy",
-    "deploy:web": "pnpm --filter @zubatto-quiz/web run deploy"
+    "deploy:web": "pnpm --filter @zubatto-quiz/web run deploy",
+    "logs:api": "pnpm --filter @zubatto-quiz/api run logs",
+    "logs:web": "pnpm --filter @zubatto-quiz/web run logs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
