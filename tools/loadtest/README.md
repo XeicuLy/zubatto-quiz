@@ -72,4 +72,4 @@ pnpm --filter loadtest start --origin http://localhost:4173 --rooms 1 --bots 20
 | `--limit`     | 10       | 制限時間（秒、F9 の5〜60）                                                                                    |
 | `--burst`     | なし     | 付けると、残りの 85〜90% のあいだに全員が答える（締切の直前の一斉回答、P3）。付けないときは 0〜90% にばらける |
 
-表は標準出力に、途中の様子は標準エラーに出す。`> result.md` で表だけを残せるので、[O2 のリハーサルの記録](https://github.com/XeicuLy/zubatto-quiz/issues/41)にそのまま貼れる。どれかの行を満たさないときは、終了コードが1になる。
+表は標準出力に、途中の様子は標準エラーに出す。`> result.md` で表だけを残せるので、[O2 のリハーサルの記録](../../docs/rehearsal/o2-rehearsal.md)にそのまま貼れる。どれかの行を満たさないときは、終了コードが1になる。
