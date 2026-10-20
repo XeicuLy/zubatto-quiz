@@ -99,8 +99,14 @@ const v2 = `
 ALTER TABLE room ADD COLUMN deadline_at INTEGER;
 `;
 
+const v3 = `
+-- points のうちの早押しボーナス（F12）。締切のときに points と一緒に書き、結果を配るときは読むだけにする（A3）。
+-- v2 までに締め切った問題の行は、ボーナスなしの0になる
+ALTER TABLE question_scores ADD COLUMN bonus_points INTEGER NOT NULL DEFAULT 0 CHECK (bonus_points BETWEEN 0 AND points);
+`;
+
 /** 版ごとの SQL。配列の位置 + 1 が版の番号になる */
-export const ROOM_MIGRATIONS: readonly string[] = [v1, v2];
+export const ROOM_MIGRATIONS: readonly string[] = [v1, v2, v3];
 
 /** 最新の版 */
 export const ROOM_SCHEMA_VERSION = ROOM_MIGRATIONS.length;

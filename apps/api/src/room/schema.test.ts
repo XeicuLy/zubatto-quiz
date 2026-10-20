@@ -159,6 +159,32 @@ describe('部屋の DO の SQLite のスキーマ', () => {
     expect(deadlines).toEqual({ before: null, after: 12_345 });
   });
 
+  it('早押しボーナスの点（bonus_points）は、書かなければ0で、0からその行の得点までしか入らない（F12・v3）', async () => {
+    const stub = env.ROOM.getByName('schema-bonus-points');
+
+    await runInDurableObject(stub, (_instance, state) => {
+      const { sql } = state.storage;
+      insertQuestion(sql, 'q1', 0);
+      insertParticipant(sql, P1, 'たろう', 'たろう');
+      insertParticipant(sql, P2, 'はなこ', 'はなこ');
+      const insertScore = (participantId: string, points: number, bonusPoints: number) =>
+        sql.exec(
+          'INSERT INTO question_scores (question_id, participant_id, points, bonus_points) VALUES (?, ?, ?, ?)',
+          'q1',
+          participantId,
+          points,
+          bonusPoints,
+        );
+
+      sql.exec(`INSERT INTO question_scores (question_id, participant_id, points) VALUES ('q1', ?, 938)`, P1);
+      expect(sql.exec<{ bonus_points: number }>('SELECT bonus_points FROM question_scores').one().bonus_points).toBe(0);
+
+      expect(() => insertScore(P2, 949, 1000)).toThrow(/CHECK constraint failed/);
+      expect(() => insertScore(P2, 949, -1)).toThrow(/CHECK constraint failed/);
+      expect(() => insertScore(P2, 1150, 200)).not.toThrow();
+    });
+  });
+
   it('入室1回で書くのは参加者の1行だけで、得点の合計は確定した得点から求める（ADR 0004 の DD7）', async () => {
     const stub = env.ROOM.getByName('schema-join-one-row');
 

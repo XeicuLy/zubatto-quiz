@@ -10,13 +10,14 @@ import {
   type QuestionOutcome,
 } from './results';
 
-/** 回答者1人ぶん。並べた順を入室した順にし、指定しなければ前の問題から入室していて、前の合計0点・未回答・0点 */
+/** 回答者1人ぶん。並べた順を入室した順にし、指定しなければ前の問題から入室していて、前の合計0点・未回答・0点（ボーナスも0点） */
 const participant = (id: string, fields: Partial<Omit<ParticipantOutcome, 'participantId'>> = {}) => ({
   participantId: id,
   name: `${id}さん`,
   inPreviousRanking: true,
   previousTotal: 0,
   points: 0,
+  bonusPoints: 0,
   answer: null,
   ...fields,
 });
@@ -61,11 +62,11 @@ describe('revealedFor（① ホストへ）', () => {
 });
 
 describe('myResultsFor（① 回答者1人ずつへ）', () => {
-  it('自分の回答・正誤・この問題の点・合計点・残りの問題で取れる最大の点を出す', () => {
+  it('自分の回答・正誤・この問題の点とそのうちのボーナス・合計点・残りの問題で取れる最大の点を出す', () => {
     const results = myResultsFor(
       outcome(
         [
-          participant('a', { previousTotal: 900, points: 950, answer: correctAnswer(1000) }),
+          participant('a', { previousTotal: 900, points: 1150, bonusPoints: 200, answer: correctAnswer(1000) }),
           participant('b', { previousTotal: 800, answer: wrongAnswer(500) }),
           participant('c', { previousTotal: 700 }),
         ],
@@ -73,18 +74,24 @@ describe('myResultsFor（① 回答者1人ずつへ）', () => {
       ),
     );
 
-    // 10問のうち第4問なので、残りは6問 × 1,000点
+    // 10問のうち第4問なので、残りは6問 × ボーナスを含む1問の最大 1,200点（F15）
     expect(results.get('a')).toMatchObject({
       type: 'myResult',
       questionId: 'q-1',
       correctIndex: 0,
       answer: { choiceIndex: 0, elapsedMs: 1000 },
       correct: true,
-      points: 950,
-      totalScore: 1850,
-      remainingMaxPoints: 6000,
+      points: 1150,
+      bonusPoints: 200,
+      totalScore: 2050,
+      remainingMaxPoints: 7200,
     });
-    expect(results.get('b')).toMatchObject({ answer: { choiceIndex: 1, elapsedMs: 500 }, correct: false, points: 0 });
+    expect(results.get('b')).toMatchObject({
+      answer: { choiceIndex: 1, elapsedMs: 500 },
+      correct: false,
+      points: 0,
+      bonusPoints: 0,
+    });
     // 時間切れ（未回答）は answer が null で、不正解と同じく0点
     expect(results.get('c')).toMatchObject({ answer: null, correct: false, points: 0, totalScore: 700 });
   });

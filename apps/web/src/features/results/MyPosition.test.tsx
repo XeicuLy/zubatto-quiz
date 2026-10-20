@@ -9,7 +9,7 @@ function renderPosition(position: PlayerPosition, remainingQuestions = 7) {
     <MyPosition
       position={position}
       totalScore={2410}
-      remainingMaxPoints={remainingQuestions * 1000}
+      remainingMaxPoints={remainingQuestions * 1200}
       remainingQuestions={remainingQuestions}
     />,
   ).container;
@@ -80,7 +80,7 @@ describe('回答者画面の自分の位置（F15）', () => {
       // 合計とトップとの差は、dt と dd に分けて並べる
       expect(container).toHaveTextContent(/トップとの差\s*1,104点/);
       expect(container).toHaveTextContent(/合計\s*2,410点/);
-      expect(container).toHaveTextContent('残り7問で、最大 7,000点 取れます');
+      expect(container).toHaveTextContent('残り7問で、最大 8,400点 取れます');
     });
   });
 
@@ -111,7 +111,7 @@ describe('回答者画面の自分の位置（F15）', () => {
 
       expect(container).toHaveTextContent('ここからの順位は、最終発表まで伏せています');
       expect(container).not.toHaveTextContent(/\d+位|あと|差/);
-      expect(container).toHaveTextContent('残り1問で、最大 1,000点 取れます');
+      expect(container).toHaveTextContent('残り1問で、最大 1,200点 取れます');
     });
 
     it('最後の問題では、残りで取れる点を出さない', () => {

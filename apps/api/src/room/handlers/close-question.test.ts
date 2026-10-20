@@ -67,8 +67,8 @@ async function revealFastest(host: Socket, players: readonly Player[], questionI
 const readScores = (stub: RoomStub) =>
   runInDurableObject(stub, (_instance, state) =>
     state.storage.sql
-      .exec<{ questionId: string; points: number }>(
-        'SELECT question_id AS questionId, points FROM question_scores ORDER BY points DESC',
+      .exec<{ questionId: string; points: number; bonusPoints: number }>(
+        'SELECT question_id AS questionId, points, bonus_points AS bonusPoints FROM question_scores ORDER BY points DESC',
       )
       .toArray(),
   );
@@ -89,29 +89,46 @@ describe('締切のあとの結果（F11・F13・F14・F15）', () => {
       answeredCount: 3,
       participantCount: 3,
     });
-    // 10秒のうち 1.23秒は 938点、0.50秒は 975点（要件定義書「1問の得点の例」と同じ式）
+    // 10秒のうち 1.23秒は 938点、0.50秒は 975点にボーナス200点で 1,175点（要件定義書「1問の得点の例」と同じ式）
     expect(await nextOf(hanako, 'myResult')).toEqual({
       type: 'myResult',
       questionId: 'q-1',
       correctIndex: 0,
       answer: { choiceIndex: 0, elapsedMs: 500 },
       correct: true,
-      points: 975,
-      totalScore: 975,
-      remainingMaxPoints: 2000,
-      position: { kind: 'leader', rankUp: 0, leadOverNext: 37 },
+      points: 1175,
+      bonusPoints: 200,
+      totalScore: 1175,
+      // 残り2問 × ボーナスを含む1問の最大 1,200点
+      remainingMaxPoints: 2400,
+      position: { kind: 'leader', rankUp: 0, leadOverNext: 237 },
     });
     expect(await nextOf(taro, 'myResult')).toMatchObject({
       correct: true,
       points: 938,
-      position: { kind: 'podium', rank: 2, gapToAbove: 37 },
+      bonusPoints: 0,
+      position: { kind: 'podium', rank: 2, gapToAbove: 237 },
     });
     expect(await nextOf(jiro, 'myResult')).toMatchObject({
       answer: { choiceIndex: 1, elapsedMs: 300 },
       correct: false,
       points: 0,
+      bonusPoints: 0,
       position: { kind: 'podium', rank: 3, gapToAbove: 938 },
     });
+  });
+
+  it('1.00秒以内（ちょうども含む）の正解にだけ早押しボーナスが足され、myResult にその点が届く（F12）', async () => {
+    const stub = await newRoom('alice', 3);
+    const { host, players } = await enterRoom(stub, ['たろう', 'はなこ', 'じろう']);
+    const [taro, hanako, jiro] = players;
+
+    await playQuestion(host, players, 0, [correct(1000), correct(1010), wrong(500)]);
+
+    // 1.00秒は 950点 + 200点、1.01秒は 949点でボーナスなし。不正解は速くても0点
+    expect(await nextOf(taro, 'myResult')).toMatchObject({ points: 1150, bonusPoints: 200 });
+    expect(await nextOf(hanako, 'myResult')).toMatchObject({ points: 949, bonusPoints: 0 });
+    expect(await nextOf(jiro, 'myResult')).toMatchObject({ points: 0, bonusPoints: 0 });
   });
 
   it('② で、最速正解者の名前と秒数・正解した人数が全員に届く', async () => {
@@ -174,7 +191,7 @@ describe('締切のあとの結果（F11・F13・F14・F15）', () => {
       questionIndex: 0,
       participantCount: 2,
       entries: [
-        { participantId: hanako.participantId, name: 'はなこ', rank: 1, totalScore: 975, points: 975 },
+        { participantId: hanako.participantId, name: 'はなこ', rank: 1, totalScore: 1175, points: 1175 },
         { participantId: taro.participantId, name: 'たろう', rank: 2, totalScore: 938, points: 938 },
       ],
     };
@@ -195,7 +212,7 @@ describe('締切のあとの結果（F11・F13・F14・F15）', () => {
       type: 'finalRanking',
       questionCount: 1,
       entries: [
-        { participantId: hanako.participantId, name: 'はなこ', rank: 1, totalScore: 975 },
+        { participantId: hanako.participantId, name: 'はなこ', rank: 1, totalScore: 1175 },
         { participantId: taro.participantId, name: 'たろう', rank: 2, totalScore: 0 },
       ],
     };
@@ -222,7 +239,7 @@ describe('自分の位置の出し分け（F15）', () => {
 
     const positions = await Promise.all(players.map(async (player) => (await nextOf(player, 'myResult')).position));
 
-    // 10秒のうち 0.10秒は 995点、0.10秒ずつ遅いと5点ずつ低い
+    // 10秒のうち 0.10秒は 995点 + ボーナス200点、0.10秒ずつ遅いと5点ずつ低い（全員1秒以内なので、ボーナスは差を変えない）
     expect(positions).toEqual([
       { kind: 'leader', rankUp: 0, leadOverNext: 5 },
       { kind: 'podium', rank: 2, rankUp: 0, gapToAbove: 5 },
@@ -301,8 +318,8 @@ describe('得点の保存（A3）', () => {
     vi.setSystemTime(Date.now() + LIMIT_MS);
     await runDurableObjectAlarm(stub);
 
-    expect(await nextOf(taro, 'myResult')).toMatchObject({ points: 975 });
-    expect(await readScores(stub)).toEqual([{ questionId: 'q-1', points: 975 }]);
+    expect(await nextOf(taro, 'myResult')).toMatchObject({ points: 1175, bonusPoints: 200 });
+    expect(await readScores(stub)).toEqual([{ questionId: 'q-1', points: 1175, bonusPoints: 200 }]);
   });
 
   it('締切まで終えた問題の得点は、休止のあとも残り、resume の得点と ② に使われる', async () => {
@@ -319,11 +336,11 @@ describe('得点の保存（A3）', () => {
     await runDurableObjectAlarm(stub);
 
     expect(await readScores(stub)).toEqual([
-      { questionId: 'q-1', points: 975 },
-      { questionId: 'q-1', points: 0 },
+      { questionId: 'q-1', points: 1175, bonusPoints: 200 },
+      { questionId: 'q-1', points: 0, bonusPoints: 0 },
     ]);
     const resumed = await resumePlayer(stub, token);
-    expect(await nextOf(resumed, 'resumed')).toMatchObject({ score: 975 });
+    expect(await nextOf(resumed, 'resumed')).toMatchObject({ score: 1175 });
 
     const hostWs = await connect(stub, { role: 'host', ownerId: 'alice' });
     const newHost = { ws: hostWs, next: messageReader(hostWs) };
