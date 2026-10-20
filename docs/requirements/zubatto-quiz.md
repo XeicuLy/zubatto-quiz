@@ -53,7 +53,7 @@ F11・F12・F15・M2 の式と初期値。式はコードで決め、数は設�
 | `quickBonus.withinMs` | 1000   | F12 の早押しボーナスをもらえる経過時間（ミリ秒）。この値ちょうども含む |
 | `quickBonus.points`   | 200    | F12 の早押しボーナスの点                                               |
 
-`quickBonus` は F12 を作るとき（SHOULD）に設定へ足す。それまでは設定に入れず、ボーナスはいつも0点にする（式の3）。1問で取れる最大の点（式の4）も、`quickBonus.points` を0として計算する。
+`quickBonus` は F12 を作ったとき（T38）に設定へ足した。設定から外せば、ボーナスはいつも0点になり（式の3）、1問で取れる最大の点（式の4）も `quickBonus.points` を0として計算する。
 
 次のものは設定値にしない。変えるときは式（コード）を変える。
 
@@ -69,7 +69,7 @@ F11・F12・F15・M2 の式と初期値。式はコードで決め、数は設�
    - 基本点: `basePoints`
    - 速さの点: `Math.floor((maxSpeedPoints * (limitMs - elapsedMs)) / limitMs)`。制限時間のうち残った時間の割合に比例し、端数は切り捨てる
    - ボーナス: `quickBonus` を設定に入れていないときは、`quickBonus.withinMs` を見ずに0。入れているときは、`elapsedMs <= quickBonus.withinMs` なら `quickBonus.points`、そうでなければ0
-4. 1問で取れる最大の点は `basePoints + maxSpeedPoints + quickBonus.points` で、制限時間によらない。初期値では1,000点、ボーナスを足したあとは1,200点。回答者画面の「残りの問題で取れる最大の点」（F15）は、残りの問題数 × この点
+4. 1問で取れる最大の点は `basePoints + maxSpeedPoints + quickBonus.points` で、制限時間によらない。初期値ではボーナスを含めて1,200点（ボーナスを外すと1,000点）。回答者画面の「残りの問題で取れる最大の点」（F15）は、残りの問題数 × この点
 
 速さの点は、掛けてから割る。`maxSpeedPoints * (1 - elapsedMs / limitMs)` のように先に割ると、小数の誤差で1点ずれることがある（制限5秒・0.35秒では、465点のはずが464点になる）。
 
