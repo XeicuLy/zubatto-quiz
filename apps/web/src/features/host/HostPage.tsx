@@ -1,7 +1,8 @@
 import { useStore } from 'zustand';
 
+import { roomEndOf } from '../results/room-end';
 import type { HostRoom } from './host-room';
-import { HostConnectionNotice } from './HostConnectionNotice';
+import { HostConnectionNotice, HostEndedBar } from './HostConnectionNotice';
 import { HostControls } from './HostControls';
 import { HostLobby } from './HostLobby';
 import { HostStage } from './HostStage';
@@ -12,15 +13,16 @@ import { HostStage } from './HostStage';
  * 接続の開け閉めは route の onEnter・onLeave が行うので、ここでは effect を使わない
  */
 export function HostPage({ host, joinUrl }: { host: HostRoom; joinUrl: string }) {
-  const { connection, closeReason } = useStore(host.room);
+  const state = useStore(host.room);
+  const roomEnd = roomEndOf(state);
   return (
-    <HostConnectionNotice connection={connection} closeReason={closeReason}>
-      <HostScreen host={host} joinUrl={joinUrl} />
+    <HostConnectionNotice connection={state.connection} closeReason={state.closeReason} roomEnd={roomEnd}>
+      <HostScreen host={host} joinUrl={joinUrl} ended={roomEnd === 'after_final'} />
     </HostConnectionNotice>
   );
 }
 
-function HostScreen({ host, joinUrl }: { host: HostRoom; joinUrl: string }) {
+function HostScreen({ host, joinUrl, ended }: { host: HostRoom; joinUrl: string; ended: boolean }) {
   const { room, participants, question, finalRanking } = useStore(host.room);
 
   // 他人の部屋やない部屋は、hostReady が届かずに 4404 で閉じられ、HostConnectionNotice が理由を出す
@@ -34,8 +36,12 @@ function HostScreen({ host, joinUrl }: { host: HostRoom; joinUrl: string }) {
       ) : (
         <HostStage room={room} question={question} finalRanking={finalRanking} participantCount={participants.length} />
       )}
-      {/* 段階が変わったら作り直し、やり直し・終了を確かめている途中の表示を、次の段階へ持ち越さない */}
-      <HostControls key={`${room.phase}:${room.questionIndex}`} room={room} onSend={host.send} />
+      {ended ? (
+        <HostEndedBar />
+      ) : (
+        // 段階が変わったら作り直し、やり直し・終了を確かめている途中の表示を、次の段階へ持ち越さない
+        <HostControls key={`${room.phase}:${room.questionIndex}`} room={room} onSend={host.send} />
+      )}
     </div>
   );
 }

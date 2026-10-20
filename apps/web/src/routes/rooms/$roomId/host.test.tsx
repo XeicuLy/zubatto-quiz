@@ -260,4 +260,50 @@ describe('ホストの進行画面（T32）', () => {
 
     expect(screen.getByRole('button', { name: '第1問を出す', hidden: true }).closest('[inert]')).not.toBeNull();
   });
+
+  it('最終ランキングのあとに部屋を終えたら、最終ランキングを映したまま、操作の代わりに終わったことと一覧への道を出す（#97）', async () => {
+    const server = await openStartedRoom();
+    act(() =>
+      server.latest.emit({
+        type: 'finalRanking',
+        questionCount: 3,
+        entries: [
+          { ...HANAKO, rank: 1, totalScore: 2900 },
+          { ...TARO, rank: 2, totalScore: 2700 },
+        ],
+      }),
+    );
+
+    const winner = screen.getByRole('region', { name: '優勝' });
+
+    act(() => server.latest.closeFromServer(CLOSE_CODES.room_ended));
+
+    // 作り直さずに同じ要素を残す。作り直すと、投影している優勝のアニメーションがもう一度流れる
+    expect(winner).toBeInTheDocument();
+    expect(winner).toHaveTextContent('はなこ');
+    expect(screen.getByRole('status')).toHaveTextContent('この部屋は終わりました');
+    expect(screen.getByRole('link', { name: '問題セットの一覧に戻る' })).toHaveAttribute('href', '/admin');
+    // 接続は閉じたので、どの操作も送れない。押せないボタンは並べない
+    expect(screen.queryByRole('button', { hidden: true })).toBeNull();
+  });
+
+  it('問題の途中で部屋を終えたら、映していた問題の代わりに終わったことを出す（#97）', async () => {
+    const server = await openStartedRoom();
+    act(() =>
+      server.latest.emit({
+        type: 'questionShown',
+        questionId: 'q-1',
+        questionIndex: 0,
+        questionCount: 3,
+        text: '部長の好きな食べ物は？',
+        limitMs: 10_000,
+      }),
+    );
+
+    act(() => server.latest.closeFromServer(CLOSE_CODES.room_ended));
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('この部屋は終わりました');
+    expect(screen.queryByText('部長の好きな食べ物は？')).toBeNull();
+    expect(screen.getByRole('link', { name: '問題セットの一覧に戻る' })).toHaveAttribute('href', '/admin');
+  });
 });

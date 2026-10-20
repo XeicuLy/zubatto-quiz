@@ -2,6 +2,7 @@ import { MAX_PARTICIPANTS } from '@zubatto-quiz/protocol';
 import { useStore } from 'zustand';
 
 import { FinalRanking } from '../results/Ranking';
+import { roomEndOf } from '../results/room-end';
 import { ConnectionNotice } from './ConnectionNotice';
 import { JoinForm } from './JoinForm';
 import type { PlayerEntry, PlayerRoom } from './player-room';
@@ -56,9 +57,9 @@ function InRoom({
   entry: Extract<PlayerEntry, { screen: 'room' }>;
   onAnswer: PlayerRoom['answer'];
 }) {
-  const { connection, closeReason } = useStore(entry.room);
+  const state = useStore(entry.room);
   return (
-    <ConnectionNotice connection={connection} closeReason={closeReason}>
+    <ConnectionNotice connection={state.connection} closeReason={state.closeReason} roomEnd={roomEndOf(state)}>
       <RoomScreen entry={entry} onAnswer={onAnswer} />
     </ConnectionNotice>
   );
