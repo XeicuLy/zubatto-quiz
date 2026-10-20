@@ -13,6 +13,7 @@
 | `web`（既定） | `deploy-web`                            | よい。画面の Worker だけなら、部屋の接続は切れない |
 | `all`         | `migrate` → `deploy-api` → `deploy-web` | 選ばない。部屋の WebSocket がすべて切れる          |
 
+- `web` をデプロイしても、開いている画面は、リロードするまで前のコードのまま動く。メッセージの仕様は変わらないので、そのまま遊び続けられる（[O2 のリハーサル](../rehearsal/o2-rehearsal.md#わかったこと)で確かめた）
 - `all` は、D1 のマイグレーション（`wrangler d1 migrations apply DB --remote`）→ API の Worker → 画面の Worker の順に行う。画面の Worker が Service binding で API の Worker を呼ぶので、API を先にする（ADR 0006）
 - どれかが失敗すると、その後ろの job は動かない
 - 同じ workflow は同時に1つしか動かない。動いている間にもう一度動かすと、新しいほうは前のものが終わるまで待つ。動いているものは途中で止めない
