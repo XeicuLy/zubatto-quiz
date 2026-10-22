@@ -20,6 +20,7 @@ export interface HostStageProps {
 /**
  * 進行画面の、投影する部分（F9・F13・F14・F15・F16）。1問の流れ（docs/design/README.md）の段階で出し分ける。
  * 文字と余白は vw で伸びるトークン（text-question・p-stage など）を使うので、PC からの投影でもホストのスマホでも読める。
+ * 問題文は文字のまま出し、ホストの入れた改行だけを whitespace-pre-line で残す（F5）。
  * ① の回答の分布と ② ③・最終ランキングは、features/results の部品（② ③ と最終ランキングは回答者画面と共有の projector 版）を使う。
  * つなぎ直したときは、部屋の DO が今の問題の流れを最初から送り直すので、届いたものを描くだけでよい
  */
@@ -90,7 +91,7 @@ function QuestionStage({ question, questionCount }: { question: CurrentQuestion;
       questionCount={questionCount}
       aside={<p className="text-stage-label text-on-stage-muted">制限時間 {question.limitMs / 1000}秒</p>}
     >
-      <h1 className="my-auto max-w-[24em] text-question font-bold text-phrase">{question.text}</h1>
+      <h1 className="my-auto max-w-[24em] text-question font-bold text-phrase whitespace-pre-line">{question.text}</h1>
     </StageFrame>
   );
 }
@@ -125,7 +126,7 @@ function AcceptingStage({ question, choices, questionCount, participantCount }: 
       }
     >
       <div className="flex items-start gap-stage">
-        <h1 className="min-w-0 flex-1 text-question font-bold text-phrase">{question.text}</h1>
+        <h1 className="min-w-0 flex-1 text-question font-bold text-phrase whitespace-pre-line">{question.text}</h1>
         <p className="shrink-0 text-center">
           <span className="sr-only">残り</span>
           <span className="block font-display text-timer tabular-nums">{Math.ceil(leftMs / 1000)}</span>
@@ -176,7 +177,7 @@ function RevealedStage({ question, revealed, questionCount }: RevealedStageProps
         </p>
       }
     >
-      <h1 className="text-stage-title font-bold text-phrase">{question.text}</h1>
+      <h1 className="text-stage-title font-bold text-phrase whitespace-pre-line">{question.text}</h1>
       <AnswerDistribution revealed={revealed} choices={question.choices} />
     </StageFrame>
   );

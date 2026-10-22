@@ -140,7 +140,7 @@ interface QuestionFrameProps {
   children: ReactNode;
 }
 
-/** 問題の番号・問題文と、その下の中身。問題文は Markdown（F5）を入れるまで、文字のまま出す */
+/** 問題の番号・問題文と、その下の中身。問題文は文字のまま出し、ホストの入れた改行だけを whitespace-pre-line で残す（F5） */
 function QuestionFrame({ question, questionCount, aside, progress, children }: QuestionFrameProps) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
@@ -159,7 +159,7 @@ function QuestionFrame({ question, questionCount, aside, progress, children }: Q
           />
         </div>
       )}
-      <h1 className="mt-5 text-2xl leading-relaxed font-bold text-phrase">{question.text}</h1>
+      <h1 className="mt-5 text-2xl leading-relaxed font-bold text-phrase whitespace-pre-line">{question.text}</h1>
       {children}
     </main>
   );

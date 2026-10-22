@@ -163,3 +163,42 @@ describe('締切のあと（F13・F14・F15）', () => {
     expect(screen.getByRole('status')).toHaveTextContent('集計しています');
   });
 });
+
+describe('問題文の改行（F5）', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const text = '部長が最初に歌った曲は？\n（去年の二次会で）';
+
+  // jsdom は CSS を当てないので、改行をつぶさないクラスが付いていることで確かめる。見た目は画面の確認で見る
+  it.each<[RoomPhase, CurrentQuestion]>([
+    ['question', question({ text })],
+    ['accepting', question({ text, choices: CHOICES, remainingMs: 10_000 })],
+    [
+      'revealed',
+      question({
+        text,
+        choices: CHOICES,
+        revealed: {
+          type: 'revealed',
+          questionId: 'q-3',
+          correctIndex: 1,
+          choiceCounts: [2, 5, 0],
+          answeredCount: 7,
+          participantCount: 8,
+        },
+      }),
+    ],
+  ])('%s のとき、問題文の改行をそのまま出す', (phase, current) => {
+    renderStage(room(phase), current);
+
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading.textContent).toBe(text);
+    expect(heading).toHaveClass('whitespace-pre-line');
+  });
+});
