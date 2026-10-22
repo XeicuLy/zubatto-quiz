@@ -31,6 +31,22 @@ export type AnswerToScore = {
   limitMs: number;
 };
 
+/**
+ * 1問の得点のうちの、F12 の早押しボーナス（式の3）。scoreAnswer はこれを足すので、結果の画面に出す内訳と得点がずれない。
+ * 不正解・未回答と、設定に quickBonus を入れていないときは0点
+ */
+export const quickBonusPoints = (answer: AnswerToScore, config: ScoringConfig = defaultScoring): number => {
+  if (!answer.correct || !config.quickBonus) {
+    return 0;
+  }
+  // 得点と同じ、0.01秒単位に切り捨てた値で比べる（P2）
+  const elapsedMs = normalizeElapsedMs(answer.elapsedMs, answer.limitMs);
+  if (elapsedMs <= config.quickBonus.withinMs) {
+    return config.quickBonus.points;
+  }
+  return 0;
+};
+
 /** 1問の得点（F11・F12）。不正解と未回答は0点（式の2） */
 export const scoreAnswer = (answer: AnswerToScore, config: ScoringConfig = defaultScoring): number => {
   if (!answer.correct) return 0;
@@ -38,9 +54,7 @@ export const scoreAnswer = (answer: AnswerToScore, config: ScoringConfig = defau
   const elapsedMs = normalizeElapsedMs(answer.elapsedMs, answer.limitMs);
   // 掛けてから割る。先に割ると小数の誤差で1点ずれる（制限5秒・0.35秒で 465 が 464 になる）
   const speedPoints = Math.floor((config.maxSpeedPoints * (answer.limitMs - elapsedMs)) / answer.limitMs);
-  const { quickBonus } = config;
-  const bonus = quickBonus !== undefined && elapsedMs <= quickBonus.withinMs ? quickBonus.points : 0;
-  return config.basePoints + speedPoints + bonus;
+  return config.basePoints + speedPoints + quickBonusPoints(answer, config);
 };
 
 /** 1問で取れる最大の点（式の4）。制限時間によらない */

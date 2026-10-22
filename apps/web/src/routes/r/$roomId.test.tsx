@@ -245,13 +245,14 @@ describe('結果とランキング（F14・F15）', () => {
         answer: { choiceIndex: 1, elapsedMs: 2370 },
         correct: true,
         points: 882,
+        bonusPoints: 0,
         totalScore: 882,
-        remainingMaxPoints: 2000,
+        remainingMaxPoints: 2400,
         position: { kind: 'chasing', rankUp: 0, gapToAbove: 30, gapToTop: 93 },
       }),
     );
     expect(screen.getByRole('region', { name: 'この問題の結果' })).toHaveTextContent('○ 正解');
-    expect(screen.getByRole('region', { name: 'あなたの位置' })).toHaveTextContent('残り2問で、最大 2,000点 取れます');
+    expect(screen.getByRole('region', { name: 'あなたの位置' })).toHaveTextContent('残り2問で、最大 2,400点 取れます');
     expect(screen.queryByRole('region', { name: '最速正解' })).toBeNull();
 
     // ② 最速正解は、① の結果の下に出る

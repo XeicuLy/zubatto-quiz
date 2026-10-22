@@ -25,6 +25,15 @@ describe('buildWsJsonSchema', () => {
     expect(JSON.stringify(schema.$defs.ClientMessage)).not.toContain('"additionalProperties":false');
   });
 
+  it('サーバーからのメッセージは送る形で書く（受け取るときに0とみなす早押しボーナスも、送るときは必須）', () => {
+    expect(schema.$defs.ServerMessage.oneOf).toContainEqual(
+      expect.objectContaining({
+        properties: expect.objectContaining({ type: expect.objectContaining({ const: 'myResult' }) }),
+        required: expect.arrayContaining(['bonusPoints']),
+      }),
+    );
+  });
+
   it('名前の長さの上限が maxLength に出る', () => {
     expect(JSON.stringify(schema.$defs.ClientMessage)).toContain('"maxLength":32');
   });

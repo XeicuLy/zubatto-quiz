@@ -13,8 +13,9 @@ const correct: MyResult = {
   answer: { choiceIndex: 1, elapsedMs: 2370 },
   correct: true,
   points: 843,
+  bonusPoints: 0,
   totalScore: 2410,
-  remainingMaxPoints: 7000,
+  remainingMaxPoints: 8400,
   position: { kind: 'podium', rank: 3, rankUp: 2, gapToAbove: 435 },
 };
 
@@ -26,6 +27,21 @@ describe('① 回答者の結果', () => {
     expect(container).toHaveTextContent('2 アニソン');
     expect(container).toHaveTextContent('+843点');
     expect(container).toHaveTextContent('2.37秒で正解');
+  });
+
+  it('早押しボーナスをもらえたら、その点を印で出す（F12）', () => {
+    const quick: MyResult = { ...correct, answer: { choiceIndex: 1, elapsedMs: 820 }, points: 1159, bonusPoints: 200 };
+    const { container } = render(<QuestionResult result={quick} choices={choices} />);
+
+    expect(container).toHaveTextContent('+1,159点');
+    expect(screen.getByText('早押しボーナス')).toBeInTheDocument();
+    expect(container).toHaveTextContent('早押しボーナス +200点');
+  });
+
+  it('早押しボーナスをもらえなかったら、印を出さない', () => {
+    render(<QuestionResult result={correct} choices={choices} />);
+
+    expect(screen.queryByText('早押しボーナス')).toBeNull();
   });
 
   it('不正解なら、正解と自分の回答を出し、得点は0点', () => {
@@ -64,7 +80,7 @@ describe('① 回答者の結果', () => {
   });
 
   it('style 属性を使わず、Tailwind のクラスだけで書く', () => {
-    const { container } = render(<QuestionResult result={correct} choices={choices} />);
+    const { container } = render(<QuestionResult result={{ ...correct, bonusPoints: 200 }} choices={choices} />);
 
     expect(container.querySelector('[style]')).toBeNull();
   });

@@ -11,7 +11,8 @@ export interface QuestionResultProps {
 
 /**
  * ① 回答者の結果（F15）。正誤・正解の選択肢・この問題の得点を出す。回答者画面でだけ使う。
- * 秒数はサーバーが0.01秒単位に切り捨てた値なので、そのまま出す（P2）
+ * 秒数はサーバーが0.01秒単位に切り捨てた値なので、そのまま出す（P2）。
+ * 早押しボーナス（F12）は、もらえたときだけ早押しパネルの黄色の印で出す。点は設定値を持たず、DO から届いた bonusPoints を出す
  */
 export function QuestionResult({ result, choices }: QuestionResultProps) {
   const correctChoice = choiceLabel(result.correctIndex, choices);
@@ -40,6 +41,12 @@ export function QuestionResult({ result, choices }: QuestionResultProps) {
         +{formatPoints(result.points)}
         <span className="ml-1 text-xl">点</span>
       </p>
+      {result.bonusPoints > 0 && (
+        <p className="mt-2 inline-block rounded-full bg-choice-4 px-4 py-1 font-bold text-on-choice-4">
+          <span>早押しボーナス</span>{' '}
+          <span className="font-display tabular-nums">+{formatPoints(result.bonusPoints)}点</span>
+        </p>
+      )}
       {result.correct && result.answer !== null && (
         <p className="mt-1 text-on-stage-muted">{formatSeconds(result.answer.elapsedMs)}秒で正解</p>
       )}

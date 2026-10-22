@@ -12,7 +12,8 @@ import {
 } from './ranking.ts';
 import { scoreAnswer } from './score.ts';
 
-const withQuickBonus: ScoringConfig = { ...defaultScoring, quickBonus: { withinMs: 1000, points: 200 } };
+/** F12 の早押しボーナスを入れない設定 */
+const withoutQuickBonus: ScoringConfig = { basePoints: 500, maxSpeedPoints: 500 };
 
 /** 入室した順に joinOrder を振る */
 const competitors = (scores: Record<string, number>): Competitor[] =>
@@ -97,7 +98,7 @@ describe('要件定義書の「20名・10問の例」', () => {
   });
 
   it('ボーナスなしでは、物知りが1位で、勝負師は6位', () => {
-    const result = rows(defaultScoring);
+    const result = rows(withoutQuickBonus);
     expect(result.slice(0, 7)).toEqual([
       [1, '物知り', 8500],
       [2, 'P1', 8190],
@@ -111,7 +112,7 @@ describe('要件定義書の「20名・10問の例」', () => {
   });
 
   it('ボーナスを足すと、勝負師が9,280点で物知りを抜いて1位になる', () => {
-    const result = rows(withQuickBonus);
+    const result = rows(defaultScoring);
     expect(result.slice(0, 7)).toEqual([
       [1, '勝負師', 9280],
       [2, '物知り', 8500],

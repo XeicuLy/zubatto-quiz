@@ -93,8 +93,9 @@ describe('applyServerMessage', () => {
         answer: { choiceIndex: 1, elapsedMs: 1_230 },
         correct: true,
         points: 1_000,
+        bonusPoints: 0,
         totalScore: 1_000,
-        remainingMaxPoints: 2_000,
+        remainingMaxPoints: 2_400,
         position: { kind: 'leader', rankUp: 0, leadOverNext: null },
       },
     );

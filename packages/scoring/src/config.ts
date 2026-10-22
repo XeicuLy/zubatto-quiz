@@ -13,11 +13,12 @@ export type ScoringConfig = {
   basePoints: number;
   /** 速さによる点の上限。経過時間が0秒のときの点 */
   maxSpeedPoints: number;
-  /** F12（SHOULD）を作るとき（T38）に入れる。入れていないあいだ、ボーナスはいつも0点 */
+  /** F12 の早押しボーナス。入れなければ、ボーナスはいつも0点（式の3） */
   quickBonus?: QuickBonus;
 };
 
 export const defaultScoring: ScoringConfig = {
   basePoints: 500,
   maxSpeedPoints: 500,
+  quickBonus: { withinMs: 1000, points: 200 },
 };

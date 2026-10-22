@@ -37,6 +37,8 @@ export type ParticipantOutcome = {
   previousTotal: number;
   /** この問題の得点。回答しなかった人は0 */
   points: number;
+  /** points のうちの早押しボーナス（F12）。もらえなかった人は0 */
+  bonusPoints: number;
   /** この問題の回答。時間切れ（未回答）なら null */
   answer: { choiceIndex: number; elapsedMs: number } | null;
 };
@@ -77,6 +79,7 @@ export function readQuestionOutcome(sql: SqlStorage, questionIndex: number): Que
       inPreviousRanking: number;
       previousTotal: number;
       points: number;
+      bonusPoints: number;
       choiceIndex: number | null;
       elapsedMs: number | null;
     }>(
@@ -91,6 +94,7 @@ export function readQuestionOutcome(sql: SqlStorage, questionIndex: number): Que
             FROM question_scores s JOIN questions q ON q.id = s.question_id
             WHERE s.participant_id = p.participant_id AND q.position < ?) AS previousTotal,
          coalesce(s.points, 0) AS points,
+         coalesce(s.bonus_points, 0) AS bonusPoints,
          a.choice_index AS choiceIndex,
          a.elapsed_ms AS elapsedMs
        FROM participants p
@@ -164,7 +168,7 @@ export function revealedFor(outcome: QuestionOutcome): Revealed {
   };
 }
 
-/** ① 回答者1人ずつへ: 正解・自分の正誤と得点・自分の位置（F11・F15）。participantId ごとに返す */
+/** ① 回答者1人ずつへ: 正解・自分の正誤と得点（うちボーナス）・自分の位置（F11・F12・F15）。participantId ごとに返す */
 export function myResultsFor(outcome: QuestionOutcome): Map<string, MyResult> {
   const { previous, current } = rankingsOf(outcome);
   const rankUpById = rankUps(previous, current);
@@ -183,6 +187,7 @@ export function myResultsFor(outcome: QuestionOutcome): Map<string, MyResult> {
           answer: participant.answer,
           correct: isCorrect(outcome, participant),
           points: participant.points,
+          bonusPoints: participant.bonusPoints,
           totalScore: participant.previousTotal + participant.points,
           remainingMaxPoints: remaining,
           position: hidden

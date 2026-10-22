@@ -263,9 +263,32 @@ const baseResult = {
   answer: { choiceIndex: 1, elapsedMs: 4_120 },
   correct: true,
   points: 705,
+  bonusPoints: 0,
   totalScore: 1_876,
-  remainingMaxPoints: 7_000,
+  remainingMaxPoints: 8_400,
 } as const;
+
+describe('serverMessageSchema: 早押しボーナス（F12）', () => {
+  it('① 自分の結果に、この問題の得点のうちのボーナスの点を持たせる', () => {
+    const position = { kind: 'leader', rankUp: 0, leadOverNext: 135 } as const;
+    expect(sent({ ...baseResult, points: 1_175, bonusPoints: 200, position })).toMatchObject({
+      points: 1_175,
+      bonusPoints: 200,
+    });
+  });
+
+  it('ボーナスの点は、もらえなかったときも0として必ず送る', () => {
+    expectTypeOf<Pick<MyResult, 'bonusPoints'>>().toEqualTypeOf<{ bonusPoints: number }>();
+    const position = { kind: 'hidden' } as const;
+    expect(serverMessageSchema.safeParse({ ...baseResult, bonusPoints: -200, position }).success).toBe(false);
+  });
+
+  it('ボーナスの点を持たない前の API の結果も、0として受け取る（画面の Worker だけを先にデプロイしたとき）', () => {
+    const position = { kind: 'hidden' } as const;
+    const { bonusPoints: _, ...withoutBonus } = baseResult;
+    expect(serverMessageSchema.parse({ ...withoutBonus, position })).toMatchObject({ points: 705, bonusPoints: 0 });
+  });
+});
 
 describe('serverMessageSchema: 自分の位置（F15）', () => {
   it('1〜3位には順位を持たせる', () => {
@@ -316,7 +339,7 @@ describe('serverMessageSchema: 最後の2問は順位を伏せる（F15）', () 
   it('① 自分の結果で、伏せた位置に順位や差を入れても含まれない', () => {
     const message = sent({
       ...baseResult,
-      remainingMaxPoints: 1_000,
+      remainingMaxPoints: 1_200,
       position: { kind: 'hidden', rank: 3, rankUp: 2, gapToAbove: 435, gapToTop: 600 } as never,
     });
     expect(message.position).toEqual({ kind: 'hidden' });

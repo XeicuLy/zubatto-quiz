@@ -1,12 +1,12 @@
 import type { RoomPhase } from '@zubatto-quiz/protocol';
-import { scoreAnswer } from '@zubatto-quiz/scoring';
+import { quickBonusPoints, scoreAnswer } from '@zubatto-quiz/scoring';
 
 import { getAttachment } from '../attachment';
 import { fastestFor, finalRankingFor, myResultsFor, readQuestionOutcome, revealedFor, standingsFor } from '../results';
 import { broadcast, send, sendToHosts } from '../send';
 
 /**
- * 締め切った問題の得点を確定して question_scores に書き、questions.closed_at に今の時刻を入れる（F11・A3）。
+ * 締め切った問題の得点と、そのうちの早押しボーナス（F12）を確定して question_scores に書き、questions.closed_at に今の時刻を入れる（F11・A3）。
  * 進行の段階を revealed にするのと同じ transactionSync の中で呼ぶ。分けると、障害のあとに「締め切ったのに得点がない」問題が残る。
  *
  * 正解（correct_index）を読むのは、部屋の DO の中でもここと results.ts だけ（S2）。
@@ -33,16 +33,17 @@ export function scoreQuestion(sql: SqlStorage, questionId: string, now: number):
     )
     .toArray();
   for (const answer of answers) {
-    const points = scoreAnswer({
+    const toScore = {
       correct: answer.choice_index === question.correct_index,
       elapsedMs: answer.elapsed_ms,
       limitMs: question.limit_ms,
-    });
+    };
     sql.exec(
-      'INSERT INTO question_scores (question_id, participant_id, points) VALUES (?, ?, ?)',
+      'INSERT INTO question_scores (question_id, participant_id, points, bonus_points) VALUES (?, ?, ?, ?)',
       questionId,
       answer.participant_id,
-      points,
+      scoreAnswer(toScore),
+      quickBonusPoints(toScore),
     );
   }
 
