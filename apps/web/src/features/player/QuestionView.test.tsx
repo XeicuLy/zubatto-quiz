@@ -224,3 +224,20 @@ describe('締切', () => {
     expect(screen.getByText('締切になりました')).toBeInTheDocument();
   });
 });
+
+describe('問題文の改行（F5）', () => {
+  const multiline = { text: '部長が最初に歌った曲は？\n（去年の二次会で）' };
+
+  // jsdom は CSS を当てないので、改行をつぶさないクラスが付いていることで確かめる。見た目は画面の確認で見る
+  it.each<[RoomPhase, CurrentQuestion]>([
+    ['question', { ...shown, ...multiline }],
+    ['accepting', { ...accepting, ...multiline }],
+    ['revealed', { ...accepting, ...multiline }],
+  ])('%s のとき、問題文の改行をそのまま出す', (phase, question) => {
+    renderView(question, phase);
+
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading.textContent).toBe(multiline.text);
+    expect(heading).toHaveClass('whitespace-pre-line');
+  });
+});
