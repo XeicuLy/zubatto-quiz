@@ -278,10 +278,15 @@ describe('serverMessageSchema: 早押しボーナス（F12）', () => {
   });
 
   it('ボーナスの点は、もらえなかったときも0として必ず送る', () => {
+    expectTypeOf<Pick<MyResult, 'bonusPoints'>>().toEqualTypeOf<{ bonusPoints: number }>();
+    const position = { kind: 'hidden' } as const;
+    expect(serverMessageSchema.safeParse({ ...baseResult, bonusPoints: -200, position }).success).toBe(false);
+  });
+
+  it('ボーナスの点を持たない前の API の結果も、0として受け取る（画面の Worker だけを先にデプロイしたとき）', () => {
     const position = { kind: 'hidden' } as const;
     const { bonusPoints: _, ...withoutBonus } = baseResult;
-    expect(serverMessageSchema.safeParse({ ...withoutBonus, position }).success).toBe(false);
-    expect(serverMessageSchema.safeParse({ ...baseResult, bonusPoints: -200, position }).success).toBe(false);
+    expect(serverMessageSchema.parse({ ...withoutBonus, position })).toMatchObject({ points: 705, bonusPoints: 0 });
   });
 });
 

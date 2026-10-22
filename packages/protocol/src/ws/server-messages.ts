@@ -188,8 +188,11 @@ export const myResultSchema = z.object({
   correct: z.boolean(),
   /** この問題の得点 */
   points: pointsSchema,
-  /** points のうちの早押しボーナス（F12）。もらえなかったら0。画面は設定値を持たず、この点をそのまま出す */
-  bonusPoints: pointsSchema,
+  /**
+   * points のうちの早押しボーナス（F12）。もらえなかったら0。画面は設定値を持たず、この点をそのまま出す。
+   * 送る形では必須。画面の Worker だけを先にデプロイしても前の API の結果を捨てないよう、ないときは0として受け取る
+   */
+  bonusPoints: pointsSchema.default(0),
   totalScore: pointsSchema,
   /** 残りの問題で取れる最大の点（残りの問題数 × 1問の最大の点）。順位にかかわらないので最後の2問でも送る */
   remainingMaxPoints: pointsSchema,
