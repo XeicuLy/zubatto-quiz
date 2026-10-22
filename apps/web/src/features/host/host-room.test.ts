@@ -1,7 +1,8 @@
-import { CLOSE_CODES } from '@zubatto-quiz/protocol';
+import { CLOSE_CODES, type ServerMessage } from '@zubatto-quiz/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FakeRoomServer } from '../../../test/fake-room-server';
+import { recordSounds } from '../../../test/fake-sound';
 import { createHostRoom } from './host-room';
 
 const ROOM_ID = 'a'.repeat(64);
@@ -222,5 +223,64 @@ describe('進行の操作（T32）', () => {
     expect(closeCommands(server)).toEqual([]);
     vi.advanceTimersByTime(10_000);
     expect(closeCommands(server)).toEqual([{ type: 'closeAnswering', questionIndex: 0 }]);
+  });
+});
+
+describe('効果音（F18）', () => {
+  function question(index: number) {
+    return {
+      type: 'questionShown',
+      questionId: `q-${index}`,
+      questionIndex: index,
+      questionCount: 3,
+      text: `問題${index}`,
+      limitMs: 10_000,
+    } as const;
+  }
+  const revealed: ServerMessage = {
+    type: 'revealed',
+    questionId: 'q-0',
+    correctIndex: 0,
+    choiceCounts: [1, 0],
+    answeredCount: 1,
+    participantCount: 1,
+  };
+
+  it('出題で出題の音を、① で締切と正解発表の音を鳴らす', () => {
+    const server = new FakeRoomServer();
+    const sound = recordSounds();
+    const host = createHostRoom({ url: URL, createSocket: server.createSocket, sound });
+
+    host.connect();
+    server.latest.open();
+    server.latest.emit({ type: 'hostReady', room: ROOM });
+    server.latest.emit(question(0));
+    server.latest.emit(revealed);
+
+    expect(sound.cues).toEqual(['question', 'closed', 'reveal']);
+  });
+
+  it('つなぎ直したときの送り直しでは鳴らさない（A1）', () => {
+    const server = new FakeRoomServer();
+    const sound = recordSounds();
+    const host = createHostRoom({ url: URL, createSocket: server.createSocket, sound });
+
+    host.connect();
+    server.latest.open();
+    server.latest.closeFromServer(1006);
+    vi.runOnlyPendingTimers();
+    server.latest.open();
+    server.latest.emit({ type: 'hostReady', room: { ...ROOM, phase: 'revealed', questionIndex: 0 } });
+    server.latest.emit(question(0));
+    server.latest.emit({
+      type: 'answeringStarted',
+      questionId: 'q-0',
+      choices: ['A', 'B'],
+      limitMs: 10_000,
+      remainingMs: 0,
+    });
+    server.latest.emit(revealed);
+
+    expect(sound.cues).toEqual([]);
   });
 });

@@ -1,12 +1,16 @@
 import { canSend, type HostCommand, type RoomPhase, type RoomSnapshot } from '@zubatto-quiz/protocol';
 import { useId, useState } from 'react';
 
+import type { SoundPlayer } from '../sound/sound-player';
+import { SoundToggle } from '../sound/SoundToggle';
 import { forwardCommandsOf } from './host-commands';
 
 export interface HostControlsProps {
   room: RoomSnapshot;
   /** host-room の send。接続が開いていなければ false を返す */
   onSend: (command: HostCommand) => boolean;
+  /** 効果音の切り替え（F18）を、やり直しと終了の並びに出す */
+  sound: SoundPlayer;
 }
 
 /** 確かめてから送る操作。誤って押すと戻せない */
@@ -15,10 +19,11 @@ type Confirming = 'retry' | 'end';
 /**
  * 進行の操作の帯（F8・F14・F15・A3）。画面の下に固定し、スマホでも親指で押せるようにする。
  * 進む操作は、今の段階で押せるものだけを出す（host-commands.ts）。やり直しと終了はいつも出し、押せないときは disabled にする。
+ * 効果音の切り替えも、目立たないようにやり直しと終了の並びに置く。
  * やり直しと終了は、その場で確かめてから送る。ページを止める window.confirm と違い、確かめるあいだも残り時間と受信が止まらない。
  * 段階が変わったら、呼び出し側で key を変えて作り直し、確かめている途中の状態を捨てる
  */
-export function HostControls({ room, onSend }: HostControlsProps) {
+export function HostControls({ room, onSend, sound }: HostControlsProps) {
   const [confirming, setConfirming] = useState<Confirming | null>(null);
   const forward = forwardCommandsOf(room);
   const retry: HostCommand | null =
@@ -64,6 +69,7 @@ export function HostControls({ room, onSend }: HostControlsProps) {
             <button type="button" onClick={() => setConfirming('end')} className={subtleButton}>
               部屋を終える
             </button>
+            <SoundToggle sound={sound} className={subtleButton} />
           </div>
           {hint !== null && <p className="text-sm text-on-stage-muted lg:ml-auto">{hint}</p>}
           {forward.length > 0 && (

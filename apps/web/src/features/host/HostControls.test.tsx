@@ -2,6 +2,8 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { HostCommand, RoomPhase, RoomSnapshot } from '@zubatto-quiz/protocol';
 import { describe, expect, it, vi } from 'vitest';
 
+import { recordSounds } from '../../../test/fake-sound';
+import { createSoundPlayer } from '../sound/sound-player';
 import { HostControls } from './HostControls';
 
 /** 5問の部屋。最後の2問は第4問と第5問 */
@@ -14,7 +16,8 @@ const room = (phase: RoomPhase, questionIndex: number | null): RoomSnapshot => (
 
 function renderControls(snapshot: RoomSnapshot) {
   const onSend = vi.fn<(command: HostCommand) => boolean>(() => true);
-  render(<HostControls room={snapshot} onSend={onSend} />);
+  // 音の切り替えは最後の describe で確かめる。ほかでは Web Audio のない端末にして出さない
+  render(<HostControls room={snapshot} onSend={onSend} sound={createSoundPlayer({ createContext: null })} />);
   return { onSend };
 }
 
@@ -120,5 +123,16 @@ describe('部屋を終える', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '部屋を終える' }));
 
     expect(screen.getByRole('alertdialog', { name: /部屋を終えます/ })).toBeInTheDocument();
+  });
+});
+
+describe('効果音の切り替え（F18）', () => {
+  it('やり直しと終了の並びに「音を消す」を出し、押すと音を消す', () => {
+    const sound = recordSounds();
+    render(<HostControls room={room('accepting', 0)} onSend={() => true} sound={sound} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '音を消す' }));
+
+    expect(sound.muted).toEqual([true]);
   });
 });

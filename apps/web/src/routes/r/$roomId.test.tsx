@@ -4,6 +4,7 @@ import { CLOSE_CODES, type FinalRanking } from '@zubatto-quiz/protocol';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { FakeRoomServer } from '../../../test/fake-room-server';
+import { recordSounds } from '../../../test/fake-sound';
 import { createToken, loadToken, saveToken } from '../../features/player/token-storage';
 import { createAppRouter } from '../../router';
 
@@ -12,15 +13,16 @@ const ROOM = { title: 'テスト', questionCount: 3, phase: 'lobby', questionInd
 const ME = '6f1c1c2e-2b8a-4c55-9d5e-1a2b3c4d5e61';
 const OTHER = '6f1c1c2e-2b8a-4c55-9d5e-1a2b3c4d5e62';
 
-async function openPlayerPage(path = `/r/${ROOM_ID}`) {
+async function openPlayerPage(path = `/r/${ROOM_ID}`, sound = recordSounds()) {
   const server = new FakeRoomServer();
   const router = createAppRouter({
     history: createMemoryHistory({ initialEntries: [path] }),
     createRoomSocket: server.createSocket,
+    sound,
   });
   render(<RouterProvider router={router} />);
   await act(() => router.load());
-  return { server, router };
+  return { server, router, sound };
 }
 
 async function joinAs(name: string) {
@@ -189,7 +191,8 @@ describe('出題と回答（F8・F10・F17）', () => {
     });
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('今年の社内ランチで一番人気の店は？');
-    expect(screen.queryAllByRole('button')).toEqual([]);
+    // 選択肢のボタン（番号 + 選択肢の名前）は、受付が始まるまで出ない
+    expect(screen.queryAllByRole('button', { name: /^\d/ })).toEqual([]);
 
     act(() =>
       server.latest.emit({
@@ -394,4 +397,29 @@ describe('画面の移動と接続', () => {
       expect(server.sockets).toHaveLength(0);
     },
   );
+});
+
+describe('効果音（F18）', () => {
+  it('名前の入力には切り替えを出さず、入室したら出す。出題が届くと出題の音を鳴らす', async () => {
+    const { server, sound } = await openPlayerPage();
+
+    expect(screen.queryByRole('button', { name: '音を消す' })).toBeNull();
+    await joinAs('たろう');
+    act(() => {
+      server.latest.open();
+      server.latest.emit({ type: 'joined', participantId: ME, room: ROOM });
+      server.latest.emit({
+        type: 'questionShown',
+        questionId: 'q-0',
+        questionIndex: 0,
+        questionCount: 3,
+        text: '日本一高い山は？',
+        limitMs: 10_000,
+      });
+    });
+    fireEvent.click(screen.getByRole('button', { name: '音を消す' }));
+
+    expect(sound.cues).toEqual(['question']);
+    expect(sound.muted).toEqual([true]);
+  });
 });

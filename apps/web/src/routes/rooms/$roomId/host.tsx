@@ -24,6 +24,7 @@ export const Route = createFileRoute('/rooms/$roomId/host')({
     host: createHostRoom({
       url: roomSocketUrl(params.roomId, 'host', window.location),
       createSocket: context.createRoomSocket,
+      sound: context.sound,
     }),
     joinUrl: roomJoinUrl(params.roomId, window.location),
   }),
@@ -36,9 +37,10 @@ export const Route = createFileRoute('/rooms/$roomId/host')({
 
 function HostRoute() {
   const { host, joinUrl } = Route.useLoaderData();
+  const { sound } = Route.useRouteContext();
   return (
     <div className="min-h-dvh bg-stage font-sans text-on-stage antialiased">
-      <HostPage host={host} joinUrl={joinUrl} />
+      <HostPage host={host} joinUrl={joinUrl} sound={sound} />
     </div>
   );
 }
