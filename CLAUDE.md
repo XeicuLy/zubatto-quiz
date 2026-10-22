@@ -96,7 +96,7 @@ The first release is all TypeScript on Cloudflare's free plan. After the first e
   - `tsconfig.json` (with node types) is for the editor and the tests. `tsconfig.lib.json` checks non-test `src/` with no ambient types, so a Workers, DOM or node dependency fails `pnpm run tsc`.
 - **XSS hardening** replaces HttpOnly here:
   - CSP `script-src 'self'`, set in `apps/web/public/_headers`. Keep `apps/web/index.html` free of inline scripts, styles and event handlers; a test checks both files. `_headers` applies to `vite build`/`vite preview`/deploy but not `vite dev`, and never to Worker responses (`/api/*`).
-  - Markdown (F5) renders no raw HTML.
+  - Question text is plain text too. F5 was Markdown and became newlines only (#44): `whitespace-pre-line` on every element that shows `question.text`, so no user input is ever turned into elements.
   - Never use `innerHTML`-style APIs for user-provided names.
 - **Infra** (ADR 0005): `wrangler.jsonc` is the only IaC. It holds the Worker, the DO `new_sqlite_classes` migration and the D1 binding.
   - Secrets go in with `wrangler secret put`.
