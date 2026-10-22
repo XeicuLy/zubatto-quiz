@@ -22,6 +22,7 @@ export const Route = createFileRoute('/r/$roomId')({
       roomId: params.roomId,
       url: roomSocketUrl(params.roomId, 'play', window.location),
       createSocket: context.createRoomSocket,
+      sound: context.sound,
     }),
   gcTime: 0,
   shouldReload: false,
@@ -31,9 +32,10 @@ export const Route = createFileRoute('/r/$roomId')({
 });
 
 function PlayerRoute() {
+  const { sound } = Route.useRouteContext();
   return (
     <div className="min-h-dvh bg-stage font-sans text-on-stage antialiased">
-      <PlayerPage player={Route.useLoaderData()} />
+      <PlayerPage player={Route.useLoaderData()} sound={sound} />
     </div>
   );
 }

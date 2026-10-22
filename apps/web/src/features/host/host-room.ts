@@ -2,6 +2,8 @@ import type { HostCommand, ServerMessage } from '@zubatto-quiz/protocol';
 
 import { connectRoom, type ConnectionStatus, type RoomClient, type RoomSocket } from '../../realtime/client';
 import { createRoomStore, type RoomStore } from '../../realtime/room-store';
+import { createSoundCues } from '../sound/sound-cues';
+import type { SoundPlayer } from '../sound/sound-player';
 
 /**
  * ホストの進行画面の、部屋ごとの操作役。route の loader が部屋を開くときに1つ作り、
@@ -25,10 +27,13 @@ export interface HostRoomOptions {
   url: string;
   /** テストで偽のソケットに替える */
   createSocket?: (url: string) => RoomSocket;
+  /** 効果音（F18）。省くと鳴らさない */
+  sound?: SoundPlayer;
 }
 
-export function createHostRoom({ url, createSocket }: HostRoomOptions): HostRoom {
+export function createHostRoom({ url, createSocket, sound }: HostRoomOptions): HostRoom {
   const room = createRoomStore();
+  const cues = createSoundCues();
   const { receive, connectionChanged } = room.getState();
   let client: RoomClient | undefined;
   let closeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -65,6 +70,7 @@ export function createHostRoom({ url, createSocket }: HostRoomOptions): HostRoom
 
   function onMessage(message: ServerMessage) {
     receive(message);
+    sound?.play(cues.next(message));
     // つなぎ直したときも、部屋の DO が残りを短くして送り直すので、ここで置き直す
     if (message.type === 'answeringStarted') {
       scheduleClose(message.questionId, message.remainingMs);

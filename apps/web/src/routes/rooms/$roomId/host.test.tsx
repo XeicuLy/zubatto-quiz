@@ -5,21 +5,23 @@ import { describe, expect, it } from 'vitest';
 
 import { stubFakeApi } from '../../../../test/fake-api';
 import { FakeRoomServer } from '../../../../test/fake-room-server';
+import { recordSounds } from '../../../../test/fake-sound';
 import { createAppRouter } from '../../../router';
 
 const ROOM_ID = 'a'.repeat(64);
 const ROOM = { title: '内輪クイズ', questionCount: 10, phase: 'lobby', questionIndex: null } as const;
 const TARO = { participantId: '6f1c1c2e-2b8a-4c55-9d5e-1a2b3c4d5e61', name: 'たろう' };
 
-async function openHostPage(path = `/rooms/${ROOM_ID}/host`) {
+async function openHostPage(path = `/rooms/${ROOM_ID}/host`, sound = recordSounds()) {
   const server = new FakeRoomServer();
   const router = createAppRouter({
     history: createMemoryHistory({ initialEntries: [path] }),
     createRoomSocket: server.createSocket,
+    sound,
   });
   render(<RouterProvider router={router} />);
   await act(() => router.load());
-  return { server, router };
+  return { server, router, sound };
 }
 
 /** ホスト用の接続を開き、部屋の DO と同じく hostReady と participants を送る */
@@ -305,5 +307,28 @@ describe('ホストの進行画面（T32）', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('この部屋は終わりました');
     expect(screen.queryByText('部長の好きな食べ物は？')).toBeNull();
     expect(screen.getByRole('link', { name: '問題セットの一覧に戻る' })).toHaveAttribute('href', '/admin');
+  });
+});
+
+describe('効果音（F18）', () => {
+  it('出題が届くと出題の音を鳴らし、進行の帯から音を消せる', async () => {
+    stubFakeApi();
+    const { server, sound } = await openHostPage();
+    acceptHost(server);
+
+    act(() =>
+      server.latest.emit({
+        type: 'questionShown',
+        questionId: 'q-0',
+        questionIndex: 0,
+        questionCount: 10,
+        text: '日本一高い山は？',
+        limitMs: 10_000,
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '音を消す' }));
+
+    expect(sound.cues).toEqual(['question']);
+    expect(sound.muted).toEqual([true]);
   });
 });

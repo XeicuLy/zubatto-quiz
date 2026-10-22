@@ -2,6 +2,7 @@ import { CLOSE_CODES, type CloseReason } from '@zubatto-quiz/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FakeRoomServer } from '../../../test/fake-room-server';
+import { recordSounds } from '../../../test/fake-sound';
 import { createPlayerRoom, entryAfter, rejectionOf, type PlayerEntry, type Rejection } from './player-room';
 import { createToken, loadToken, saveToken } from './token-storage';
 
@@ -279,5 +280,39 @@ describe('部屋を離れるとき', () => {
 
     expect(server.latest.readyState).toBe(WebSocket.CLOSED);
     expect(server.sockets).toHaveLength(1);
+  });
+});
+
+describe('効果音（F18）', () => {
+  it('出題で出題の音を、自分の結果で締切と正誤の音を鳴らす', () => {
+    const server = new FakeRoomServer();
+    const sound = recordSounds();
+    const player = createPlayerRoom({ roomId: ROOM_ID, url: URL, createSocket: server.createSocket, sound });
+
+    player.join('たろう');
+    server.latest.open();
+    server.latest.emit({ type: 'joined', participantId: PARTICIPANT_ID, room: ROOM });
+    server.latest.emit({
+      type: 'questionShown',
+      questionId: 'q-0',
+      questionIndex: 0,
+      questionCount: 3,
+      text: '問題',
+      limitMs: 10_000,
+    });
+    server.latest.emit({
+      type: 'myResult',
+      questionId: 'q-0',
+      correctIndex: 1,
+      answer: { choiceIndex: 0, elapsedMs: 2_000 },
+      correct: false,
+      points: 0,
+      bonusPoints: 0,
+      totalScore: 0,
+      remainingMaxPoints: 2_400,
+      position: { kind: 'leader', rankUp: 0, leadOverNext: null },
+    });
+
+    expect(sound.cues).toEqual(['question', 'closed', 'incorrect']);
   });
 });

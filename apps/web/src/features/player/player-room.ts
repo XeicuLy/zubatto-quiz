@@ -3,6 +3,8 @@ import { createStore, type StoreApi } from 'zustand/vanilla';
 
 import { connectRoom, playerHello, type RoomClient, type RoomSocket } from '../../realtime/client';
 import { createRoomStore, type RoomStore } from '../../realtime/room-store';
+import { createSoundCues } from '../sound/sound-cues';
+import type { SoundPlayer } from '../sound/sound-player';
 import { clearToken, createToken, loadToken, saveToken } from './token-storage';
 
 /**
@@ -51,9 +53,11 @@ export interface PlayerRoomOptions {
   url: string;
   /** テストで偽のソケットに替える */
   createSocket?: (url: string) => RoomSocket;
+  /** 効果音（F18）。省くと鳴らさない */
+  sound?: SoundPlayer;
 }
 
-export function createPlayerRoom({ roomId, url, createSocket }: PlayerRoomOptions): PlayerRoom {
+export function createPlayerRoom({ roomId, url, createSocket, sound }: PlayerRoomOptions): PlayerRoom {
   const store = createStore<{ entry: PlayerEntry }>()(() => ({ entry: { screen: 'form', notice: null, name: '' } }));
   let client: RoomClient | undefined;
 
@@ -61,11 +65,15 @@ export function createPlayerRoom({ roomId, url, createSocket }: PlayerRoomOption
     client?.close();
     const room = createRoomStore();
     const { receive, connectionChanged } = room.getState();
+    const cues = createSoundCues();
     client = connectRoom({
       url,
       createSocket,
       hello: playerHello({ name, token }),
-      onMessage: receive,
+      onMessage: (message) => {
+        receive(message);
+        sound?.play(cues.next(message));
+      },
       onStatus: (status, closeCode) => {
         connectionChanged(status, closeCode);
         if (status === 'closed') {
