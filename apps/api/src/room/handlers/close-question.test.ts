@@ -295,6 +295,23 @@ describe('正解を配る時期（S2・ADR 0002）', () => {
     expect(received[firstWithCorrect]).toMatchObject({ type: 'myResult' });
     expect(firstWithCorrect).toBe(received.length - 1);
   });
+
+  it('ホストにも、正解と回答の分布は締切の前に届かず、締切の revealed で初めて届く（F13）', async () => {
+    const stub = await newRoom('alice', 3);
+    const { host, players } = await enterRoom(stub, ['たろう', 'はなこ']);
+    const received: unknown[] = [];
+    host.ws.addEventListener('message', ({ data }) => {
+      received.push(JSON.parse(String(data)));
+    });
+
+    // 受付中に届く回答の人数（answerProgress）から、選択肢ごとの人数や正解が読めないこと
+    await playQuestion(host, players, 0, [correct(500), wrong(700)]);
+    await nextOf(host, 'revealed');
+
+    const firstWithResult = received.findIndex((message) => /correctIndex|choiceCounts/.test(JSON.stringify(message)));
+    expect(received[firstWithResult]).toMatchObject({ type: 'revealed', choiceCounts: [1, 1] });
+    expect(firstWithResult).toBe(received.length - 1);
+  });
 });
 
 describe('得点の保存（A3）', () => {

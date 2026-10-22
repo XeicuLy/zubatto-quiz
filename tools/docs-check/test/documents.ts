@@ -8,6 +8,8 @@ export const documents = [
   'CONTRIBUTING.md',
   // O2 のリハーサルの手順（README の手順書の表から開く）
   'tools/loadtest/README.md',
+  // O2 のリハーサルの記録。本番の前に読み返し、手順書へのリンクから止め方や使用量の見方に戻る
+  'docs/rehearsal/o2-rehearsal.md',
   ...readdirSync(new URL('docs/runbooks/', repoRoot))
     .filter((name) => name.endsWith('.md'))
     .map((name) => `docs/runbooks/${name}`),

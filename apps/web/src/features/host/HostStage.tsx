@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 
 import type { CurrentQuestion } from '../../realtime/room-store';
 import { useCountdown } from '../player/use-countdown';
+import { AnswerDistribution } from '../results/AnswerDistribution';
+import { ChoiceNumber, choiceColors } from '../results/choice-style';
 import { FastestCorrect } from '../results/FastestCorrect';
 import { FinalRanking, StandingsRanking } from '../results/Ranking';
 
@@ -18,7 +20,7 @@ export interface HostStageProps {
 /**
  * 進行画面の、投影する部分（F9・F13・F14・F15・F16）。1問の流れ（docs/design/README.md）の段階で出し分ける。
  * 文字と余白は vw で伸びるトークン（text-question・p-stage など）を使うので、PC からの投影でもホストのスマホでも読める。
- * ② ③ と最終ランキングは、回答者画面と共有する部品（features/results）の projector 版を使う。
+ * ① の回答の分布と ② ③・最終ランキングは、features/results の部品（② ③ と最終ランキングは回答者画面と共有の projector 版）を使う。
  * つなぎ直したときは、部屋の DO が今の問題の流れを最初から送り直すので、届いたものを描くだけでよい
  */
 export function HostStage({ room, question, finalRanking, participantCount }: HostStageProps) {
@@ -162,7 +164,7 @@ interface RevealedStageProps {
   questionCount: number;
 }
 
-/** ① 正解と回答の分布（F13）。正解だけ色を残し、ほかは沈める。人数は棒の長さと数字の両方で出す */
+/** ① 正解と回答の分布（F13）。問題文の下に、選択肢ごとの人数を出す */
 function RevealedStage({ question, revealed, questionCount }: RevealedStageProps) {
   return (
     <StageFrame
@@ -175,80 +177,8 @@ function RevealedStage({ question, revealed, questionCount }: RevealedStageProps
       }
     >
       <h1 className="text-stage-title font-bold text-phrase">{question.text}</h1>
-      <ol aria-label="回答の分布" className="grid flex-1 grid-cols-1 content-start gap-3 text-choice font-bold">
-        {revealed.choiceCounts.map((count, index) => {
-          const isCorrect = index === revealed.correctIndex;
-          const colors = choiceColors[index];
-          // 選んだ人の割合。だれも答えていなければ棒を出さない
-          const width = `${(count / Math.max(1, revealed.answeredCount)) * 100}%`;
-          return (
-            <li
-              key={index}
-              className={`relative min-w-0 overflow-hidden rounded-panel ${
-                isCorrect
-                  ? `${colors.panel} ring-4 ring-on-stage ring-offset-4 ring-offset-stage`
-                  : 'bg-stage-raised text-on-stage-muted'
-              }`}
-            >
-              <div
-                className={`absolute inset-y-0 left-0 ${isCorrect ? 'bg-stage/20' : colors.bar}`}
-                style={{ width }}
-                aria-hidden="true"
-              />
-              <div className="relative flex items-center gap-[0.6em] px-[0.7em] py-[0.4em]">
-                <ChoiceNumber index={index} className={isCorrect ? colors.badge : colors.badgeMuted} />
-                <span className="min-w-0 flex-1 wrap-anywhere">{question.choices?.[index] ?? ''}</span>
-                {isCorrect && <span className="shrink-0 text-[0.7em]">○ 正解</span>}
-                <span className="shrink-0 font-display tabular-nums">
-                  {count}
-                  <span className="ml-1 text-[0.6em]">人</span>
-                </span>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+      <AnswerDistribution revealed={revealed} choices={question.choices} />
     </StageFrame>
-  );
-}
-
-/**
- * 選択肢の色。色だけに頼らず、必ず番号と一緒に出す。
- * Tailwind はクラス名を文字列のまま探すので、色のクラスは組み立てずに選択肢ごとに書いておく
- */
-const choiceColors = [
-  {
-    panel: 'bg-choice-1 text-on-choice',
-    badge: 'bg-stage/25',
-    badgeMuted: 'bg-choice-1 text-on-choice',
-    bar: 'bg-choice-1/35',
-  },
-  {
-    panel: 'bg-choice-2 text-on-choice',
-    badge: 'bg-stage/25',
-    badgeMuted: 'bg-choice-2 text-on-choice',
-    bar: 'bg-choice-2/35',
-  },
-  {
-    panel: 'bg-choice-3 text-on-choice',
-    badge: 'bg-stage/25',
-    badgeMuted: 'bg-choice-3 text-on-choice',
-    bar: 'bg-choice-3/35',
-  },
-  // 黄色の上は白い字が読めないので、濃い字にする
-  {
-    panel: 'bg-choice-4 text-on-choice-4',
-    badge: 'bg-stage/15',
-    badgeMuted: 'bg-choice-4 text-on-choice-4',
-    bar: 'bg-choice-4/35',
-  },
-] as const;
-
-function ChoiceNumber({ index, className }: { index: number; className: string }) {
-  return (
-    <span className={`grid size-[1.6em] shrink-0 place-items-center rounded-full font-display ${className}`}>
-      {index + 1}
-    </span>
   );
 }
 
