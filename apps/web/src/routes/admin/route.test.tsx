@@ -1,5 +1,6 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { QuestionSetDetail } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
 import { stubFakeApi } from '../../../test/fake-api';
@@ -11,6 +12,25 @@ async function openAt(path: string) {
   await act(() => router.load());
   return router;
 }
+
+const SET: QuestionSetDetail = {
+  id: '11111111-1111-4111-8111-111111111111',
+  title: '2026 内輪クイズ',
+  questions: [{ text: '部長の十八番は？', choices: ['演歌', 'アニソン'], correctIndex: 1, limitMs: 10_000 }],
+};
+
+describe('管理画面のタイトル', () => {
+  it.each([
+    ['/admin', '問題セット | ズバクイ'],
+    [`/admin/sets/${SET.id}`, '問題セットの編集 | ズバクイ'],
+  ])('%s を開くと、タイトル「%s」を出す。問題セットの名前は入れない', async (path, title) => {
+    stubFakeApi({ hostName: 'XeicuLy', questionSetDetails: [SET] });
+
+    await openAt(path);
+
+    await waitFor(() => expect(document.title).toBe(title));
+  });
+});
 
 describe('管理画面のログインの確認（S1）', () => {
   it.each(['/admin', '/admin/sets/11111111-1111-4111-8111-111111111111'])(

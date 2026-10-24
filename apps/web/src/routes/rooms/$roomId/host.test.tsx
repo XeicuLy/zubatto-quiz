@@ -48,6 +48,15 @@ describe('ホストの待機画面の入口（F1・F3・ADR 0003）', () => {
     expect(screen.getByRole('list', { name: /参加者/ })).toHaveTextContent('たろう');
   });
 
+  it('タブのタイトルは画面の名前だけで、部屋の名前や ID は入れない（S3）', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+    acceptHost(server);
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('内輪クイズ');
+    await waitFor(() => expect(document.title).toBe('部屋の進行 | ズバクイ'));
+  });
+
   it('入室のたびに届く参加者一覧で、表示を置き換える（F3）', async () => {
     stubFakeApi();
     const { server } = await openHostPage();
