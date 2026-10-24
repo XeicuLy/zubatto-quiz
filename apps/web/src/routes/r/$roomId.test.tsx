@@ -1,5 +1,5 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { CLOSE_CODES, type FinalRanking } from '@zubatto-quiz/protocol';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -58,6 +58,20 @@ describe('回答者の入室と待機（F2・F3）', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('たろう');
     expect(screen.getByRole('list', { name: '参加者' })).toHaveTextContent('はなこたろう');
+  });
+
+  it('タブのタイトルは画面の名前だけで、部屋の ID も参加者の名前も入れない（S3）', async () => {
+    const { server } = await openPlayerPage();
+    await waitFor(() => expect(document.title).toBe('クイズに参加 | ズバクイ'));
+
+    await joinAs('たろう');
+    act(() => {
+      server.latest.open();
+      server.latest.emit({ type: 'joined', participantId: ME, room: ROOM });
+    });
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('たろう');
+    expect(document.title).toBe('クイズに参加 | ズバクイ');
   });
 
   it('保存した秘密があれば、名前を聞かずに resume し、届いた名前で待機画面を出す', async () => {

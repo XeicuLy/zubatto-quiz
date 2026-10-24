@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 
 import { hostSessionQueryOptions } from '../features/admin/host-session';
 import { LoginPage } from '../features/admin/LoginPage';
+import { pageTitle } from '../lib/page-title';
 
 interface LoginSearch {
   /** GitHub のログインに失敗して戻ってきたときに、Better Auth が付ける理由 */
@@ -10,6 +11,7 @@ interface LoginSearch {
 
 /** ホストのログイン（T29・ADR 0003）。管理画面をログインせずに開くと、ここへ移る */
 export const Route = createFileRoute('/login')({
+  head: () => pageTitle('ログイン'),
   validateSearch: (search: Record<string, unknown>): LoginSearch =>
     typeof search.error === 'string' ? { error: search.error } : {},
   beforeLoad: async ({ context }) => {

@@ -13,3 +13,13 @@ test('インラインのスクリプトを入れると、CSP の違反として�
   await expect.poll(() => violations.length).toBeGreaterThan(0);
   expect(await page.title()).not.toBe('inline');
 });
+
+// HeadContent が出すのは <title> だけで、インラインのスクリプトや style は出さない。出せば script-src 'self' で止まり、違反として集まる
+test('ルートのタイトルを HeadContent が出しても、CSP の違反は出ない', async ({ context, page }) => {
+  const violations = collectCspViolations(context);
+  await page.goto('/login');
+
+  await expect(page).toHaveTitle('ログイン | ズバクイ');
+  expect(await page.locator('script:not([src]), style').count()).toBe(0);
+  expect(violations).toEqual([]);
+});

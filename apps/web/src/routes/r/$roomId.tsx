@@ -3,6 +3,7 @@ import { roomIdSchema } from '@zubatto-quiz/protocol';
 
 import { createPlayerRoom } from '../../features/player/player-room';
 import { PlayerPage } from '../../features/player/PlayerPage';
+import { pageTitle } from '../../lib/page-title';
 import { roomSocketUrl } from '../../realtime/room-url';
 
 /**
@@ -11,6 +12,7 @@ import { roomSocketUrl } from '../../realtime/room-url';
  * gcTime: 0 と shouldReload: false で、同じ部屋にいるあいだは作り直さず、離れたら捨てる
  */
 export const Route = createFileRoute('/r/$roomId')({
+  head: () => pageTitle('クイズに参加'),
   beforeLoad: ({ params }) => {
     // 形の違う ID は接続しなくても部屋がないと分かるので、名前を聞く前に止め、接続も開かない
     if (!roomIdSchema.safeParse(params.roomId).success) {

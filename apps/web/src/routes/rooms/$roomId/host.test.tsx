@@ -1,5 +1,5 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { CLOSE_CODES } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
@@ -45,6 +45,15 @@ describe('ホストの待機画面の入口（F1・F3・ADR 0003）', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('内輪クイズ');
     expect(screen.getByText(`http://localhost:3000/r/${ROOM_ID}`)).toBeInTheDocument();
     expect(screen.getByRole('list', { name: /参加者/ })).toHaveTextContent('たろう');
+  });
+
+  it('タブのタイトルは画面の名前だけで、部屋の名前や ID は入れない（S3）', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+    acceptHost(server);
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('内輪クイズ');
+    await waitFor(() => expect(document.title).toBe('部屋の進行 | ズバクイ'));
   });
 
   it('入室のたびに届く参加者一覧で、表示を置き換える（F3）', async () => {
