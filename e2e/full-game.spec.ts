@@ -56,7 +56,8 @@ const choiceButton = (player: Page, choiceIndex: number, choice: string) =>
 /** 受付中の回答者の画面で、選択肢のボタンを押す（F10）。押したら、選び直せない一覧に変わる */
 async function answer(player: Page, choices: readonly string[], choiceIndex: number) {
   await choiceButton(player, choiceIndex, choices[choiceIndex]!).click();
-  await expect(player.getByText('締切を待っています')).toBeVisible();
+  // 読み上げ領域にも「回答までの時間 … 締切を待っています」が入るので、見える文だけを全体の一致で探す
+  await expect(player.getByText('締切を待っています', { exact: true })).toBeVisible();
   await expect(player.getByRole('button', { name: new RegExp(`^${choiceIndex + 1}`) })).toHaveCount(0);
 }
 

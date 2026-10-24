@@ -1,10 +1,11 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { CLOSE_CODES, type FinalRanking } from '@zubatto-quiz/protocol';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { FakeRoomServer } from '../../../test/fake-room-server';
 import { recordSounds } from '../../../test/fake-sound';
+import { liveRegion } from '../../../test/live-region';
 import { createToken, loadToken, saveToken } from '../../features/player/token-storage';
 import { createAppRouter } from '../../router';
 
@@ -155,7 +156,9 @@ describe('断られたとき・閉じられたとき（ADR 0004）', () => {
       server.latest.closeFromServer(1006);
     });
 
-    expect(screen.getByRole('status')).toHaveTextContent('つなぎ直しています');
+    expect(screen.getByText('接続が切れました。つなぎ直しています', { selector: 'p' })).toBeInTheDocument();
+    // 読み上げ領域は __root に常にあり、文だけが入る
+    await waitFor(() => expect(liveRegion('polite')).toHaveTextContent('接続が切れました。つなぎ直しています'));
   });
 
   it('別のタブで開かれたら、そう出し、つなぎ直さない', async () => {
@@ -329,7 +332,8 @@ describe('部屋が終わったとき（#97・F17）', () => {
 
     act(() => server.latest.closeFromServer(CLOSE_CODES.room_ended));
 
-    expect(screen.getByRole('status')).toHaveTextContent('この部屋は終わりました');
+    expect(screen.getByText('この部屋は終わりました', { selector: 'p' })).toBeInTheDocument();
+    await waitFor(() => expect(liveRegion('assertive')).toHaveTextContent('この部屋は終わりました'));
     // 作り直さずに同じ要素を残す。作り直すと、優勝の出てくるアニメーションがもう一度流れる
     expect(winner).toBeInTheDocument();
     expect(winner).toHaveTextContent('はなこ');

@@ -2,6 +2,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { Answer, RoomPhase } from '@zubatto-quiz/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { liveRegion } from '../../../test/live-region';
+import { ANNOUNCE_DELAY_MS } from '../../components/a11y/announce';
+import { Announcer } from '../../components/a11y/Announcer';
 import type { CurrentQuestion } from '../../realtime/room-store';
 import { QuestionView } from './QuestionView';
 
@@ -222,6 +225,52 @@ describe('締切', () => {
     expect(screen.queryAllByRole('button')).toEqual([]);
     expect(screen.queryByText('あなたの回答')).toBeNull();
     expect(screen.getByText('締切になりました')).toBeInTheDocument();
+  });
+});
+
+describe('回答と締切の読み上げ（#110）', () => {
+  beforeEach(() => {
+    render(<Announcer />);
+  });
+
+  it('押したら、回答までの時間と締切を待っていることを読み上げる', () => {
+    renderView(accepting, 'accepting');
+    const shownAt = showChoices();
+
+    advanceFrom(shownAt, 2379);
+    fireEvent.click(screen.getByRole('button', { name: /アニソン/ }));
+    advance(ANNOUNCE_DELAY_MS);
+
+    expect(liveRegion('polite')).toHaveTextContent(/^回答までの時間 2\.37秒。締切を待っています$/);
+    // 見える知らせは、箱と中身が同時に現れるので role="status" を付けない
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it.each([
+    ['答えていても', true],
+    ['答えていなくても', false],
+  ])('端末の残りが0になったら、%s「締切になりました」と読み上げる', (_, answers) => {
+    renderView(accepting, 'accepting');
+    const shownAt = showChoices();
+    if (answers) {
+      fireEvent.click(screen.getByRole('button', { name: /アニソン/ }));
+    }
+
+    advanceFrom(shownAt, 10_000 + ANNOUNCE_DELAY_MS);
+
+    expect(liveRegion('polite')).toHaveTextContent(/^締切になりました$/);
+  });
+
+  it('部屋の締切で受付中の画面から替わっても、もう一度は読み上げない', () => {
+    const { rerender } = renderView(accepting, 'accepting');
+    const shownAt = showChoices();
+    advanceFrom(shownAt, 10_000 + ANNOUNCE_DELAY_MS);
+
+    rerender(accepting, 'revealed');
+    advance(1);
+
+    // もう一度読ませていれば、announce は先に空にするので、待ち時間より短い 1ms あとには空になっている
+    expect(liveRegion('polite')).toHaveTextContent(/^締切になりました$/);
   });
 });
 

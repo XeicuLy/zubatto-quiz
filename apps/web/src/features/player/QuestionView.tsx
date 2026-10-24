@@ -2,6 +2,7 @@ import type { Answer, RoomPhase } from '@zubatto-quiz/protocol';
 import { formatSeconds, normalizeElapsedMs } from '@zubatto-quiz/scoring';
 import { useRef, useState, type ReactNode } from 'react';
 
+import { useAnnouncement } from '../../components/a11y/announce';
 import type { CurrentQuestion } from '../../realtime/room-store';
 import { elapsedMsAt, remainingMsAt } from './answer-timer';
 import { AnswerButtons } from './AnswerButtons';
@@ -85,6 +86,8 @@ function Answering({ question, choices, questionCount, onAnswer }: AnsweringProp
   const answer = question.answer ?? pending;
   // 部屋の DO の締切（myResult）は alarm の遅れで最大1分遅れるので、端末の数えでも閉じる
   const closed = leftMs === 0;
+  // 読み上げは受付中のここだけで渡す。締切のあとの画面は作り直されるので、そこでも渡すと「締切になりました」が2回読まれる
+  useAnnouncement(answerAnnouncementOf(answer, limitMs, closed));
 
   function choose(choiceIndex: number) {
     if (sent.current || startedAt === null) {
@@ -165,15 +168,18 @@ function QuestionFrame({ question, questionCount, aside, progress, children }: Q
   );
 }
 
-/** 回答済みと締切の知らせ。時間はサーバーと同じく0.01秒単位に切り捨てて出す */
+/**
+ * 回答済みと締切の知らせ。時間はサーバーと同じく0.01秒単位に切り捨てて出す。
+ * 押したときに箱ごと現れるので role="status" は付けず、読み上げは Answering が answerAnnouncementOf の文を渡す
+ */
 function AnswerFooter({ answer, limitMs, closed }: { answer: MyAnswer | null; limitMs: number; closed: boolean }) {
   return (
-    <div className="mt-auto pt-8 text-center" role="status">
+    <div className="mt-auto pt-8 text-center">
       {answer !== null && (
         <>
           <p className="text-on-stage-muted">回答までの時間</p>
           <p className="font-display text-6xl tabular-nums">
-            {formatSeconds(normalizeElapsedMs(answer.elapsedMs, limitMs))}
+            {secondsOf(answer, limitMs)}
             <span className="ml-1 text-2xl">秒</span>
           </p>
         </>
@@ -181,4 +187,16 @@ function AnswerFooter({ answer, limitMs, closed }: { answer: MyAnswer | null; li
       <p className="mt-4 font-bold text-on-stage-muted">{closed ? '締切になりました' : '締切を待っています'}</p>
     </div>
   );
+}
+
+/** AnswerFooter と同じことを読み上げる文。締切になったら、時間はもう読んだので締切だけを言う */
+function answerAnnouncementOf(answer: MyAnswer | null, limitMs: number, closed: boolean): string | null {
+  if (closed) {
+    return '締切になりました';
+  }
+  return answer === null ? null : `回答までの時間 ${secondsOf(answer, limitMs)}秒。締切を待っています`;
+}
+
+function secondsOf(answer: MyAnswer, limitMs: number): string {
+  return formatSeconds(normalizeElapsedMs(answer.elapsedMs, limitMs));
 }

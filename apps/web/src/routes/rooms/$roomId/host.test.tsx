@@ -1,11 +1,12 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { CLOSE_CODES } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
 import { stubFakeApi } from '../../../../test/fake-api';
 import { FakeRoomServer } from '../../../../test/fake-room-server';
 import { recordSounds } from '../../../../test/fake-sound';
+import { liveRegion } from '../../../../test/live-region';
 import { createAppRouter } from '../../../router';
 
 const ROOM_ID = 'a'.repeat(64);
@@ -92,9 +93,19 @@ describe('ホストの待機画面の入口（F1・F3・ADR 0003）', () => {
 
     act(() => server.latest.closeFromServer(1006));
 
-    // 待機画面にも URL のコピーの知らせ（role="status"）があるので、文から探す
-    expect(screen.getByText(/つなぎ直しています/).closest('[role="status"]')).not.toBeNull();
+    expect(screen.getByText(/つなぎ直しています/, { selector: 'p' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('内輪クイズ');
+    await waitFor(() =>
+      expect(liveRegion('polite')).toHaveTextContent(
+        '接続が切れました。つなぎ直しています。進行の操作は、つながってからできます',
+      ),
+    );
+
+    // つなぎ直しは 250〜500ms 待ってから始まる
+    await waitFor(() => expect(server.sockets).toHaveLength(2));
+    acceptHost(server);
+
+    await waitFor(() => expect(liveRegion('polite')).toHaveTextContent(/^つながりました$/));
   });
 
   it('部屋が終わったら、そう出す', async () => {
@@ -106,6 +117,11 @@ describe('ホストの待機画面の入口（F1・F3・ADR 0003）', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('この部屋は終わりました');
     expect(screen.getByRole('link', { name: '問題セットの一覧に戻る' })).toHaveAttribute('href', '/admin');
+    await waitFor(() =>
+      expect(liveRegion('assertive')).toHaveTextContent(
+        'この部屋は終わりました。また遊ぶときは、問題セットの一覧から新しく部屋を作ってください。',
+      ),
+    );
   });
 
   it('ない部屋・他人の部屋なら「部屋が見つかりません」を出し、つなぎ直さない（S1）', async () => {
@@ -122,6 +138,7 @@ describe('ホストの待機画面の入口（F1・F3・ADR 0003）', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('部屋が見つかりません');
     expect(screen.getByRole('link', { name: '問題セットの一覧に戻る' })).toHaveAttribute('href', '/admin');
     expect(server.sockets).toHaveLength(1);
+    await waitFor(() => expect(liveRegion('assertive')).toHaveTextContent(/^部屋が見つかりません。URL が正しいか/));
   });
 
   it('画面を離れたら接続を閉じる', async () => {
@@ -283,8 +300,11 @@ describe('ホストの進行画面（T32）', () => {
     // 作り直さずに同じ要素を残す。作り直すと、投影している優勝のアニメーションがもう一度流れる
     expect(winner).toBeInTheDocument();
     expect(winner).toHaveTextContent('はなこ');
-    expect(screen.getByRole('status')).toHaveTextContent('この部屋は終わりました');
+    expect(screen.getByText('この部屋は終わりました', { selector: 'p' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '問題セットの一覧に戻る' })).toHaveAttribute('href', '/admin');
+    await waitFor(() => expect(liveRegion('assertive')).toHaveTextContent(/^この部屋は終わりました。/));
+    // 帯は箱と中身が同時に現れるので、role="status" を付けずに読み上げ領域に任せる
+    expect(screen.queryByRole('status')).toBeNull();
     // 接続は閉じたので、どの操作も送れない。押せないボタンは並べない
     expect(screen.queryByRole('button', { hidden: true })).toBeNull();
   });
