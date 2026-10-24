@@ -2,12 +2,14 @@ import { createFileRoute, Link, useRouter, type ErrorComponentProps } from '@tan
 
 import { ApiError, questionSetQueryOptions } from '../../../features/admin/api';
 import { QuestionSetEditor } from '../../../features/admin/QuestionSetEditor';
+import { pageTitle } from '../../../lib/page-title';
 
 /**
  * 問題セットの編集（F4・F7）。一覧の「問題セットを作る」と「編集」が、ここへ移る。
  * 開くたびに読み直し、読めてから編集の画面を出す。下書きは読んだ値から1回だけ作る
  */
 export const Route = createFileRoute('/admin/sets/$setId')({
+  head: () => pageTitle('問題セットの編集'),
   loader: ({ context, params }) => context.queryClient.query(questionSetQueryOptions(params.setId)),
   errorComponent: QuestionSetLoadError,
   component: QuestionSetEditPage,
