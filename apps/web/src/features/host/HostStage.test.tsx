@@ -1,7 +1,9 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import type { FastestRevealed, FinalRanking, RoomPhase, RoomSnapshot, Standings } from '@zubatto-quiz/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { liveRegion } from '../../../test/live-region';
+import { Announcer } from '../../components/a11y/Announcer';
 import type { CurrentQuestion } from '../../realtime/room-store';
 import { HostStage } from './HostStage';
 
@@ -157,10 +159,14 @@ describe('締切のあと（F13・F14・F15）', () => {
     expect(screen.getByRole('region', { name: '優勝' })).toHaveTextContent('たろう');
   });
 
-  it('結果がまだ届いていなければ、集計していることを出す', () => {
+  it('結果がまだ届いていなければ、集計していることを出して読み上げる', async () => {
+    render(<Announcer />);
     renderStage(room('revealed'), question({ choices: CHOICES }));
 
-    expect(screen.getByRole('status')).toHaveTextContent('集計しています');
+    expect(screen.getByText('結果を集計しています', { selector: 'p' })).toBeInTheDocument();
+    await waitFor(() => expect(liveRegion('polite')).toHaveTextContent('結果を集計しています'));
+    // 画面ごと現れるので role="status" を付けず、読み上げ領域に任せる
+    expect(screen.queryByRole('status')).toBeNull();
   });
 });
 

@@ -1,6 +1,7 @@
 import type { FinalRanking as FinalRankingMessage, Revealed, RoomSnapshot } from '@zubatto-quiz/protocol';
 import type { ReactNode } from 'react';
 
+import { useAnnouncement } from '../../components/a11y/announce';
 import type { CurrentQuestion } from '../../realtime/room-store';
 import { useCountdown } from '../player/use-countdown';
 import { AnswerDistribution } from '../results/AnswerDistribution';
@@ -207,12 +208,12 @@ function StageFrame({ question, questionCount, aside, children }: StageFrameProp
   );
 }
 
+/** 結果が届くまでのつなぎ。画面ごと現れるので role="status" は付けず、読み上げ領域に文を渡す */
 function StatusScreen({ children }: { children: string }) {
+  useAnnouncement(children);
   return (
     <main className="flex flex-1 flex-col justify-center p-stage">
-      <p role="status" className="text-stage-title font-bold">
-        {children}
-      </p>
+      <p className="text-stage-title font-bold">{children}</p>
     </main>
   );
 }

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import type { ConnectionStatus } from '../../realtime/client';
 import type { RoomEnd } from '../results/room-end';
+import { useConnectionAnnouncement } from './use-connection-announcement';
 
 interface ConnectionNoticeProps {
   connection: ConnectionStatus;
@@ -18,10 +19,14 @@ interface ConnectionNoticeProps {
  * つなぎ直しているあいだは中身を薄くして押せなくし、上に「再接続中」を重ねる。
  * つなぎ直さずに閉じたら、中身の代わりに理由を出す。名前の入力に戻す閉じ方（resume_failed など）は、ここに来る前に player-room が扱う。
  * 最終ランキングのあとに部屋が終わったときだけは、中身（最終ランキング）を残し、上に終わったことを出す（#97）
+ * 見える知らせには role="status" を付けない。箱と中身が同時に現れると読まれないので、読み上げは __root の Announcer に文を渡す
  */
 export function ConnectionNotice({ connection, closeReason, roomEnd, children }: ConnectionNoticeProps) {
-  if (connection === 'closed' && roomEnd !== 'after_final') {
-    return <ClosedScreen message={closedMessageOf(closeReason, roomEnd)} />;
+  const closed = connection === 'closed' ? closedMessageOf(closeReason, roomEnd) : null;
+  useConnectionAnnouncement({ connection, reconnecting: reconnectingMessage, closed });
+
+  if (closed !== null && roomEnd !== 'after_final') {
+    return <ClosedScreen message={closed} />;
   }
   if (connection !== 'reconnecting') {
     // つながっているときと同じ並びで返し、終わっても中身を作り直さない。作り直すと、優勝の出てくるアニメーションがもう一度流れる
@@ -37,13 +42,13 @@ export function ConnectionNotice({ connection, closeReason, roomEnd, children }:
       <div className="opacity-40" inert>
         {children}
       </div>
-      <div className="absolute inset-x-0 top-0 mx-auto max-w-md px-3 pt-3" role="status">
+      <div className="absolute inset-x-0 top-0 mx-auto max-w-md px-3 pt-3">
         <div className="flex items-center gap-3 rounded-panel bg-alert px-4 py-3 font-bold text-stage shadow-panel">
           <span
             className="size-5 shrink-0 rounded-full border-3 border-stage border-t-transparent motion-safe:animate-spin"
             aria-hidden="true"
           />
-          <p>接続が切れました。つなぎ直しています</p>
+          <p>{reconnectingMessage}</p>
         </div>
       </div>
     </div>
@@ -54,6 +59,8 @@ interface Message {
   title: string;
   body: string;
 }
+
+const reconnectingMessage = '接続が切れました。つなぎ直しています';
 
 const closedMessages: Partial<Record<CloseReason, Message>> = {
   // X1: このタブは自動でつなぎ直さない。つなぎ直すと、2つのタブが閉じ合い続ける
@@ -66,7 +73,7 @@ const closedMessages: Partial<Record<CloseReason, Message>> = {
 function RoomEndedBanner() {
   const message = roomEndedMessages.after_final;
   return (
-    <div className="mx-auto max-w-md px-5 pt-4" role="status">
+    <div className="mx-auto max-w-md px-5 pt-4">
       <div className="rounded-panel border-2 border-stage-line bg-stage-raised px-4 py-3">
         <p className="font-bold">{message.title}</p>
         <p className="mt-1 text-sm leading-relaxed text-on-stage-muted">{message.body}</p>

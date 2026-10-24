@@ -87,11 +87,15 @@ test('接続が切れると「再接続中」を出し、つなぎ直したら�
   await joinRoom(page, room.joinUrl, '切れる');
 
   relay.cut();
-  const reconnecting = page.getByRole('status').filter({ hasText: '接続が切れました。つなぎ直しています' });
+  // 見える帯には role="status" を付けず、読み上げは __root に常にある領域が受け持つ（#110）
+  const reconnecting = page.getByRole('paragraph').filter({ hasText: '接続が切れました。つなぎ直しています' });
+  const announced = page.locator('[aria-live="polite"]');
   await expect(reconnecting).toBeVisible();
+  await expect(announced).toHaveText('接続が切れました。つなぎ直しています');
 
   relay.restore();
   await expect(reconnecting).toBeHidden();
+  await expect(announced).toHaveText('つながりました');
   await expectWaiting(page, '切れる');
   await expect(participantsNamed(page, '切れる')).toHaveCount(1);
 });
