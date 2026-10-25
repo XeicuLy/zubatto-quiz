@@ -5,10 +5,20 @@ import { parse } from 'yaml';
 
 const readRepoFile = (path: string) => readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8');
 
-type Step = { run?: string };
-type Job = { needs?: string | string[]; if?: string; environment?: string; steps?: Step[] };
+type Step = { uses?: string; run?: string; with?: Record<string, unknown> };
+type Job = {
+  needs?: string | string[];
+  if?: string;
+  environment?: string;
+  permissions?: Record<string, string>;
+  steps?: Step[];
+};
 type Workflow = {
-  on: { workflow_dispatch?: { inputs?: Record<string, { type: string; options?: string[]; default?: string }> } };
+  on: {
+    workflow_dispatch?: { inputs?: Record<string, { type: string; options?: string[]; default?: string }> };
+    pull_request?: { branches?: string[] };
+    push?: { branches?: string[] };
+  };
   concurrency?: { group: string; 'cancel-in-progress': boolean };
   jobs: Record<string, Job>;
 };
@@ -45,6 +55,14 @@ const secretsReadBy = (job: Job) => [...JSON.stringify(job).matchAll(/secrets\.(
 
 const needsOf = (job: Job) => [job.needs ?? []].flat();
 
+/** job が needs で（直接か、前の job を通して）待つ job の ID */
+const ancestorsOf = (id: string): string[] =>
+  needsOf(workflow.jobs[id] ?? {}).flatMap((need) => [need, ...ancestorsOf(need)]);
+
+/** CI の結果を確かめるだけの job。本番には触らない */
+const VERIFY_CI = 'verify-ci';
+const deployJobIds = Object.keys(workflow.jobs).filter((id) => id !== VERIFY_CI);
+
 /**
  * job の if の式を、GitHub Actions の決まりで評価する。この workflow で使う形だけを知っていて、ほかの形は例外にする。
  * 状態の関数（success()・failure()・cancelled()・always()）がない式には、先頭に success() が付いたものとして扱う
@@ -77,8 +95,6 @@ function evaluateIf(
  */
 function jobsThatRun(target: string, failing?: string): string[] {
   const results = new Map<string, 'success' | 'failure' | 'skipped'>();
-  const ancestorsOf = (id: string): string[] =>
-    needsOf(workflow.jobs[id] ?? {}).flatMap((need) => [need, ...ancestorsOf(need)]);
   for (const [id, job] of Object.entries(workflow.jobs)) {
     const runs = evaluateIf(job.if, {
       target,
@@ -107,27 +123,69 @@ describe('本番のデプロイの workflow（.github/workflows/deploy.yaml・AD
     });
   });
 
-  it('「画面だけ」では、画面の Worker だけをデプロイする', () => {
-    expect(jobsThatRun('web')).toEqual(['deploy-web']);
+  it('「画面だけ」では、CI を確かめてから、画面の Worker だけをデプロイする', () => {
+    expect(jobsThatRun('web')).toEqual(['verify-ci', 'deploy-web']);
   });
 
-  it('「API と画面」では、マイグレーション → API の Worker → 画面の Worker の順に行う', () => {
+  it('「API と画面」では、CI を確かめてから、マイグレーション → API の Worker → 画面の Worker の順に行う', () => {
     // Service binding の相手が先にないといけないので、API の Worker を先にする（ADR 0006）
-    expect(jobsThatRun('all')).toEqual(['migrate', 'deploy-api', 'deploy-web']);
+    expect(jobsThatRun('all')).toEqual(['verify-ci', 'migrate', 'deploy-api', 'deploy-web']);
   });
 
   it.each([
-    ['migrate', ['migrate']],
-    ['deploy-api', ['migrate', 'deploy-api']],
+    ['migrate', ['verify-ci', 'migrate']],
+    ['deploy-api', ['verify-ci', 'migrate', 'deploy-api']],
   ])('「API と画面」で %s が失敗すると、その後ろは動かない', (failing, expected) => {
     expect(jobsThatRun('all', failing)).toEqual(expected);
+  });
+
+  it.each(['web', 'all'])('target が %s でも、verify-ci が失敗すると、本番には何も出さない', (target) => {
+    expect(jobsThatRun(target, VERIFY_CI)).toEqual([VERIFY_CI]);
+  });
+
+  it('本番に触る job は、どれも needs をたどると verify-ci を待つ', () => {
+    // あとから job を足したときに、needs を書き忘れて CI を確かめずに動くことがないように
+    expect(deployJobIds.length).toBeGreaterThan(0);
+    for (const id of deployJobIds) {
+      expect(ancestorsOf(id)).toContain(VERIFY_CI);
+    }
+  });
+});
+
+describe('デプロイの前に CI の結果を確かめる（verify-ci）', () => {
+  const verifyCi = workflow.jobs[VERIFY_CI] ?? {};
+  const runOf = (job: Job) => (job.steps ?? []).map(({ run }) => run ?? '').join('\n');
+
+  it('Environment を使わず、secret を読まず、読めるのはコードと check run だけにする', () => {
+    // 本番のトークンは要らない。checks: read で check run を読み、contents: read でルールセットのファイルを checkout する
+    expect(verifyCi.environment).toBeUndefined();
+    expect(secretsReadBy(verifyCi)).toEqual([]);
+    expect(verifyCi.permissions).toEqual({ contents: 'read', checks: 'read' });
+  });
+
+  it('必須のチェックの名前は、ルールセットのファイル（main-ruleset.json）から読み、workflow に書き写さない', () => {
+    // 書き写すと、ルールセットにチェックを足したときに、deploy だけが古い名前のまま確かめてしまう
+    // 確かめ方は .github/scripts/verify-required-checks.sh に置き、shellcheck とテスト（verify-required-checks.test.ts）で見る
+    const scriptPath = '.github/scripts/verify-required-checks.sh';
+    const rulesetPath = 'docs/runbooks/main-ruleset.json';
+    const checkout = (verifyCi.steps ?? []).find(({ uses }) => uses?.startsWith('actions/checkout@'));
+    expect(checkout?.with?.['persist-credentials']).toBe(false);
+    expect(String(checkout?.with?.['sparse-checkout']).trim().split('\n')).toEqual([scriptPath, rulesetPath]);
+    expect(runOf(verifyCi).trim()).toBe(`bash ${scriptPath} ${rulesetPath}`);
+  });
+
+  it('ci.yaml は PR のほか、main への push でも動く（merge commit にも ci と e2e のチェックを付ける）', () => {
+    // PR の CI は試しのマージコミット（refs/pull/N/merge）で動くので、main に入ったコミットにはチェックが付かない
+    expect(ciWorkflow.on.pull_request?.branches).toEqual(['main']);
+    expect(ciWorkflow.on.push?.branches).toEqual(['main']);
   });
 });
 
 describe('Cloudflare の API トークン（ADR 0005 の DD4）', () => {
   it('デプロイの job は、どれも Environment（production）の secret から API トークンとアカウント ID を読む', () => {
-    // environment: production を書いた job だけが、その Environment の secret を読める
-    for (const job of Object.values(workflow.jobs)) {
+    // environment: production を書いた job だけが、その Environment の secret を読める。verify-ci は本番に触らないので除く
+    for (const id of deployJobIds) {
+      const job = workflow.jobs[id] ?? {};
       expect(job.environment).toBe('production');
       expect(secretsReadBy(job)).toEqual(expect.arrayContaining(['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID']));
     }
