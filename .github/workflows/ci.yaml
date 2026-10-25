@@ -28,6 +28,20 @@ jobs:
       - name: Install tools via mise
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
 
+      # pnpm は mise で入れているので、setup-node の cache は使えない。store の場所は pnpm の版で変わるので、pnpm に聞く
+      - name: Get pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      # PR で作ったキャッシュはその PR の中でしか使えない。どの PR でも使えるのは main で作ったものだけ
+      # lockfile が変わったら restore-keys で前の store を戻し、増えた分だけを取ってくる
+      - name: Cache pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
@@ -59,13 +73,45 @@ jobs:
       - name: Install tools via mise
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
 
+      # pnpm は mise で入れているので、setup-node の cache は使えない。store の場所は pnpm の版で変わるので、pnpm に聞く
+      - name: Get pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      # PR で作ったキャッシュはその PR の中でしか使えない。どの PR でも使えるのは main で作ったものだけ
+      # lockfile が変わったら restore-keys で前の store を戻し、増えた分だけを取ってくる
+      - name: Cache pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
           HUSKY: '0'
 
+      # ブラウザの revision は Playwright の版で決まるので、版を鍵にする。違う版のキャッシュは使えないので restore-keys は付けない
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(pnpm exec playwright --version | awk '{ print $2 }')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
+
+      # OS のライブラリ（apt で入れるもの）はキャッシュできないので、当たったときもこれだけは入れる
+      - name: Install Chromium system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
 
       - name: E2E
         run: pnpm run e2e
