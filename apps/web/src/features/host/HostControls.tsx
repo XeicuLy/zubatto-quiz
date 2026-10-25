@@ -1,5 +1,5 @@
 import { canSend, type HostCommand, type RoomPhase, type RoomSnapshot } from '@zubatto-quiz/protocol';
-import { useId, useState } from 'react';
+import { type KeyboardEvent, useId, useLayoutEffect, useRef, useState } from 'react';
 
 import type { SoundPlayer } from '../sound/sound-player';
 import { SoundToggle } from '../sound/SoundToggle';
@@ -21,14 +21,31 @@ type Confirming = 'retry' | 'end';
  * 進む操作は、今の段階で押せるものだけを出す（host-commands.ts）。やり直しと終了はいつも出し、押せないときは disabled にする。
  * 効果音の切り替えも、目立たないようにやり直しと終了の並びに置く。
  * やり直しと終了は、その場で確かめてから送る。ページを止める window.confirm と違い、確かめるあいだも残り時間と受信が止まらない。
- * 段階が変わったら、呼び出し側で key を変えて作り直し、確かめている途中の状態を捨てる
+ * 確かめる表示を閉じたら、開いたボタンへフォーカスを戻す。
+ * 段階が変わったら、呼び出し側で key を変えて作り直し、確かめている途中の状態を捨てる。フォーカスは呼び出し側が見出しへ移す
  */
 export function HostControls({ room, onSend, sound }: HostControlsProps) {
   const [confirming, setConfirming] = useState<Confirming | null>(null);
+  const retryButton = useRef<HTMLButtonElement>(null);
+  const endButton = useRef<HTMLButtonElement>(null);
+  // 最後に開いた確かめる表示。作り直した直後は null なので、作っただけではフォーカスを動かさない
+  const opened = useRef<Confirming | null>(null);
   const forward = forwardCommandsOf(room);
   const retry: HostCommand | null =
     room.questionIndex === null ? null : { type: 'retryQuestion', questionIndex: room.questionIndex };
   const hint = hintOf(room.phase);
+
+  function openConfirm(which: Confirming) {
+    opened.current = which;
+    setConfirming(which);
+  }
+
+  useLayoutEffect(() => {
+    if (confirming === null && opened.current !== null) {
+      (opened.current === 'retry' ? retryButton : endButton).current?.focus();
+      opened.current = null;
+    }
+  }, [confirming]);
 
   function sendConfirmed(command: HostCommand) {
     // 送れなかったら（つなぎ直している）、確かめる表示を残して、押し直せるようにする
@@ -59,14 +76,15 @@ export function HostControls({ room, onSend, sound }: HostControlsProps) {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <div className="flex gap-4 text-sm">
             <button
+              ref={retryButton}
               type="button"
               disabled={retry === null || !canSend(room, retry)}
-              onClick={() => setConfirming('retry')}
+              onClick={() => openConfirm('retry')}
               className={subtleButton}
             >
               この問題をやり直す
             </button>
-            <button type="button" onClick={() => setConfirming('end')} className={subtleButton}>
+            <button ref={endButton} type="button" onClick={() => openConfirm('end')} className={subtleButton}>
               部屋を終える
             </button>
             <SoundToggle sound={sound} className={subtleButton} />
@@ -106,14 +124,32 @@ interface ConfirmBarProps {
   onCancel: () => void;
 }
 
+/**
+ * やり直しと終了の確かめ。開いたら「やめる」にフォーカスし、押し間違えても送らない方に合わせる。
+ * Esc でも閉じる。帯の中に出すので、フォーカスが中にあるときだけ受ける。
+ * autoFocus は jsx-a11y の no-autofocus に当たるので、ref で動かす
+ */
 function ConfirmBar({ title, detail, confirmLabel, onConfirm, onCancel }: ConfirmBarProps) {
   const titleId = useId();
   const detailId = useId();
+  const cancelButton = useRef<HTMLButtonElement>(null);
+
+  useLayoutEffect(() => {
+    cancelButton.current?.focus();
+  }, []);
+
+  function onKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      onCancel();
+    }
+  }
+
   return (
     <div
       role="alertdialog"
       aria-labelledby={titleId}
       aria-describedby={detailId}
+      onKeyDown={onKeyDown}
       className="flex flex-wrap items-center gap-x-6 gap-y-3"
     >
       <div className="min-w-0">
@@ -125,7 +161,7 @@ function ConfirmBar({ title, detail, confirmLabel, onConfirm, onCancel }: Confir
         </p>
       </div>
       <div className="flex w-full flex-wrap gap-3 lg:ml-auto lg:w-auto">
-        <button type="button" onClick={onCancel} className={secondaryButton}>
+        <button ref={cancelButton} type="button" onClick={onCancel} className={secondaryButton}>
           やめる
         </button>
         <button

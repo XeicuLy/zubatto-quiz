@@ -1,7 +1,10 @@
+import type { HostCommand } from '@zubatto-quiz/protocol';
+import { useLayoutEffect, useRef } from 'react';
 import { useStore } from 'zustand';
 
 import { roomEndOf } from '../results/room-end';
 import type { SoundPlayer } from '../sound/sound-player';
+import { changesStage } from './host-commands';
 import type { HostRoom } from './host-room';
 import { HostConnectionNotice, HostEndedBar } from './HostConnectionNotice';
 import { HostControls } from './HostControls';
@@ -35,6 +38,28 @@ function HostScreen({
   ended: boolean;
 }) {
   const { room, participants, question, finalRanking } = useStore(host.room);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  // ホストがこのタブで押し、段階が変わるはずの操作を送った印。アラームの締切や別のタブの操作では付かない
+  const pendingFocus = useRef(false);
+  const phase = room?.phase;
+  const questionIndex = room?.questionIndex;
+
+  // 押したボタンは帯ごと作り直されて消え、フォーカスが <body> に落ちる。新しい段階を描いたら、その見出しへ移す。
+  // 主ボタンへ移さないのは、Enter を続けて押すと ① から ② へ、見せずに進んでしまうから
+  useLayoutEffect(() => {
+    if (pendingFocus.current) {
+      pendingFocus.current = false;
+      headingRef.current?.focus();
+    }
+  }, [phase, questionIndex]);
+
+  function send(command: HostCommand): boolean {
+    const sent = host.send(command);
+    if (sent && room !== null && changesStage(room, command)) {
+      pendingFocus.current = true;
+    }
+    return sent;
+  }
 
   // 他人の部屋やない部屋は、hostReady が届かずに 4404 で閉じられ、HostConnectionNotice が理由を出す
   if (room === null) {
@@ -45,13 +70,19 @@ function HostScreen({
       {room.phase === 'lobby' ? (
         <HostLobby room={room} participants={participants} joinUrl={joinUrl} />
       ) : (
-        <HostStage room={room} question={question} finalRanking={finalRanking} participantCount={participants.length} />
+        <HostStage
+          room={room}
+          question={question}
+          finalRanking={finalRanking}
+          participantCount={participants.length}
+          headingRef={headingRef}
+        />
       )}
       {ended ? (
         <HostEndedBar />
       ) : (
         // 段階が変わったら作り直し、やり直し・終了を確かめている途中の表示を、次の段階へ持ち越さない
-        <HostControls key={`${room.phase}:${room.questionIndex}`} room={room} onSend={host.send} sound={sound} />
+        <HostControls key={`${room.phase}:${room.questionIndex}`} room={room} onSend={send} sound={sound} />
       )}
     </div>
   );

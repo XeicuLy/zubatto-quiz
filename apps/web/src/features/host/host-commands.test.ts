@@ -1,7 +1,7 @@
 import type { HostCommand, RoomPhase, RoomSnapshot } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
-import { forwardCommandsOf } from './host-commands';
+import { changesStage, forwardCommandsOf } from './host-commands';
 
 /** 5問の部屋。最後の2問は第4問と第5問（questionIndex 3 と 4） */
 const room = (phase: RoomPhase, questionIndex: number | null): RoomSnapshot => ({
@@ -31,5 +31,19 @@ describe('forwardCommandsOf: 今の段階で押せる、進む操作（F8・F14�
     ['最終ランキングのあとは、進む操作がない', room('final', 4), []],
   ])('%s', (_case, snapshot, expected) => {
     expect(forwardCommandsOf(snapshot)).toEqual(expected);
+  });
+});
+
+describe('changesStage: 送ったら段階か問題が変わるか（ホストの操作のあとのフォーカス）', () => {
+  it.each<[string, RoomSnapshot, HostCommand, boolean]>([
+    ['第1問を出す', room('lobby', null), { type: 'showQuestion', questionIndex: 0 }, true],
+    ['受付を始める', room('question', 0), { type: 'startAnswering', questionIndex: 0 }, true],
+    ['② のあとの次の問題', room('fastest', 0), { type: 'showQuestion', questionIndex: 1 }, true],
+    ['受付中のやり直しは出題に戻る', room('accepting', 0), { type: 'retryQuestion', questionIndex: 0 }, true],
+    ['出題中のやり直しは同じ段階のまま', room('question', 0), { type: 'retryQuestion', questionIndex: 0 }, false],
+    ['部屋を終えても段階は変わらない', room('accepting', 0), { type: 'endRoom' }, false],
+    ['今は送れない操作', room('question', 0), { type: 'closeAnswering', questionIndex: 0 }, false],
+  ])('%s', (_case, snapshot, command, expected) => {
+    expect(changesStage(snapshot, command)).toBe(expected);
   });
 });

@@ -1,4 +1,5 @@
 import type { FinalRanking as FinalRankingMessage, Standings } from '@zubatto-quiz/protocol';
+import type { Ref } from 'react';
 
 import { formatPoints } from './format';
 import type { Variant } from './variant';
@@ -25,15 +26,23 @@ export interface StandingsRankingProps {
   variant: Variant;
   /** 回答者画面の自分。上位に入っていれば強調する */
   meId?: string;
+  /** 進行画面がホストの操作のあとにフォーカスを移す見出し。渡したときだけ tabIndex={-1} にする */
+  headingRef?: Ref<HTMLHeadingElement>;
 }
 
 /** ③ 途中経過。上位10人を、この問題の点と合計で出す */
-export function StandingsRanking({ standings, variant, meId }: StandingsRankingProps) {
+export function StandingsRanking({ standings, variant, meId, headingRef }: StandingsRankingProps) {
   const size = standingsSizes[variant];
   return (
     <section aria-label="途中経過" className={`flex flex-col ${size.root}`}>
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h2 className={`font-display ${size.title}`}>途中経過（第{standings.questionIndex + 1}問まで）</h2>
+        <h2
+          ref={headingRef}
+          tabIndex={headingRef ? -1 : undefined}
+          className={`font-display focus:outline-none ${size.title}`}
+        >
+          途中経過（第{standings.questionIndex + 1}問まで）
+        </h2>
         <p className={`text-on-stage-muted ${size.sub}`}>
           上位{standings.entries.length}人 / {standings.participantCount}人
         </p>
@@ -128,12 +137,14 @@ export interface FinalRankingProps {
   variant: Variant;
   /** 回答者画面の自分。どの順位にいても強調する */
   meId?: string;
+  /** 進行画面がホストの操作のあとにフォーカスを移す見出し。渡したときだけ tabIndex={-1} にする */
+  headingRef?: Ref<HTMLHeadingElement>;
 }
 
 type RankedEntry = FinalRankingMessage['entries'][number];
 
 /** 最終ランキング。優勝（1位が同点なら全員）だけを spotlight にし、全員の順位を出す */
-export function FinalRanking({ ranking, variant, meId }: FinalRankingProps) {
+export function FinalRanking({ ranking, variant, meId, headingRef }: FinalRankingProps) {
   const size = finalSizes[variant];
   const winners = ranking.entries.filter((entry) => entry.rank === 1);
   const podium = ranking.entries.filter((entry) => entry.rank === 2 || entry.rank === 3);
@@ -142,7 +153,13 @@ export function FinalRanking({ ranking, variant, meId }: FinalRankingProps) {
   return (
     <section aria-label="最終ランキング" className={`flex flex-col ${size.root}`}>
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h2 className={`font-display ${size.title}`}>最終ランキング</h2>
+        <h2
+          ref={headingRef}
+          tabIndex={headingRef ? -1 : undefined}
+          className={`font-display focus:outline-none ${size.title}`}
+        >
+          最終ランキング
+        </h2>
         <p className={`text-on-stage-muted ${size.sub}`}>
           全{ranking.questionCount}問 / {ranking.entries.length}人
         </p>

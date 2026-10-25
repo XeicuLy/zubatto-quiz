@@ -126,6 +126,45 @@ describe('部屋を終える', () => {
   });
 });
 
+describe('確かめる表示のフォーカス', () => {
+  it('開いたら「やめる」にフォーカスする。押し間違えても送らない方に合わせる', () => {
+    renderControls(room('accepting', 2));
+
+    fireEvent.click(screen.getByRole('button', { name: 'この問題をやり直す' }));
+
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'やめる' }));
+  });
+
+  it('「やめる」で閉じたら、開いたボタンへフォーカスを戻す', () => {
+    renderControls(room('accepting', 2));
+
+    fireEvent.click(screen.getByRole('button', { name: '部屋を終える' }));
+    fireEvent.click(screen.getByRole('button', { name: 'やめる' }));
+
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '部屋を終える' }));
+  });
+
+  it('Esc で、送らずに閉じ、開いたボタンへフォーカスを戻す', () => {
+    const { onSend } = renderControls(room('accepting', 2));
+
+    fireEvent.click(screen.getByRole('button', { name: 'この問題をやり直す' }));
+    fireEvent.keyDown(screen.getByRole('button', { name: 'やめる' }), { key: 'Escape' });
+
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(onSend).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'この問題をやり直す' }));
+  });
+
+  it('送れて閉じたときも、開いたボタンへ戻す。出題中のやり直しは段階が変わらず、帯が作り直されない', () => {
+    renderControls(room('question', 2));
+
+    fireEvent.click(screen.getByRole('button', { name: 'この問題をやり直す' }));
+    fireEvent.click(screen.getByRole('button', { name: 'やり直す' }));
+
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'この問題をやり直す' }));
+  });
+});
+
 describe('効果音の切り替え（F18）', () => {
   it('やり直しと終了の並びに「音を消す」を出し、押すと音を消す', () => {
     const sound = recordSounds();
