@@ -37,12 +37,20 @@ function HostScreen({
   sound: SoundPlayer;
   ended: boolean;
 }) {
-  const { room, participants, question, finalRanking } = useStore(host.room);
+  const { room, participants, question, finalRanking, connection } = useStore(host.room);
   const headingRef = useRef<HTMLHeadingElement>(null);
   // ホストがこのタブで押し、段階が変わるはずの操作を送った印。アラームの締切や別のタブの操作では付かない
   const pendingFocus = useRef(false);
   const phase = room?.phase;
   const questionIndex = room?.questionIndex;
+
+  // 返事の前に切れたら印を捨てる。つなぎ直したあとの段階は、送った操作で変わったのか別のタブの操作で変わったのか分からない。
+  // 今は HostConnectionNotice の木の形が変わってこの画面ごと作り直されるので消えるが、その形に頼らない
+  useLayoutEffect(() => {
+    if (connection === 'reconnecting' || connection === 'closed') {
+      pendingFocus.current = false;
+    }
+  }, [connection]);
 
   // 押したボタンは帯ごと作り直されて消え、フォーカスが <body> に落ちる。新しい段階を描いたら、その見出しへ移す。
   // 主ボタンへ移さないのは、Enter を続けて押すと ① から ② へ、見せずに進んでしまうから

@@ -414,6 +414,26 @@ describe('ホストの操作のあとのフォーカス', () => {
     );
     expect(document.activeElement).toBe(document.body);
   });
+
+  it('送ったあと返事の前に切れたら、つなぎ直して段階が変わっていても、フォーカスを動かさない', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+    acceptHost(server);
+
+    press('第1問を出す');
+    act(() => server.latest.closeFromServer(1006));
+    // つなぎ直しは 250〜500ms 待ってから始まる
+    await waitFor(() => expect(server.sockets).toHaveLength(2));
+    // 送った操作か別のタブの操作かは、つなぎ直したあとの要約からは分からない
+    act(() => {
+      server.latest.open();
+      server.latest.emit({ type: 'hostReady', room: { ...ROOM, phase: 'question', questionIndex: 0 } });
+      server.latest.emit(QUESTION_SHOWN);
+    });
+
+    expect(screen.getByRole('heading', { level: 1, name: '日本一高い山は？' })).toBeInTheDocument();
+    expect(document.activeElement).toBe(document.body);
+  });
 });
 
 describe('効果音（F18）', () => {
