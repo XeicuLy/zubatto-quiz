@@ -23,15 +23,21 @@ export function forwardCommandsOf(room: RoomSnapshot): HostCommand[] {
   return candidates.filter((command) => canSend(room, command));
 }
 
+/** 進行画面を描き分ける単位。段階か問題が変わると、進行画面は描き直され、押したボタンも消える */
+export type Stage = Pick<RoomSnapshot, 'phase' | 'questionIndex'>;
+
 /**
- * 送った操作が通ったら、段階か問題が変わるか。変わるなら進行画面は描き直され、押したボタンも消える。
+ * 送った操作が通ったら移る段階。段階も問題も変わらない操作と、今は送れない操作は null。
  * 出題中のやり直し（出題に戻るだけ）と部屋を終えるのは変わらない。部屋の DO と同じ transition で決める
  */
-export function changesStage(room: RoomSnapshot, command: HostCommand): boolean {
+export function stageAfter(room: RoomSnapshot, command: HostCommand): Stage | null {
   const result = transition(
     { phase: room.phase, questionIndex: room.questionIndex, ended: false },
     command,
     room.questionCount,
   );
-  return result.ok && (result.next.phase !== room.phase || result.next.questionIndex !== room.questionIndex);
+  if (!result.ok || (result.next.phase === room.phase && result.next.questionIndex === room.questionIndex)) {
+    return null;
+  }
+  return { phase: result.next.phase, questionIndex: result.next.questionIndex };
 }

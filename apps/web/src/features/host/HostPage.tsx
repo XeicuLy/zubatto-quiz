@@ -4,7 +4,7 @@ import { useStore } from 'zustand';
 
 import { roomEndOf } from '../results/room-end';
 import type { SoundPlayer } from '../sound/sound-player';
-import { changesStage } from './host-commands';
+import { type Stage, stageAfter } from './host-commands';
 import type { HostRoom } from './host-room';
 import { HostConnectionNotice, HostEndedBar } from './HostConnectionNotice';
 import { HostControls } from './HostControls';
@@ -39,8 +39,8 @@ function HostScreen({
 }) {
   const { room, participants, question, finalRanking, connection } = useStore(host.room);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  // ホストがこのタブで押し、段階が変わるはずの操作を送った印。アラームの締切や別のタブの操作では付かない
-  const pendingFocus = useRef(false);
+  // ホストがこのタブで押し、段階が変わるはずの操作を送ったときの行き先。アラームの締切や別のタブの操作では付かない
+  const pendingFocus = useRef<Stage | null>(null);
   const phase = room?.phase;
   const questionIndex = room?.questionIndex;
 
@@ -48,23 +48,26 @@ function HostScreen({
   // 今は HostConnectionNotice の木の形が変わってこの画面ごと作り直されるので消えるが、その形に頼らない
   useLayoutEffect(() => {
     if (connection === 'reconnecting' || connection === 'closed') {
-      pendingFocus.current = false;
+      pendingFocus.current = null;
     }
   }, [connection]);
 
   // 押したボタンは帯ごと作り直されて消え、フォーカスが <body> に落ちる。新しい段階を描いたら、その見出しへ移す。
-  // 主ボタンへ移さないのは、Enter を続けて押すと ① から ② へ、見せずに進んでしまうから
+  // 主ボタンへ移さないのは、Enter を続けて押すと ① から ② へ、見せずに進んでしまうから。
+  // 行き先と違う段階に移ったら、送った操作は断られている（締切を過ぎたやり直しは、先に ① が届いてから断られる）。
+  // 部屋の DO は1本の接続のメッセージを順に処理するので、断られた返事より先に、その段階の配信が届く
   useLayoutEffect(() => {
-    if (pendingFocus.current) {
-      pendingFocus.current = false;
+    const expected = pendingFocus.current;
+    pendingFocus.current = null;
+    if (expected !== null && expected.phase === phase && expected.questionIndex === questionIndex) {
       headingRef.current?.focus();
     }
   }, [phase, questionIndex]);
 
   function send(command: HostCommand): boolean {
     const sent = host.send(command);
-    if (sent && room !== null && changesStage(room, command)) {
-      pendingFocus.current = true;
+    if (sent && room !== null) {
+      pendingFocus.current = stageAfter(room, command);
     }
     return sent;
   }

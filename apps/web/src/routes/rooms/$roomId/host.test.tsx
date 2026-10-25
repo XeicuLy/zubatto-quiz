@@ -415,6 +415,34 @@ describe('ホストの操作のあとのフォーカス', () => {
     expect(document.activeElement).toBe(document.body);
   });
 
+  it('送った操作が断られ、先に別の段階へ移ったときは、フォーカスを動かさない（A3）', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+    acceptHost(server);
+    act(() => {
+      server.latest.emit(QUESTION_SHOWN);
+      server.latest.emit(ANSWERING_STARTED);
+    });
+
+    press('この問題をやり直す');
+    press('やり直す');
+    // 締切を過ぎていて、部屋の DO は先に締め切って ① を配り、やり直しを断る
+    act(() => {
+      server.latest.emit({
+        type: 'revealed',
+        questionId: 'q-0',
+        correctIndex: 0,
+        choiceCounts: [0, 0],
+        answeredCount: 0,
+        participantCount: 1,
+      });
+      server.latest.emit({ type: 'error', code: 'invalid_state' });
+    });
+
+    expect(screen.getByRole('heading', { level: 1, name: '日本一高い山は？' })).toBeInTheDocument();
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it('送ったあと返事の前に切れたら、つなぎ直して段階が変わっていても、フォーカスを動かさない', async () => {
     stubFakeApi();
     const { server } = await openHostPage();
