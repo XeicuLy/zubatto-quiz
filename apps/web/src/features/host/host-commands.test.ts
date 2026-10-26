@@ -1,7 +1,7 @@
 import type { HostCommand, RoomPhase, RoomSnapshot } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
-import { forwardCommandsOf, type Stage, stageAfter } from './host-commands';
+import { forwardCommandsOf, settleFocus, type Stage, stageAfter } from './host-commands';
 
 /** 5問の部屋。最後の2問は第4問と第5問（questionIndex 3 と 4） */
 const room = (phase: RoomPhase, questionIndex: number | null): RoomSnapshot => ({
@@ -71,5 +71,26 @@ describe('stageAfter: 送った操作が通ったら移る段階（ホストの�
     ['今は送れない操作', room('question', 0), { type: 'closeAnswering', questionIndex: 0 }, null],
   ])('%s', (_case, snapshot, command, expected) => {
     expect(stageAfter(snapshot, command)).toEqual(expected);
+  });
+});
+
+describe('settleFocus: 段階が変わったときの、フォーカスの予約の始末', () => {
+  const standings: Stage = { phase: 'standings', questionIndex: 0 };
+  const next: Stage = { phase: 'question', questionIndex: 1 };
+
+  it.each<[string, Stage[], Stage, { focus: boolean; rest: Stage[] }]>([
+    ['予約がない（アラームの締切・別のタブ）', [], standings, { focus: false, rest: [] }],
+    ['行き先と一致したら使う', [standings], standings, { focus: true, rest: [] }],
+    ['続けて送った後の予約は、次の段階のために残す', [standings, next], standings, { focus: true, rest: [next] }],
+    ['2つの段階が1回の描画にまとまって届いたら、後の予約で使う', [standings, next], next, { focus: true, rest: [] }],
+    ['同じ操作を2回送った予約は、まとめて使う', [next, next], next, { focus: true, rest: [] }],
+    [
+      '一致しなければ、送った操作は断られているので全部捨てる',
+      [{ phase: 'question', questionIndex: 0 }],
+      { phase: 'revealed', questionIndex: 0 },
+      { focus: false, rest: [] },
+    ],
+  ])('%s', (_case, pending, stage, expected) => {
+    expect(settleFocus(pending, stage)).toEqual(expected);
   });
 });

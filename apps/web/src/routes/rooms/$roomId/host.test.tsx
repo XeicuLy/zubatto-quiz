@@ -415,6 +415,51 @@ describe('ホストの操作のあとのフォーカス', () => {
     expect(document.activeElement).toBe(document.body);
   });
 
+  it('返事の前に続けて送った操作も、段階が届くたびにその見出しへフォーカスを移す', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+    acceptHost(server);
+    act(() => {
+      server.latest.emit(QUESTION_SHOWN);
+      server.latest.emit(ANSWERING_STARTED);
+      server.latest.emit({
+        type: 'revealed',
+        questionId: 'q-0',
+        correctIndex: 0,
+        choiceCounts: [1, 0],
+        answeredCount: 1,
+        participantCount: 1,
+      });
+      server.latest.emit({
+        type: 'fastest',
+        questionId: 'q-0',
+        correctIndex: 0,
+        fastest: [{ ...TARO, elapsedMs: 1_020 }],
+        correctCount: 1,
+        answeredCount: 1,
+        ranksHidden: false,
+        biggestClimber: null,
+      });
+    });
+
+    // ② のあとの帯は、返事が来るまで作り直されないので、両方押せる
+    press('途中経過を出す');
+    press('第2問を出す');
+    act(() =>
+      server.latest.emit({
+        type: 'standings',
+        questionId: 'q-0',
+        questionIndex: 0,
+        participantCount: 1,
+        entries: [{ ...TARO, rank: 1, totalScore: 980, points: 980 }],
+      }),
+    );
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: '途中経過（第1問まで）' }));
+
+    act(() => server.latest.emit({ ...QUESTION_SHOWN, questionId: 'q-1', questionIndex: 1, text: '日本一長い川は？' }));
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: '日本一長い川は？' }));
+  });
+
   it('送った操作が断られ、先に別の段階へ移ったときは、フォーカスを動かさない（A3）', async () => {
     stubFakeApi();
     const { server } = await openHostPage();
