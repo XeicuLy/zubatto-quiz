@@ -1,5 +1,13 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
-import type { FastestRevealed, FinalRanking, RoomPhase, RoomSnapshot, Standings } from '@zubatto-quiz/protocol';
+import type {
+  FastestRevealed,
+  FinalRanking,
+  Revealed,
+  RoomPhase,
+  RoomSnapshot,
+  Standings,
+} from '@zubatto-quiz/protocol';
+import { createRef, type Ref } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { liveRegion } from '../../../test/live-region';
@@ -35,13 +43,60 @@ const question = (update: Partial<CurrentQuestion> = {}): CurrentQuestion => ({
 
 const CHOICES = ['演歌', 'アニソン', '洋楽ロック'];
 
+const REVEALED: Revealed = {
+  type: 'revealed',
+  questionId: 'q-3',
+  correctIndex: 1,
+  choiceCounts: [2, 5, 0],
+  answeredCount: 7,
+  participantCount: 8,
+};
+
+const FASTEST: FastestRevealed = {
+  type: 'fastest',
+  questionId: 'q-3',
+  correctIndex: 1,
+  fastest: [{ participantId: TARO, name: 'たろう', elapsedMs: 840 }],
+  correctCount: 5,
+  answeredCount: 7,
+  ranksHidden: false,
+  biggestClimber: null,
+};
+
+const STANDINGS: Standings = {
+  type: 'standings',
+  questionId: 'q-3',
+  questionIndex: 2,
+  participantCount: 8,
+  entries: [
+    { participantId: TARO, name: 'たろう', rank: 1, totalScore: 2980, points: 1000 },
+    { participantId: HANAKO, name: 'はなこ', rank: 2, totalScore: 2845, points: 912 },
+  ],
+};
+
+const FINAL_RANKING: FinalRanking = {
+  type: 'finalRanking',
+  questionCount: 5,
+  entries: [{ participantId: TARO, name: 'たろう', rank: 1, totalScore: 7820 }],
+};
+
 function renderStage(
   snapshot: RoomSnapshot,
   current: CurrentQuestion | null,
-  { finalRanking = null, participantCount = 8 }: { finalRanking?: FinalRanking | null; participantCount?: number } = {},
+  {
+    finalRanking = null,
+    participantCount = 8,
+    headingRef,
+  }: { finalRanking?: FinalRanking | null; participantCount?: number; headingRef?: Ref<HTMLHeadingElement> } = {},
 ) {
   return render(
-    <HostStage room={snapshot} question={current} finalRanking={finalRanking} participantCount={participantCount} />,
+    <HostStage
+      room={snapshot}
+      question={current}
+      finalRanking={finalRanking}
+      participantCount={participantCount}
+      headingRef={headingRef}
+    />,
   );
 }
 
@@ -98,14 +153,7 @@ describe('締切のあと（F13・F14・F15）', () => {
       room('revealed'),
       question({
         choices: CHOICES,
-        revealed: {
-          type: 'revealed',
-          questionId: 'q-3',
-          correctIndex: 1,
-          choiceCounts: [2, 5, 0],
-          answeredCount: 7,
-          participantCount: 8,
-        },
+        revealed: REVEALED,
       }),
     );
 
@@ -115,46 +163,21 @@ describe('締切のあと（F13・F14・F15）', () => {
   });
 
   it('② 最速正解を、投影の大きさで出す', () => {
-    const fastest: FastestRevealed = {
-      type: 'fastest',
-      questionId: 'q-3',
-      correctIndex: 1,
-      fastest: [{ participantId: TARO, name: 'たろう', elapsedMs: 840 }],
-      correctCount: 5,
-      answeredCount: 7,
-      ranksHidden: false,
-      biggestClimber: null,
-    };
-    renderStage(room('fastest'), question({ choices: CHOICES, fastest }));
+    renderStage(room('fastest'), question({ choices: CHOICES, fastest: FASTEST }));
 
     expect(screen.getByRole('heading', { name: '第3問の最速正解' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: '最速正解の発表' })).toHaveTextContent('たろう0.84秒');
   });
 
   it('③ 途中経過を出す', () => {
-    const standings: Standings = {
-      type: 'standings',
-      questionId: 'q-3',
-      questionIndex: 2,
-      participantCount: 8,
-      entries: [
-        { participantId: TARO, name: 'たろう', rank: 1, totalScore: 2980, points: 1000 },
-        { participantId: HANAKO, name: 'はなこ', rank: 2, totalScore: 2845, points: 912 },
-      ],
-    };
-    renderStage(room('standings'), question({ choices: CHOICES, standings }));
+    renderStage(room('standings'), question({ choices: CHOICES, standings: STANDINGS }));
 
     expect(screen.getByRole('heading', { name: '途中経過（第3問まで）' })).toBeInTheDocument();
     expect(screen.getByRole('table', { name: '途中経過' })).toHaveTextContent('はなこ');
   });
 
   it('最終ランキングを出す', () => {
-    const finalRanking: FinalRanking = {
-      type: 'finalRanking',
-      questionCount: 5,
-      entries: [{ participantId: TARO, name: 'たろう', rank: 1, totalScore: 7820 }],
-    };
-    renderStage(room('final', 4), null, { finalRanking });
+    renderStage(room('final', 4), null, { finalRanking: FINAL_RANKING });
 
     expect(screen.getByRole('region', { name: '優勝' })).toHaveTextContent('たろう');
   });
@@ -190,14 +213,7 @@ describe('問題文の改行（F5）', () => {
       question({
         text,
         choices: CHOICES,
-        revealed: {
-          type: 'revealed',
-          questionId: 'q-3',
-          correctIndex: 1,
-          choiceCounts: [2, 5, 0],
-          answeredCount: 7,
-          participantCount: 8,
-        },
+        revealed: REVEALED,
       }),
     ],
   ])('%s のとき、問題文の改行をそのまま出す', (phase, current) => {
@@ -207,4 +223,38 @@ describe('問題文の改行（F5）', () => {
     expect(heading.textContent).toBe(text);
     expect(heading).toHaveClass('whitespace-pre-line');
   });
+});
+
+describe('見出しへのフォーカス', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const TEXT = '部長が最初に歌った曲のジャンルは？';
+
+  // ホストが押した操作のあと、進行画面がこの ref で新しい段階の見出しへフォーカスを移す
+  it.each<[RoomPhase, CurrentQuestion | null, FinalRanking | null, string]>([
+    ['question', question(), null, TEXT],
+    ['accepting', question({ choices: CHOICES, remainingMs: 10_000 }), null, TEXT],
+    ['revealed', question({ choices: CHOICES, revealed: REVEALED }), null, TEXT],
+    ['fastest', question({ choices: CHOICES, fastest: FASTEST }), null, '第3問の最速正解'],
+    ['standings', question({ choices: CHOICES, standings: STANDINGS }), null, '途中経過（第3問まで）'],
+    ['final', null, FINAL_RANKING, '最終ランキング'],
+  ])(
+    '%s のとき、見出しに ref を渡し、Tab の順番には入れずにフォーカスできるようにする',
+    (phase, current, finalRanking, name) => {
+      const headingRef = createRef<HTMLHeadingElement>();
+      renderStage(room(phase, phase === 'final' ? 4 : 2), current, { finalRanking, headingRef });
+
+      act(() => headingRef.current?.focus());
+
+      const heading = screen.getByRole('heading', { name });
+      expect(document.activeElement).toBe(heading);
+      expect(heading).toHaveAttribute('tabindex', '-1');
+    },
+  );
 });

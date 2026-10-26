@@ -1,5 +1,5 @@
 import type { FinalRanking as FinalRankingMessage, Revealed, RoomSnapshot } from '@zubatto-quiz/protocol';
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 
 import { useAnnouncement } from '../../components/a11y/announce';
 import type { CurrentQuestion } from '../../realtime/room-store';
@@ -16,6 +16,8 @@ export interface HostStageProps {
   finalRanking: FinalRankingMessage | null;
   /** 回答した人数がまだ届いていないときの分母 */
   participantCount: number;
+  /** 今の段階の見出し。ホストが操作したあと、進行画面がここへフォーカスを移す */
+  headingRef?: Ref<HTMLHeadingElement>;
 }
 
 /**
@@ -23,15 +25,16 @@ export interface HostStageProps {
  * 文字と余白は vw で伸びるトークン（text-question・p-stage など）を使うので、PC からの投影でもホストのスマホでも読める。
  * 問題文は文字のまま出し、ホストの入れた改行だけを whitespace-pre-line で残す（F5）。
  * ① の回答の分布と ② ③・最終ランキングは、features/results の部品（② ③ と最終ランキングは回答者画面と共有の projector 版）を使う。
- * つなぎ直したときは、部屋の DO が今の問題の流れを最初から送り直すので、届いたものを描くだけでよい
+ * つなぎ直したときは、部屋の DO が今の問題の流れを最初から送り直すので、届いたものを描くだけでよい。
+ * どの段階でも見出しに headingRef を付け、tabIndex={-1} で Tab の順番には入れずにフォーカスだけ受けられるようにする
  */
-export function HostStage({ room, question, finalRanking, participantCount }: HostStageProps) {
+export function HostStage({ room, question, finalRanking, participantCount, headingRef }: HostStageProps) {
   if (room.phase === 'final') {
     return finalRanking === null ? (
       <StatusScreen>最終の結果を集計しています</StatusScreen>
     ) : (
       <main className="flex flex-1 flex-col">
-        <FinalRanking ranking={finalRanking} variant="projector" />
+        <FinalRanking ranking={finalRanking} variant="projector" headingRef={headingRef} />
       </main>
     );
   }
@@ -40,23 +43,29 @@ export function HostStage({ room, question, finalRanking, participantCount }: Ho
   }
   switch (room.phase) {
     case 'question':
-      return <QuestionStage question={question} questionCount={room.questionCount} />;
+      return <QuestionStage question={question} questionCount={room.questionCount} headingRef={headingRef} />;
     case 'accepting':
       return question.choices === null ? (
-        <QuestionStage question={question} questionCount={room.questionCount} />
+        <QuestionStage question={question} questionCount={room.questionCount} headingRef={headingRef} />
       ) : (
         <AcceptingStage
           question={question}
           choices={question.choices}
           questionCount={room.questionCount}
           participantCount={participantCount}
+          headingRef={headingRef}
         />
       );
     case 'revealed':
       return question.revealed === null ? (
         <StatusScreen>結果を集計しています</StatusScreen>
       ) : (
-        <RevealedStage question={question} revealed={question.revealed} questionCount={room.questionCount} />
+        <RevealedStage
+          question={question}
+          revealed={question.revealed}
+          questionCount={room.questionCount}
+          headingRef={headingRef}
+        />
       );
     case 'fastest':
       return question.fastest === null ? (
@@ -68,6 +77,7 @@ export function HostStage({ room, question, finalRanking, participantCount }: Ho
             questionIndex={question.questionIndex}
             choices={question.choices}
             variant="projector"
+            headingRef={headingRef}
           />
         </main>
       );
@@ -76,7 +86,7 @@ export function HostStage({ room, question, finalRanking, participantCount }: Ho
         <StatusScreen>結果を集計しています</StatusScreen>
       ) : (
         <main className="flex flex-1 flex-col">
-          <StandingsRanking standings={question.standings} variant="projector" />
+          <StandingsRanking standings={question.standings} variant="projector" headingRef={headingRef} />
         </main>
       );
     case 'lobby':
@@ -84,15 +94,27 @@ export function HostStage({ room, question, finalRanking, participantCount }: Ho
   }
 }
 
+interface QuestionStageProps {
+  question: CurrentQuestion;
+  questionCount: number;
+  headingRef: Ref<HTMLHeadingElement> | undefined;
+}
+
 /** 出題。読み上げのあいだは問題文だけを大きく出す（F8） */
-function QuestionStage({ question, questionCount }: { question: CurrentQuestion; questionCount: number }) {
+function QuestionStage({ question, questionCount, headingRef }: QuestionStageProps) {
   return (
     <StageFrame
       question={question}
       questionCount={questionCount}
       aside={<p className="text-stage-label text-on-stage-muted">制限時間 {question.limitMs / 1000}秒</p>}
     >
-      <h1 className="my-auto max-w-[24em] text-question font-bold text-phrase whitespace-pre-line">{question.text}</h1>
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className={`my-auto max-w-[24em] text-question font-bold text-phrase whitespace-pre-line ${focusTarget}`}
+      >
+        {question.text}
+      </h1>
     </StageFrame>
   );
 }
@@ -102,13 +124,14 @@ interface AcceptingStageProps {
   choices: string[];
   questionCount: number;
   participantCount: number;
+  headingRef: Ref<HTMLHeadingElement> | undefined;
 }
 
 /**
  * 受付中。残り時間・回答した人数・選択肢を出す（F9）。
  * 受付中だけ作るので、やり直しで出題に戻ると捨てられ、次の受付で数え直す
  */
-function AcceptingStage({ question, choices, questionCount, participantCount }: AcceptingStageProps) {
+function AcceptingStage({ question, choices, questionCount, participantCount, headingRef }: AcceptingStageProps) {
   const { startedAt, leftMs, nextTickMs } = useCountdown(question.limitMs, question.remainingMs ?? question.limitMs);
   const { progress } = question;
   // 次に描き直すときの残りへ、それまでの時間をかけて縮める。回答者の画面と同じ動き
@@ -127,7 +150,13 @@ function AcceptingStage({ question, choices, questionCount, participantCount }: 
       }
     >
       <div className="flex items-start gap-stage">
-        <h1 className="min-w-0 flex-1 text-question font-bold text-phrase whitespace-pre-line">{question.text}</h1>
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className={`min-w-0 flex-1 text-question font-bold text-phrase whitespace-pre-line ${focusTarget}`}
+        >
+          {question.text}
+        </h1>
         <p className="shrink-0 text-center">
           <span className="sr-only">残り</span>
           <span className="block font-display text-timer tabular-nums">{Math.ceil(leftMs / 1000)}</span>
@@ -164,10 +193,11 @@ interface RevealedStageProps {
   question: CurrentQuestion;
   revealed: Revealed;
   questionCount: number;
+  headingRef: Ref<HTMLHeadingElement> | undefined;
 }
 
 /** ① 正解と回答の分布（F13）。問題文の下に、選択肢ごとの人数を出す */
-function RevealedStage({ question, revealed, questionCount }: RevealedStageProps) {
+function RevealedStage({ question, revealed, questionCount, headingRef }: RevealedStageProps) {
   return (
     <StageFrame
       question={question}
@@ -178,7 +208,13 @@ function RevealedStage({ question, revealed, questionCount }: RevealedStageProps
         </p>
       }
     >
-      <h1 className="text-stage-title font-bold text-phrase whitespace-pre-line">{question.text}</h1>
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className={`text-stage-title font-bold text-phrase whitespace-pre-line ${focusTarget}`}
+      >
+        {question.text}
+      </h1>
       <AnswerDistribution revealed={revealed} choices={question.choices} />
     </StageFrame>
   );
@@ -207,6 +243,12 @@ function StageFrame({ question, questionCount, aside, children }: StageFrameProp
     </main>
   );
 }
+
+/**
+ * フォーカスを受けるだけの見出し。押せるものではなく、投影にも映るので、フォーカスの枠は出さない。
+ * キーボードで進めるホストには、読み上げと、Tab で操作の帯へ戻れることで伝わる
+ */
+const focusTarget = 'focus:outline-none';
 
 /** 結果が届くまでのつなぎ。画面ごと現れるので role="status" は付けず、読み上げ領域に文を渡す */
 function StatusScreen({ children }: { children: string }) {

@@ -1,6 +1,6 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { CLOSE_CODES } from '@zubatto-quiz/protocol';
+import { CLOSE_CODES, type ServerMessage } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
 import { stubFakeApi } from '../../../../test/fake-api';
@@ -336,6 +336,176 @@ describe('ホストの進行画面（T32）', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('この部屋は終わりました');
     expect(screen.queryByText('部長の好きな食べ物は？')).toBeNull();
     expect(screen.getByRole('link', { name: '問題セットの一覧に戻る' })).toHaveAttribute('href', '/admin');
+  });
+});
+
+describe('ホストの操作のあとのフォーカス', () => {
+  const QUESTION_SHOWN: ServerMessage = {
+    type: 'questionShown',
+    questionId: 'q-0',
+    questionIndex: 0,
+    questionCount: 10,
+    text: '日本一高い山は？',
+    limitMs: 10_000,
+  };
+  const ANSWERING_STARTED: ServerMessage = {
+    type: 'answeringStarted',
+    questionId: 'q-0',
+    choices: ['富士山', '北岳'],
+    limitMs: 10_000,
+    remainingMs: 10_000,
+  };
+
+  const press = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
+
+  it('押した操作で段階が進んだら、押したボタンと一緒に消えたフォーカスを、新しい段階の見出しへ移す', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+    acceptHost(server);
+
+    press('第1問を出す');
+    act(() => server.latest.emit(QUESTION_SHOWN));
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: '日本一高い山は？' }));
+
+    press('受付を始める');
+    act(() => server.latest.emit(ANSWERING_STARTED));
+    // 受付中の見出しは、出題の見出しとは別の要素になる
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: '日本一高い山は？' }));
+  });
+
+  it('受付中のやり直しを確かめて送ったら、出題に戻った見出しへフォーカスを移す（A3）', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+    acceptHost(server);
+    act(() => {
+      server.latest.emit(QUESTION_SHOWN);
+      server.latest.emit(ANSWERING_STARTED);
+    });
+
+    press('この問題をやり直す');
+    press('やり直す');
+    act(() => server.latest.emit(QUESTION_SHOWN));
+
+    expect(screen.queryByRole('list', { name: '選択肢' })).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: '日本一高い山は？' }));
+  });
+
+  it('アラームの締切や別のタブの操作で進んだときは、フォーカスを動かさない', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+    acceptHost(server);
+
+    // 別のタブが出題した
+    act(() => server.latest.emit(QUESTION_SHOWN));
+    expect(document.activeElement).toBe(document.body);
+
+    press('受付を始める');
+    act(() => server.latest.emit(ANSWERING_STARTED));
+    // 部屋の DO のアラームが締め切った
+    act(() =>
+      server.latest.emit({
+        type: 'revealed',
+        questionId: 'q-0',
+        correctIndex: 0,
+        choiceCounts: [0, 0],
+        answeredCount: 0,
+        participantCount: 1,
+      }),
+    );
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('返事の前に続けて送った操作も、段階が届くたびにその見出しへフォーカスを移す', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+    acceptHost(server);
+    act(() => {
+      server.latest.emit(QUESTION_SHOWN);
+      server.latest.emit(ANSWERING_STARTED);
+      server.latest.emit({
+        type: 'revealed',
+        questionId: 'q-0',
+        correctIndex: 0,
+        choiceCounts: [1, 0],
+        answeredCount: 1,
+        participantCount: 1,
+      });
+      server.latest.emit({
+        type: 'fastest',
+        questionId: 'q-0',
+        correctIndex: 0,
+        fastest: [{ ...TARO, elapsedMs: 1_020 }],
+        correctCount: 1,
+        answeredCount: 1,
+        ranksHidden: false,
+        biggestClimber: null,
+      });
+    });
+
+    // ② のあとの帯は、返事が来るまで作り直されないので、両方押せる
+    press('途中経過を出す');
+    press('第2問を出す');
+    act(() =>
+      server.latest.emit({
+        type: 'standings',
+        questionId: 'q-0',
+        questionIndex: 0,
+        participantCount: 1,
+        entries: [{ ...TARO, rank: 1, totalScore: 980, points: 980 }],
+      }),
+    );
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: '途中経過（第1問まで）' }));
+
+    act(() => server.latest.emit({ ...QUESTION_SHOWN, questionId: 'q-1', questionIndex: 1, text: '日本一長い川は？' }));
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: '日本一長い川は？' }));
+  });
+
+  it('送った操作が断られ、先に別の段階へ移ったときは、フォーカスを動かさない（A3）', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+    acceptHost(server);
+    act(() => {
+      server.latest.emit(QUESTION_SHOWN);
+      server.latest.emit(ANSWERING_STARTED);
+    });
+
+    press('この問題をやり直す');
+    press('やり直す');
+    // 締切を過ぎていて、部屋の DO は先に締め切って ① を配り、やり直しを断る
+    act(() => {
+      server.latest.emit({
+        type: 'revealed',
+        questionId: 'q-0',
+        correctIndex: 0,
+        choiceCounts: [0, 0],
+        answeredCount: 0,
+        participantCount: 1,
+      });
+      server.latest.emit({ type: 'error', code: 'invalid_state' });
+    });
+
+    expect(screen.getByRole('heading', { level: 1, name: '日本一高い山は？' })).toBeInTheDocument();
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('送ったあと返事の前に切れたら、つなぎ直して段階が変わっていても、フォーカスを動かさない', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+    acceptHost(server);
+
+    press('第1問を出す');
+    act(() => server.latest.closeFromServer(1006));
+    // つなぎ直しは 250〜500ms 待ってから始まる
+    await waitFor(() => expect(server.sockets).toHaveLength(2));
+    // 送った操作か別のタブの操作かは、つなぎ直したあとの要約からは分からない
+    act(() => {
+      server.latest.open();
+      server.latest.emit({ type: 'hostReady', room: { ...ROOM, phase: 'question', questionIndex: 0 } });
+      server.latest.emit(QUESTION_SHOWN);
+    });
+
+    expect(screen.getByRole('heading', { level: 1, name: '日本一高い山は？' })).toBeInTheDocument();
+    expect(document.activeElement).toBe(document.body);
   });
 });
 

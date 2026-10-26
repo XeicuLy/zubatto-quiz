@@ -1,5 +1,6 @@
 import type { FastestRevealed } from '@zubatto-quiz/protocol';
 import { formatSeconds } from '@zubatto-quiz/scoring';
+import type { Ref } from 'react';
 
 import { choiceLabel } from './format';
 import type { Variant } from './variant';
@@ -11,6 +12,8 @@ export interface FastestCorrectProps {
   /** 受付開始で届いた選択肢。投影の見出しで正解を出すのに使う */
   choices: string[] | null;
   variant: Variant;
+  /** 投影の見出し。進行画面がホストの操作のあとにフォーカスを移す。渡したときだけ tabIndex={-1} にする */
+  headingRef?: Ref<HTMLHeadingElement>;
 }
 
 type FastAnswer = FastestRevealed['fastest'][number];
@@ -20,9 +23,9 @@ type FastAnswer = FastestRevealed['fastest'][number];
  * 並びと秒数はサーバーが決めたまま出す（同じ秒数は入室した順。秒数は0.01秒単位に切り捨て済み）。
  * 投影では画面いっぱいの見せ場にし、回答者画面では ① の結果の下に小さく出す
  */
-export function FastestCorrect({ fastest, questionIndex, choices, variant }: FastestCorrectProps) {
+export function FastestCorrect({ fastest, questionIndex, choices, variant, headingRef }: FastestCorrectProps) {
   return variant === 'projector' ? (
-    <FastestStage fastest={fastest} questionIndex={questionIndex} choices={choices} />
+    <FastestStage fastest={fastest} questionIndex={questionIndex} choices={choices} headingRef={headingRef} />
   ) : (
     <FastestCard fastest={fastest} />
   );
@@ -38,12 +41,18 @@ function countsOf(fastest: FastestRevealed): string {
 }
 
 /** 投影。spotlight の色は、正解者がいるときの見せ場にだけ使う */
-function FastestStage({ fastest, questionIndex, choices }: Omit<FastestCorrectProps, 'variant'>) {
+function FastestStage({ fastest, questionIndex, choices, headingRef }: Omit<FastestCorrectProps, 'variant'>) {
   const [first, ...rest] = fastest.fastest;
   const climber = climberOf(fastest);
   const header = (
     <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-      <h2 className="font-display text-stage-title">第{questionIndex + 1}問の最速正解</h2>
+      <h2
+        ref={headingRef}
+        tabIndex={headingRef ? -1 : undefined}
+        className="font-display text-stage-title focus:outline-none"
+      >
+        第{questionIndex + 1}問の最速正解
+      </h2>
       <p className={first === undefined ? 'text-stage-label text-on-stage-muted' : 'text-stage-label'}>
         正解は {choiceLabel(fastest.correctIndex, choices)}（{countsOf(fastest)}）
       </p>
