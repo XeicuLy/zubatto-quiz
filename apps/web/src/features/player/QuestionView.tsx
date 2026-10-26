@@ -87,7 +87,7 @@ function Answering({ question, choices, questionCount, onAnswer }: AnsweringProp
   // 部屋の DO の締切（myResult）は alarm の遅れで最大1分遅れるので、端末の数えでも閉じる
   const closed = leftMs === 0;
   // 読み上げは受付中のここだけで渡す。締切のあとの画面は作り直されるので、そこでも渡すと「締切になりました」が2回読まれる
-  useAnnouncement(answerAnnouncementOf(answer, limitMs, closed));
+  useAnnouncement(answerAnnouncementOf(answer, choices, limitMs, closed));
 
   function choose(choiceIndex: number) {
     if (sent.current || startedAt === null) {
@@ -127,6 +127,8 @@ function Answering({ question, choices, questionCount, onAnswer }: AnsweringProp
         choices={choices}
         chosen={answer?.choiceIndex ?? null}
         onChoose={answer === null && !closed ? choose : undefined}
+        // 押したボタンが消えるので、一覧へフォーカスを移す。つなぎ直して届いた回答（question.answer）では動かさない
+        focusList={pending !== null}
       />
       {(answer !== null || closed) && <AnswerFooter answer={answer} limitMs={limitMs} closed={closed} />}
     </QuestionFrame>
@@ -189,12 +191,24 @@ function AnswerFooter({ answer, limitMs, closed }: { answer: MyAnswer | null; li
   );
 }
 
-/** AnswerFooter と同じことを読み上げる文。締切になったら、時間はもう読んだので締切だけを言う */
-function answerAnnouncementOf(answer: MyAnswer | null, limitMs: number, closed: boolean): string | null {
+/**
+ * AnswerFooter と同じことを読み上げる文。締切になったら、時間はもう読んだので締切だけを言う。
+ * フォーカスの移った一覧では名前と項目数しか読まれないので、選んだものもここで言う
+ */
+function answerAnnouncementOf(
+  answer: MyAnswer | null,
+  choices: string[],
+  limitMs: number,
+  closed: boolean,
+): string | null {
   if (closed) {
     return '締切になりました';
   }
-  return answer === null ? null : `回答までの時間 ${secondsOf(answer, limitMs)}秒。締切を待っています`;
+  if (answer === null) {
+    return null;
+  }
+  const { choiceIndex } = answer;
+  return `${choiceIndex + 1}番「${choices[choiceIndex]}」で回答しました。回答までの時間 ${secondsOf(answer, limitMs)}秒。締切を待っています`;
 }
 
 function secondsOf(answer: MyAnswer, limitMs: number): string {
