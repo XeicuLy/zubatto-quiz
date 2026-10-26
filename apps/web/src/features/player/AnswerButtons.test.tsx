@@ -40,6 +40,21 @@ describe('選択肢（F17）', () => {
     render(<AnswerButtons choices={choices} chosen={null} />);
 
     expect(screen.queryByText('あなたの回答')).toBeNull();
+    expect(screen.getByRole('list', { name: '選択肢' })).toBeInTheDocument();
+  });
+
+  it('focusList なら、押せない一覧にフォーカスを移す。一覧は Tab では止まらない', () => {
+    render(<AnswerButtons choices={choices} chosen={1} focusList />);
+
+    const list = screen.getByRole('list', { name: 'あなたの回答' });
+    expect(list).toHaveFocus();
+    expect(list).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('focusList がなければ、フォーカスを動かさない', () => {
+    render(<AnswerButtons choices={choices} chosen={1} />);
+
+    expect(document.body).toHaveFocus();
   });
 
   it('選択肢は文字として出す', () => {
