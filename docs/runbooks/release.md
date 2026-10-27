@@ -2,7 +2,7 @@
 
 版の番号と CHANGELOG は、release-please が開く「リリース PR」で決める。リリース PR をマージすると、そのコミットにタグ `vX.Y.Z` と GitHub Release ができる。決めた理由は [ADR 0009](../adr/0009-release-versioning-and-tagging.md) にある。
 
-- タグは「この版ができた」印で、本番に出た印ではない。本番にどのコミットがあるかは、リポジトリの Environments の `production`（[deploy.md](deploy.md)）で見る
+- タグは「この版ができた」印で、本番に出た印ではない。本番の Worker がどのコミット・どの版かは、[deploy.md の「デプロイのあとに確かめる」](deploy.md#デプロイのあとに確かめる)の 0 で読む
 - リリース PR をマージしても、本番にはデプロイしない。出すときは [deploy.md](deploy.md#動かす) の手順で動かす（ADR 0005）
 
 ## 何が動くか

@@ -113,7 +113,7 @@ gh run watch
 動かすと、本番に出す job の前で run が止まり、「Waiting」になる。Actions の run の画面に出る **Review deployments** を押し、`production` を選んで、target と動かしたコミットを見てから **Approve and deploy** を押す。
 
 - `all` では3回止まる（`migrate`・`deploy-api`・`deploy-web` の前）。前の job が終わるたびに、次の承認を求められる
-- 承認しないまま30日たつと、その job は失敗する。出すのをやめるなら **Reject** を押す。その job とその後ろは動かず、本番には何も出ない
+- 承認しないまま30日たつと、その job は失敗する。出すのをやめるなら **Reject** を押す。動かないのは、その job とその後ろだけで、前の job がもう終わっていれば、その分は本番に出ている。たとえば `all` で `deploy-web` を拒むと、マイグレーションと API の Worker は新しく、画面の Worker は前のままになる。メッセージの仕様は API と画面のどちらが先に新しくなっても動くように変えている（上の「何が動くか」）ので、そのままでも遊べる。そろえるときは、その run の **Re-run failed jobs** で `deploy-web` だけを動かして承認するか、`web` で動かし直す
 - 本番の最中に `web` を出すときは、承認の画面を開いて待っておく。止まってから承認するまで、本番の画面は前のままになる
 
 終わったら、[下の「デプロイのあとに確かめる」](#デプロイのあとに確かめる)を行う。
@@ -122,14 +122,21 @@ gh run watch
 
 `web` のときは 0〜2 だけでよい。`all` のときと、本番の環境を初めて作ったときは、すべて行う。
 
-0. 本番に出したコミットが、Environments の `production`（Settings → Environments、またはリポジトリのトップの Deployments）の最新に載っている。どの版かは、そのコミットから一番近いタグで分かる。タグより後ろのコミット数が `-<数>-g<SHA>` で付くときは、本番に版になっていない変更が入っている（[release.md](release.md)）
+0. 本番の API と画面の Worker が、それぞれどのコミットか。`deploy-api`・`deploy-web` が成功した、いちばん新しい run の SHA を読む。どの版かは、そのコミットから一番近いタグで分かる。タグのあとに `-<数>-g<SHA>` が付くときは、本番に版になっていない変更が入っている（[release.md](release.md)）
 
    ```sh
-   sha=$(gh api 'repos/XeicuLy/zubatto-quiz/deployments?environment=production&per_page=1' --jq '.[0].sha')
-   git fetch --tags && git describe --tags --match 'v*' "$sha"
+   git fetch --tags
+   for name in deploy-api deploy-web; do
+     for id in $(gh run list --workflow deploy.yaml --branch main --limit 20 --json databaseId --jq '.[].databaseId'); do
+       sha=$(gh run view "$id" --json headSha,jobs --jq "select(any(.jobs[]; .name == \"$name\" and .conclusion == \"success\")) | .headSha")
+       if [ -n "$sha" ]; then echo "$name: $sha"; git describe --tags --match 'v*' "$sha" || echo '（まだタグがない）'; break; fi
+     done
+   done
    ```
 
-   `fatal: No names found` と出るときは、まだ1つもタグがない（最初のリリースの前）。SHA だけを見る
+   - Environments の `production`（リポジトリのトップの Deployments）の一覧は、いつ何を出そうとしたかを見るのに使う。ただし Deployment は `production` を使う job ごとに作られ、その job が失敗しても残る。`all` で `deploy-api` が失敗すると、いちばん新しい Deployment は、出ていないコミットになる。なので本番の版は、上のように job の結果から読む
+   - 直近の20回の run に、成功した `deploy-api`（`deploy-web`）がなければ、何も出ない。`--limit` を増やす
+   - `fatal: No names found` と出るときは、まだ1つもタグがない（最初のリリースの前）。SHA だけを見る
 
 1. 本番の URL（`https://zubakui-web.<サブドメイン>.workers.dev`）が開く
 2. 開発者ツールの Console に、`Content Security Policy` の違反が出ていない（ADR 0004）
@@ -150,7 +157,7 @@ gh run watch
 | ---------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | どれも動かない   | 「Branch "..." is not allowed to deploy to production due to environment protection rules」 | main 以外のブランチで動かした。main にマージしてから、Branch を `main` にして動かす                                 |
 | 承認のところ     | 「Waiting」のまま進まない                                                                   | 承認を待っている。run の画面の **Review deployments** から承認する（上の「動かす」）                                |
-| 承認のところ     | Reject した・承認しないまま30日たった                                                       | その job とその後ろは動いていない。出すなら、もう一度動かして承認する                                               |
+| 承認のところ     | Reject した・承認しないまま30日たった                                                       | その job とその後ろは動いていないが、前の job の分は出ている（上の「動かす」）。出すなら、もう一度動かして承認する  |
 | `verify-ci`      | 「… の ci が成功していない（in_progress）」（`queued` も同じ）                              | main の CI がまだ走っている。終わってから、その run の **Re-run failed jobs** で動かし直す                          |
 | `verify-ci`      | 「… の e2e が成功していない（failure）」                                                    | そのコミットはテストが落ちている。直して main にマージし、CI が通ってから動かす                                     |
 | `verify-ci`      | 「… の ci が成功していない（cancelled）」                                                   | CI が途中で止まった。Actions の CI の run で **Re-run all jobs** を行い、通ってから動かし直す                       |

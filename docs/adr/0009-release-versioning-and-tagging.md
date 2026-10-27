@@ -80,7 +80,7 @@ R1 の中で決めること
 - 悪い影響: GitHub App とその秘密鍵を管理する。鍵が漏れると、App に許した範囲（このリポジトリの contents・pull requests・issues の書き込み）で書き換えられる
 - 悪い影響: main の履歴は PR 1つにつき1コミットになり、PR の中のコミットの分け方は残らない
 - 悪い影響: PR の題名が main のコミット名になる。題名が Conventional Commits の形でないと CHANGELOG に出ないので、PR の題名を CI で確かめる必要がある
-- 悪い影響: タグは「本番に出た」印ではない。本番に何があるかは Environments の production を見る
+- 悪い影響: タグは「本番に出た」印ではない。本番に何があるかは production の Deployments と deploy.yaml の run で見る。Deployment は production を使う job ごとに作られ、job が失敗しても残るので、Worker ごとの版は、`deploy-api`・`deploy-web` が成功したいちばん新しい run の SHA から読む（deploy.md の「デプロイのあとに確かめる」）
 - 悪い影響: 承認は production を使う job ごとに求められる。`all` では migrate・deploy-api・deploy-web の前に1回ずつ、3回押す（2026-10-27 に `all` を動かして確かめた。ドキュメントには書かれていない）。承認だけの job を先頭に置いて1回にまとめる形は採らない。そうするには production から reviewers を外すことになり、main の別の workflow が production を使えば、承認なしで Cloudflare のトークンを読める。守りはトークンのそばに置く。`all` は本番の外でたまに出すだけなので、手間はまれ
 - 対応事項（#158）: release-please を入れる
   - GitHub App を作り、このリポジトリにだけ入れる。権限は Contents・Pull requests・Issues の Read and write（リリース PR に付ける `autorelease: pending` のラベルに Issues が要る）。App の ID と秘密鍵は main だけに絞った Environment の secret に置き、token は `actions/create-github-app-token` で作る
