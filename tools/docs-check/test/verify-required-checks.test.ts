@@ -73,11 +73,12 @@ const run = (name: string, status: string, conclusion: string | null = null, app
 const passed = (name: string) => run(name, 'completed', 'success');
 
 describe('verify-required-checks.sh（deploy.yaml の verify-ci）', () => {
-  it('ルールセットの必須のチェック（ci と e2e）がどれも成功していれば、0 で終わる', () => {
-    const { status, stdout } = verify([passed('ci'), passed('e2e')]);
+  it('ルールセットの必須のチェック（ci・e2e・pr-title）がどれも成功していれば、0 で終わる', () => {
+    const { status, stdout } = verify([passed('ci'), passed('e2e'), passed('pr-title')]);
     expect(status).toBe(0);
     expect(stdout).toContain('ci: success');
     expect(stdout).toContain('e2e: success');
+    expect(stdout).toContain('pr-title: success');
   });
 
   it.each([
@@ -103,7 +104,12 @@ describe('verify-required-checks.sh（deploy.yaml の verify-ci）', () => {
     ['失敗のあとに動かし直して成功すれば、通す', 'failure', 'success', 0],
     ['成功のあとに動かし直して失敗すれば、止める', 'success', 'failure', 1],
   ])('同じ名前の check run が2つあれば、新しいほうを見る: %s', (_, older, newer, expected) => {
-    const checkRuns = [passed('ci'), run('e2e', 'completed', older), run('e2e', 'completed', newer)];
+    const checkRuns = [
+      passed('ci'),
+      passed('pr-title'),
+      run('e2e', 'completed', older),
+      run('e2e', 'completed', newer),
+    ];
     expect(verify(checkRuns).status).toBe(expected);
   });
 

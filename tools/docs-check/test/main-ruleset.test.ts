@@ -1,6 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
 
 const readRepoFile = (path: string) => readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8');
 
@@ -25,6 +26,24 @@ function jobCheckNames(workflow: string): string[] {
     });
 }
 
+const workflowFiles = readdirSync(new URL('../../../.github/workflows/', import.meta.url)).filter((file) =>
+  /\.ya?ml$/.test(file),
+);
+
+/** チェックの名前ごとに、それを送る job を持つ workflow のファイル名 */
+const workflowsByCheck = (): Record<string, string[]> => {
+  const byCheck: Record<string, string[]> = {};
+  for (const file of workflowFiles) {
+    for (const check of jobCheckNames(readRepoFile(`.github/workflows/${file}`))) {
+      (byCheck[check] ??= []).push(file);
+    }
+  }
+  return byCheck;
+};
+
+type Triggers = { pull_request?: { branches?: string[] } | null; push?: { branches?: string[] } | null };
+const triggersOf = (file: string) => (parse(readRepoFile(`.github/workflows/${file}`)) as { on: Triggers }).on;
+
 const requiredChecks = () => {
   const rule = ruleset.rules.find(({ type }) => type === 'required_status_checks');
   return (rule?.parameters?.required_status_checks ?? []) as { context: string; integration_id?: number }[];
@@ -47,11 +66,37 @@ describe('jobCheckNames', () => {
 });
 
 describe('main のルールセット（docs/runbooks/main-ruleset.json・M1）', () => {
-  it('必須のチェックがあり、どれも ci.yaml の job が送るチェックの名前と一致する', () => {
-    // ci.yaml の job 名だけを変えると、必須のチェックがいつまでも来なくなり、どの PR もマージできなくなる
+  it('必須のチェックがあり、どれも1つの workflow の job が送るチェックの名前と一致する', () => {
+    // job 名だけを変えると、必須のチェックがいつまでも来なくなり、どの PR もマージできなくなる。
+    // 2つの workflow が同じ名前を送ると、どちらの結果で通ったのか分からなくなる
     const contexts = requiredChecks().map(({ context }) => context);
     expect(contexts.length).toBeGreaterThan(0);
-    expect(jobCheckNames(readRepoFile('.github/workflows/ci.yaml'))).toEqual(expect.arrayContaining(contexts));
+    // チェックの名前ごとに数を並べて比べるので、落ちたときにどの名前かが分かる
+    const byCheck = workflowsByCheck();
+    const counts = Object.fromEntries(contexts.map((context) => [context, byCheck[context]?.length ?? 0]));
+    expect(counts).toEqual(Object.fromEntries(contexts.map((context) => [context, 1])));
+  });
+
+  it('必須のチェックを送る workflow は、main への PR と main への push の両方で動く', () => {
+    // deploy.yaml の verify-ci は、必須のチェックが main のコミットで成功しているかを見る。
+    // PR だけで動く workflow を必須にすると、どのデプロイも「チェックがない」で止まる
+    const byCheck = workflowsByCheck();
+    const contexts = requiredChecks().map(({ context }) => context);
+    const branchesByCheck = Object.fromEntries(
+      contexts.map((context) => {
+        const { pull_request: pullRequest, push } = triggersOf(byCheck[context]?.[0] ?? '');
+        return [context, { pullRequest: pullRequest?.branches, push: push?.branches }];
+      }),
+    );
+    expect(branchesByCheck).toEqual(
+      Object.fromEntries(contexts.map((context) => [context, { pullRequest: ['main'], push: ['main'] }])),
+    );
+  });
+
+  it('マージは squash だけにする（PR 1つが main の1コミットになり、CHANGELOG の1行になる・ADR 0009）', () => {
+    // マージコミットは本文に PR の題名を入れ、release-please がそれと PR の中のコミットの両方を数えて、同じ変更が2行ずつ出る
+    const rule = ruleset.rules.find(({ type }) => type === 'pull_request');
+    expect(rule?.parameters?.allowed_merge_methods).toEqual(['squash']);
   });
 
   it('必須のチェックは GitHub Actions から来たものだけを使う', () => {

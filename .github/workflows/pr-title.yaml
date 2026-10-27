@@ -1,0 +1,58 @@
+name: PR title
+
+# squash マージだけなので、PR の題名がそのまま main のコミット名になり、release-please が CHANGELOG の1行にする（ADR 0009）。
+# 題名を手元の husky（commit-msg）と同じ commitlint の設定で確かめる
+on:
+  pull_request:
+    branches:
+      - main
+    # 題名を直したとき（edited）にも確かめ直す。ci.yaml には入れない。題名や本文を直すたびに ci と e2e まで走り直すため
+    types: [opened, edited, synchronize, reopened]
+  # deploy.yaml の verify-ci は、必須のチェックが main のコミットで成功しているかを見るので、main への push でも動かす。
+  # そのときは main に入ったコミット名を確かめる（squash なら PR の題名と同じ）
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # main のルールセットで、この job 名（pr-title）を必須のチェックにしている。名前を変えるときはルールセットも直す
+  pr-title:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+
+      - name: Get pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: '0'
+
+      # 題名は誰でも書ける文字列なので、run: に ${{ }} で埋め込まず、環境変数で渡す（埋め込むと、題名に書いたシェルの命令が動く）
+      - name: Lint PR title
+        run: printf '%s\n' "$MESSAGE" | pnpm exec commitlint --verbose
+        env:
+          MESSAGE: ${{ github.event.pull_request.title || github.event.head_commit.message }}
