@@ -81,14 +81,14 @@ R1 の中で決めること
 - 悪い影響: main の履歴は PR 1つにつき1コミットになり、PR の中のコミットの分け方は残らない
 - 悪い影響: PR の題名が main のコミット名になる。題名が Conventional Commits の形でないと CHANGELOG に出ないので、PR の題名を CI で確かめる必要がある
 - 悪い影響: タグは「本番に出た」印ではない。本番に何があるかは Environments の production を見る
-- 悪い影響: 1つの run で production を使う job が3つ（migrate・deploy-api・deploy-web）あり、承認が1回で済むかはドキュメントに書かれていない
+- 悪い影響: 承認は production を使う job ごとに求められる。`all` では migrate・deploy-api・deploy-web の前に1回ずつ、3回押す（2026-10-27 に `all` を動かして確かめた。ドキュメントには書かれていない）。承認だけの job を先頭に置いて1回にまとめる形は採らない。そうするには production から reviewers を外すことになり、main の別の workflow が production を使えば、承認なしで Cloudflare のトークンを読める。守りはトークンのそばに置く。`all` は本番の外でたまに出すだけなので、手間はまれ
 - 対応事項（#158）: release-please を入れる
   - GitHub App を作り、このリポジトリにだけ入れる。権限は Contents・Pull requests・Issues の Read and write（リリース PR に付ける `autorelease: pending` のラベルに Issues が要る）。App の ID と秘密鍵は main だけに絞った Environment の secret に置き、token は `actions/create-github-app-token` で作る
   - `release-please-config.json` と `.release-please-manifest.json` をルートに置く。`release-type: node`、`include-component-in-tag: false`（指定しないとタグが `zubatto-quiz-v1.0.0` になる）、`pull-request-title-pattern: "chore: v${version} をリリースする"`、`changelog-sections` で feat を「新機能」、fix を「修正」、perf を「性能」にし、ほかは `hidden`、`bootstrap-sha`
   - workflow は main への push で動かす
   - runbook に App の作り方と、鍵の置き場所・入れ替え方を書く
 - 対応事項（#158）: squash マージだけにする。main のルールセットの `allowed_merge_methods` を `["squash"]` にし、リポジトリの squash の設定を「題名は PR の題名、本文は空」にする。BREAKING は PR の題名の `!` で表す。PR の題名を commitlint で確かめる job を足し、必須のチェックにする。`docs/runbooks/main-ruleset.json` と CONTRIBUTING も直す
-- 対応事項（#159）: production の Environment に Required reviewers（自分）を付ける。「Prevent self-review」は有効にしない（1人では承認できなくなる）。1回の承認で3つの job が通るかを確かめ、通らなければ承認だけを受け持つ job と Environment を分ける。deploy.md の手順に承認を足す
+- 対応事項（#159）: production の Environment に Required reviewers（自分）を付ける。「Prevent self-review」は有効にしない（1人では承認できなくなる）。管理者が決まりを飛ばせる設定（`can_admins_bypass`）は無効にする。deploy.md の手順に承認を足す
 - 対応事項（#160）: 画面だけのデプロイを止める仕組みは作らない。Issue は閉じる
 - 対応事項（#161）: 最初のリリース PR に v1.0.0 の節（最初のリリースとして機能の要約）を手で書き、マージして v1.0.0 のタグと Release を確かめる
 - 対応事項: CLAUDE.md の ADR の範囲（`0001`–`0005`）と、コミットの決まり（PR の題名）を直す

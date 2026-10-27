@@ -76,7 +76,7 @@ pnpm exec vitest run --project <名前>   # 1つのパッケージのテスト�
 
 3. 本番用の GitHub OAuth App を作る（[github-oauth-apps.md](docs/runbooks/github-oauth-apps.md)）
 4. API の Worker にシークレットを入れる（[secrets.md](docs/runbooks/secrets.md#本番-wrangler-secret-put)）。初めてのときは、ここで空の API の Worker ができる
-5. Cloudflare の API トークンを作り、アカウント ID とあわせて GitHub の Environment（`production`）の secret に入れる（[deploy.md](docs/runbooks/deploy.md#はじめに一度だけ用意するもの)）
+5. Cloudflare の API トークンを作り、アカウント ID とあわせて GitHub の Environment（`production`）の secret に入れ、Required reviewers に自分を足す（[deploy.md](docs/runbooks/deploy.md#はじめに一度だけ用意するもの)）
 6. GitHub Actions のデプロイの workflow を「API と画面」（`all`）で動かす（[deploy.md](docs/runbooks/deploy.md#動かす)）。マイグレーション → API の Worker → 画面の Worker の順に行われる。手元からはデプロイしない（ADR 0005）
 7. 本番の D1 の許可リストに自分を入れる（[host-allowlist.md](docs/runbooks/host-allowlist.md)）
 8. 本番の URL の `/login` から GitHub でログインし、最終ランキングまで通せることを確かめる（[deploy.md](docs/runbooks/deploy.md#デプロイのあとに確かめる)）

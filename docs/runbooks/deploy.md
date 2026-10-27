@@ -2,16 +2,18 @@
 
 本番のデプロイとマイグレーションは、GitHub Actions の workflow（[.github/workflows/deploy.yaml](../../.github/workflows/deploy.yaml)）を手で動かして行う。main にマージしてもデプロイしない。本番の最中は API の Worker をデプロイしない決まり（ADR 0006）を、マージで破らないため（ADR 0005）。
 
+本番に出す job は、動かすたびに承認を待つ（Environment `production` の Required reviewers。ADR 0009）。ボタンを押し間違えても、承認しなければ本番には何も出ない。
+
 手元からは `wrangler deploy` しない。デプロイの手順が workflow のファイルに残り、手元の `wrangler.jsonc` に D1 の ID が書き戻されることもない。
 
 ## 何が動くか
 
 動かすときに `target` を選ぶ。
 
-| target        | 動く job                                              | 本番の最中に選んでよいか                                |
-| ------------- | ----------------------------------------------------- | ------------------------------------------------------- |
-| `web`（既定） | `verify-ci` → `deploy-web`                            | よい。画面の Worker だけなら、部屋の接続は切れない      |
-| `all`         | `verify-ci` → `migrate` → `deploy-api` → `deploy-web` | 選ばない。部屋の WebSocket が切れることがある（下の注） |
+| target        | 動く job                                              | 本番の最中に選んでよいか                                | 承認 |
+| ------------- | ----------------------------------------------------- | ------------------------------------------------------- | ---- |
+| `web`（既定） | `verify-ci` → `deploy-web`                            | よい。画面の Worker だけなら、部屋の接続は切れない      | 1回  |
+| `all`         | `verify-ci` → `migrate` → `deploy-api` → `deploy-web` | 選ばない。部屋の WebSocket が切れることがある（下の注） | 3回  |
 
 - どちらでも、はじめに `verify-ci` が、動かしたコミットで必須のチェック（`ci`・`e2e`・`pr-title`）が成功しているかを確かめる。どれかが失敗しているか、まだ走っているか、見つからなければ止まり、本番には何も出さない
   - 確かめるチェックの名前は、main のルールセット（[main-ruleset.json](main-ruleset.json)）の必須のチェックから読む。ルールセットにチェックを足せば、`verify-ci` も同じものを見る
@@ -19,6 +21,8 @@
   - `verify-ci` は本番に触らないので、Environment（`production`）を使わず、Cloudflare のトークンも読まない。読めるのはコードと check run だけ
   - 確かめ方は [.github/scripts/verify-required-checks.sh](../../.github/scripts/verify-required-checks.sh) にある。`pnpm run lint` が shellcheck にかけ、`tools/docs-check` のテストが偽の `gh` で動かす
 
+- 承認は、`production` を使う job ごとに求められる。`all` では `migrate`・`deploy-api`・`deploy-web` の前に1回ずつ、合わせて3回になる。前の job の承認は、後ろの job には効かない（2026-10-27 に `all` を動かして確かめた。ドキュメントには書かれていない）
+  - 承認を1回にまとめる形（承認だけの job を先頭に置き、`production` から reviewers を外す）は採らない。Cloudflare のトークンを持つ `production` に承認を付けておけば、main のどの workflow がそれを使っても、承認なしではトークンを読めない。`all` は本番の外でたまに出すだけなので、3回押す手間はまれ
 - 注: Cloudflare のドキュメントでは、コードの更新を含むデプロイで部屋の DO は再起動し、WebSocket はすべて切れる。ただ、O2 のリハーサルでは、眠っていた部屋の接続は切れずに新しい版へ引き継がれた（[記録](../rehearsal/o2-rehearsal.md#わかったこと)）。いつ切れるかを当てにできないので、本番の最中は `all` を選ばない
 - `web` をデプロイしても、開いている画面は、リロードするまで前のコードのまま動く。メッセージの仕様が変わっていなければ、そのまま遊び続けられる（[O2 のリハーサル](../rehearsal/o2-rehearsal.md#わかったこと)で確かめた）
 - メッセージの仕様は、API と画面のどちらが先に新しくなっても動くように変える。画面は知らない項目を取り除いて読むので、サーバーが項目を足しても前の画面は動く。逆に、新しい画面がその項目を必須にすると、`web` だけをデプロイしたときに、前の API から届いたメッセージを捨ててしまう。サーバーのメッセージに項目を足すときは、受け取る側でないときの値を決める（`myResult.bonusPoints` は `.default(0)`）。`ws.schema.json` は送る形で書くので、そこでは必須のまま残る
@@ -68,12 +72,26 @@ gh secret set CLOUDFLARE_ACCOUNT_ID --env production
 - `gh secret set` は値を聞いてくるので、そこで貼る。引数に値を書くと、シェルの履歴に残る
 - 画面からも作れる。Settings → Environments → New environment で `production` を作り、Deployment branches and tags を「Selected branches and tags」にして `main` を足し、Environment secrets に2つを入れる
 
-入れたら、名前だけを確かめる。
+続けて、本番に出す job が承認を待つようにする（Required reviewers）。reviewers は自分にする。
+
+```sh
+jq -n --argjson id "$(gh api user --jq .id)" '{prevent_self_review: false, can_admins_bypass: false, reviewers: [{type: "User", id: $id}], deployment_branch_policy: {protected_branches: false, custom_branch_policies: true}}' \
+  | gh api -X PUT repos/XeicuLy/zubatto-quiz/environments/production --input -
+```
+
+- `prevent_self_review` は `false` にする。`true` にすると、自分で動かした run を自分で承認できず、1人ではデプロイできなくなる
+- `can_admins_bypass` は `false` にする。`true` だと、管理者（自分）は承認の画面で決まりを飛ばせてしまう
+- PUT は送らなかった項目を既定に戻すので、`deployment_branch_policy` も一緒に送る。「main だけ」の一覧（`deployment-branch-policies`）は別の API にあり、`custom_branch_policies: true` を送れば消えない
+- Required reviewers は、public のリポジトリなら無料のプランで使える。private にするなら Team 以上が要る（2026-10-27 に GitHub のドキュメントで確かめた）
+- 画面からも付けられる。Settings → Environments → `production` → Required reviewers に自分を足し、「Prevent self-review」は外し、「Allow administrators to bypass configured protection rules」も外す
+
+入れたら、名前と決まりを確かめる。
 
 ```sh
 gh secret list --env production   # CLOUDFLARE_API_TOKEN と CLOUDFLARE_ACCOUNT_ID がある
 gh secret list                    # リポジトリの secret には、どちらもない
 gh api repos/XeicuLy/zubatto-quiz/environments/production/deployment-branch-policies --jq '.branch_policies[].name'   # main だけ
+gh api repos/XeicuLy/zubatto-quiz/environments/production --jq '{rules: [.protection_rules[].type], can_admins_bypass}'   # branch_policy と required_reviewers、false
 ```
 
 ## 動かす
@@ -92,11 +110,26 @@ gh workflow run deploy.yaml --ref main -f target=all   # マイグレーショ�
 gh run watch
 ```
 
+動かすと、本番に出す job の前で run が止まり、「Waiting」になる。Actions の run の画面に出る **Review deployments** を押し、`production` を選んで、target と動かしたコミットを見てから **Approve and deploy** を押す。
+
+- `all` では3回止まる（`migrate`・`deploy-api`・`deploy-web` の前）。前の job が終わるたびに、次の承認を求められる
+- 承認しないまま30日たつと、その job は失敗する。出すのをやめるなら **Reject** を押す。その job とその後ろは動かず、本番には何も出ない
+- 本番の最中に `web` を出すときは、承認の画面を開いて待っておく。止まってから承認するまで、本番の画面は前のままになる
+
 終わったら、[下の「デプロイのあとに確かめる」](#デプロイのあとに確かめる)を行う。
 
 ## デプロイのあとに確かめる
 
-`web` のときは 1 と 2 だけでよい。`all` のときと、本番の環境を初めて作ったときは、すべて行う。
+`web` のときは 0〜2 だけでよい。`all` のときと、本番の環境を初めて作ったときは、すべて行う。
+
+0. 本番に出したコミットが、Environments の `production`（Settings → Environments、またはリポジトリのトップの Deployments）の最新に載っている。どの版かは、そのコミットから一番近いタグで分かる。タグより後ろのコミット数が `-<数>-g<SHA>` で付くときは、本番に版になっていない変更が入っている（[release.md](release.md)）
+
+   ```sh
+   sha=$(gh api 'repos/XeicuLy/zubatto-quiz/deployments?environment=production&per_page=1' --jq '.[0].sha')
+   git fetch --tags && git describe --tags --match 'v*' "$sha"
+   ```
+
+   `fatal: No names found` と出るときは、まだ1つもタグがない（最初のリリースの前）。SHA だけを見る
 
 1. 本番の URL（`https://zubakui-web.<サブドメイン>.workers.dev`）が開く
 2. 開発者ツールの Console に、`Content Security Policy` の違反が出ていない（ADR 0004）
@@ -116,6 +149,8 @@ gh run watch
 | どこで止まったか | よくある理由                                                                                | どうするか                                                                                                          |
 | ---------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | どれも動かない   | 「Branch "..." is not allowed to deploy to production due to environment protection rules」 | main 以外のブランチで動かした。main にマージしてから、Branch を `main` にして動かす                                 |
+| 承認のところ     | 「Waiting」のまま進まない                                                                   | 承認を待っている。run の画面の **Review deployments** から承認する（上の「動かす」）                                |
+| 承認のところ     | Reject した・承認しないまま30日たった                                                       | その job とその後ろは動いていない。出すなら、もう一度動かして承認する                                               |
 | `verify-ci`      | 「… の ci が成功していない（in_progress）」（`queued` も同じ）                              | main の CI がまだ走っている。終わってから、その run の **Re-run failed jobs** で動かし直す                          |
 | `verify-ci`      | 「… の e2e が成功していない（failure）」                                                    | そのコミットはテストが落ちている。直して main にマージし、CI が通ってから動かす                                     |
 | `verify-ci`      | 「… の ci が成功していない（cancelled）」                                                   | CI が途中で止まった。Actions の CI の run で **Re-run all jobs** を行い、通ってから動かし直す                       |
