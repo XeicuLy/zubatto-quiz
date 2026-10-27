@@ -45,7 +45,8 @@ PR の題名（Conventional Commits）の type で決まる。
    - Repository permissions: Contents・Pull requests・Issues を Read and write にする。Metadata は Read-only のまま
    - Where can this GitHub App be installed?: Only on this account
 3. Create GitHub App を押し、出てきた画面の Client ID を控える
-4. 同じ画面の Private keys で Generate a private key を押す。秘密鍵（`.pem`）がダウンロードされる
+4. 秘密鍵は、App の設定の `key_pairs` のページ（`https://github.com/settings/apps/<App の名前>/key_pairs`）で Generate a private key を押して作る。秘密鍵（`.pem`）がダウンロードされる。General の画面には出ない（2026-10-28 に確かめた）。隣の `client_secrets`（Client secret）は人がこの App でログインするためのもので、作らない
+   - 鍵はすぐ下の 3 で secret に入れて消すので、2 で Environment を作ってから作るとよい
 5. 左の Install App から、このアカウントに入れる。Only select repositories で `zubatto-quiz` だけを選ぶ
 
 権限の理由: Contents はリリース PR のブランチ・`package.json`・CHANGELOG・タグを書くため、Pull requests はリリース PR を開くため、Issues はリリース PR に付けるラベル（`autorelease: pending` と `autorelease: tagged`）のため。release-please は、マージ済みのリリース PR をこのラベルで探す。
@@ -56,10 +57,13 @@ App の秘密鍵は、main の workflow からしか読めないように、Envi
 
 ```sh
 gh api -X PUT repos/XeicuLy/zubatto-quiz/environments/release \
+  -F can_admins_bypass=false \
   -F 'deployment_branch_policy[protected_branches]=false' \
   -F 'deployment_branch_policy[custom_branch_policies]=true'
 gh api -X POST repos/XeicuLy/zubatto-quiz/environments/release/deployment-branch-policies -f name=main -f type=branch
 ```
+
+- `can_admins_bypass` を `false` にする。`true`（作ったときの既定）だと、管理者は「main だけ」の決まりを飛ばせ、main 以外のブランチの workflow にも鍵が渡りうる
 
 画面では Settings → Environments → New environment で `release` を作り、Deployment branches and tags を Selected branches and tags にして `main` を足す。
 
@@ -139,9 +143,9 @@ END_COMMIT_OVERRIDE
 
 漏れたかもしれないとき、または定期的に入れ替えるとき。
 
-1. App の設定画面の Private keys で、新しい鍵を作る（古い鍵はまだ消さない）
+1. App の設定の `key_pairs` のページで、新しい鍵を作る（古い鍵はまだ消さない）
 2. 上の 3 のコマンドで `RELEASE_APP_PRIVATE_KEY` を入れ直し、ダウンロードした鍵を消す
 3. main の release-please の run を動かし直し（Actions の画面の Re-run）、通ることを確かめる
-4. App の設定画面で、古い鍵を消す
+4. `key_pairs` のページで、古い鍵を消す
 
 App そのものをやめるときは、App の設定画面の Advanced から Delete GitHub App を押し、Environment `release` も消す。
