@@ -138,6 +138,39 @@ describe('1回で確定する回答（F10）', () => {
     expect(screen.getByText('締切を待っています')).toBeInTheDocument();
   });
 
+  it('押したら、消えたボタンの代わりに回答の一覧へフォーカスを移す', () => {
+    const { rerender } = renderView(accepting, 'accepting');
+    showChoices();
+    const button = screen.getByRole('button', { name: /アニソン/ });
+
+    button.focus();
+    fireEvent.click(button);
+    const list = screen.getByRole('list', { name: 'あなたの回答' });
+    expect(list).toHaveFocus();
+
+    // 受け付けられた知らせや残りの秒で描き直しても、一覧は作り直されず、フォーカスもそのまま
+    rerender({ ...accepting, answer: { choiceIndex: 1, elapsedMs: 900 } }, 'accepting');
+    advance(1500);
+    expect(screen.getByRole('list', { name: 'あなたの回答' })).toBe(list);
+    expect(list).toHaveFocus();
+  });
+
+  it('つなぎ直して、もう受け付けられた回答が届いたときは、フォーカスを動かさない', () => {
+    renderView({ ...accepting, answer: { choiceIndex: 2, elapsedMs: 1500 } }, 'accepting');
+    showChoices();
+
+    expect(document.body).toHaveFocus();
+  });
+
+  it('答えずに端末の残りが0になったときは、フォーカスを動かさない', () => {
+    renderView(accepting, 'accepting');
+    const shownAt = showChoices();
+
+    advanceFrom(shownAt, 10_000);
+
+    expect(screen.getByRole('list', { name: '選択肢' })).not.toHaveFocus();
+  });
+
   it('二度押しても2回は送らない', () => {
     const { onAnswer } = renderView(accepting, 'accepting');
     showChoices();
@@ -233,7 +266,7 @@ describe('回答と締切の読み上げ（#110）', () => {
     render(<Announcer />);
   });
 
-  it('押したら、回答までの時間と締切を待っていることを読み上げる', () => {
+  it('押したら、選んだものと回答までの時間と締切を待っていることを読み上げる', () => {
     renderView(accepting, 'accepting');
     const shownAt = showChoices();
 
@@ -241,7 +274,10 @@ describe('回答と締切の読み上げ（#110）', () => {
     fireEvent.click(screen.getByRole('button', { name: /アニソン/ }));
     advance(ANNOUNCE_DELAY_MS);
 
-    expect(liveRegion('polite')).toHaveTextContent(/^回答までの時間 2\.37秒。締切を待っています$/);
+    // 一覧へ移ったフォーカスでは名前と項目数しか読まれないので、何を選んだかはここで伝える
+    expect(liveRegion('polite')).toHaveTextContent(
+      /^2番「アニソン」で回答しました。回答までの時間 2\.37秒。締切を待っています$/,
+    );
     // 見える知らせは、箱と中身が同時に現れるので role="status" を付けない
     expect(screen.queryByRole('status')).toBeNull();
   });

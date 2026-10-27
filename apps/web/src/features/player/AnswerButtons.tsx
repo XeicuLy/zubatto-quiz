@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef } from 'react';
+
 interface AnswerButtonsProps {
   /** 2〜4択。受付開始（answeringStarted）で届いたもの */
   choices: string[];
@@ -5,6 +7,8 @@ interface AnswerButtonsProps {
   chosen: number | null;
   /** 渡すと押せるボタンにする。渡さなければ、押せない一覧にする（回答済み・締切のあと） */
   onChoose?: (choiceIndex: number) => void;
+  /** 押せない一覧を出したときに、一覧へフォーカスを移す。押したボタンが消えてフォーカスが落ちるので、この画面で押した直後だけ渡す */
+  focusList?: boolean;
 }
 
 /**
@@ -20,9 +24,9 @@ const panelColors = [
 ] as const;
 
 /** 1回押したら選び直せない。二度押しを止めるのは、送る側（QuestionView）の役目 */
-export function AnswerButtons({ choices, chosen, onChoose }: AnswerButtonsProps) {
+export function AnswerButtons({ choices, chosen, onChoose, focusList = false }: AnswerButtonsProps) {
   if (onChoose === undefined) {
-    return <AnsweredList choices={choices} chosen={chosen} />;
+    return <AnsweredList choices={choices} chosen={chosen} focus={focusList} />;
   }
   return (
     <div className="mt-6 flex flex-1 flex-col gap-3">
@@ -42,10 +46,27 @@ export function AnswerButtons({ choices, chosen, onChoose }: AnswerButtonsProps)
   );
 }
 
-/** 回答済みと締切のあと。選んだものだけを色で残し、ほかは薄くする */
-function AnsweredList({ choices, chosen }: { choices: string[]; chosen: number | null }) {
+/**
+ * 回答済みと締切のあと。選んだものだけを色で残し、ほかは薄くする。
+ * フォーカスは受けられるが Tab では止まらない（tabIndex={-1}）。枠は :focus-visible に任せ、キーボードで押したときだけ出す
+ */
+function AnsweredList({ choices, chosen, focus }: { choices: string[]; chosen: number | null; focus: boolean }) {
+  const listRef = useRef<HTMLUListElement>(null);
+  // 出した直後に1回だけ移す。残りの秒で描き直すたびに移すと、読み上げソフトが一覧の名前を読み直す
+  useLayoutEffect(() => {
+    if (focus) {
+      listRef.current?.focus();
+    }
+  }, [focus]);
+
   return (
-    <ul className="mt-6 flex flex-col gap-3">
+    <ul
+      ref={listRef}
+      tabIndex={-1}
+      aria-label={chosen === null ? '選択肢' : 'あなたの回答'}
+      // 選んだ項目の ring は ring-offset と合わせて 8px はみ出すので、枠はその外に出す
+      className="mt-6 flex flex-col gap-3 rounded-panel focus-visible:outline-4 focus-visible:outline-offset-12 focus-visible:outline-on-stage"
+    >
       {choices.map((choice, index) =>
         index === chosen ? (
           <li
