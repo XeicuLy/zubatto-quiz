@@ -81,21 +81,23 @@ pnpm exec vitest run --project <名前>   # 1つのパッケージのテスト�
 7. 本番の D1 の許可リストに自分を入れる（[host-allowlist.md](docs/runbooks/host-allowlist.md)）
 8. 本番の URL の `/login` から GitHub でログインし、最終ランキングまで通せることを確かめる（[deploy.md](docs/runbooks/deploy.md#デプロイのあとに確かめる)）
 9. リポジトリを作り直したときは、main のルールセットも作り直す（[branch-protection.md](docs/runbooks/branch-protection.md)）
+10. リポジトリを作り直したときは、リリースの GitHub App と Environment `release`、squash だけのマージの設定も用意し直す（[release.md](docs/runbooks/release.md#はじめに一度だけ用意するもの)）
 
 本番の最中は、API の Worker をデプロイしない。部屋の WebSocket がすべて切れる（ADR 0006）。画面だけを直すときは、workflow を「画面だけ」（`web`）で動かす。
 
 ## 運用の手順書
 
-| 手順書                                                     | いつ使うか                                                 |
-| ---------------------------------------------------------- | ---------------------------------------------------------- |
-| [github-oauth-apps.md](docs/runbooks/github-oauth-apps.md) | GitHub OAuth App を作る・Client Secret を作り直す          |
-| [secrets.md](docs/runbooks/secrets.md)                     | `.dev.vars` を書く・本番のシークレットを入れる・変える     |
-| [deploy.md](docs/runbooks/deploy.md)                       | 本番にデプロイする・API トークンを入れる・作り直す         |
-| [host-allowlist.md](docs/runbooks/host-allowlist.md)       | ホストを足す・外す（取り消す）                             |
-| [stop-and-usage.md](docs/runbooks/stop-and-usage.md)       | 本番の前後に使用量を確かめる・すぐに止める                 |
-| [logs.md](docs/runbooks/logs.md)                           | 本番中と本番のあとにエラーのログを見る・手元に残す（O1）   |
-| [branch-protection.md](docs/runbooks/branch-protection.md) | main のルールセットを見る・作り直す・一時的に止める        |
-| [tools/loadtest/README.md](tools/loadtest/README.md)       | 本番の前に、ボットで同時参加を再現してリハーサルする（O2） |
+| 手順書                                                     | いつ使うか                                                  |
+| ---------------------------------------------------------- | ----------------------------------------------------------- |
+| [github-oauth-apps.md](docs/runbooks/github-oauth-apps.md) | GitHub OAuth App を作る・Client Secret を作り直す           |
+| [secrets.md](docs/runbooks/secrets.md)                     | `.dev.vars` を書く・本番のシークレットを入れる・変える      |
+| [deploy.md](docs/runbooks/deploy.md)                       | 本番にデプロイする・API トークンを入れる・作り直す          |
+| [host-allowlist.md](docs/runbooks/host-allowlist.md)       | ホストを足す・外す（取り消す）                              |
+| [stop-and-usage.md](docs/runbooks/stop-and-usage.md)       | 本番の前後に使用量を確かめる・すぐに止める                  |
+| [logs.md](docs/runbooks/logs.md)                           | 本番中と本番のあとにエラーのログを見る・手元に残す（O1）    |
+| [branch-protection.md](docs/runbooks/branch-protection.md) | main のルールセットを見る・作り直す・一時的に止める         |
+| [release.md](docs/runbooks/release.md)                     | リリース PR から版を出す・GitHub App を作る・鍵を入れ替える |
+| [tools/loadtest/README.md](tools/loadtest/README.md)       | 本番の前に、ボットで同時参加を再現してリハーサルする（O2）  |
 
 ## コントリビュート
 

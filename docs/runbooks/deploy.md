@@ -13,7 +13,7 @@
 | `web`（既定） | `verify-ci` → `deploy-web`                            | よい。画面の Worker だけなら、部屋の接続は切れない      |
 | `all`         | `verify-ci` → `migrate` → `deploy-api` → `deploy-web` | 選ばない。部屋の WebSocket が切れることがある（下の注） |
 
-- どちらでも、はじめに `verify-ci` が、動かしたコミットで `ci` と `e2e` が成功しているかを確かめる。どれかが失敗しているか、まだ走っているか、見つからなければ止まり、本番には何も出さない
+- どちらでも、はじめに `verify-ci` が、動かしたコミットで必須のチェック（`ci`・`e2e`・`pr-title`）が成功しているかを確かめる。どれかが失敗しているか、まだ走っているか、見つからなければ止まり、本番には何も出さない
   - 確かめるチェックの名前は、main のルールセット（[main-ruleset.json](main-ruleset.json)）の必須のチェックから読む。ルールセットにチェックを足せば、`verify-ci` も同じものを見る
   - PR の CI は、試しのマージコミットで動くので、main に入ったコミットにはチェックが付かない。そのため `ci.yaml` は main への push でも動く
   - `verify-ci` は本番に触らないので、Environment（`production`）を使わず、Cloudflare のトークンも読まない。読めるのはコードと check run だけ

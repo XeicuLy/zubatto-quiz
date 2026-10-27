@@ -6,19 +6,19 @@ main ブランチは、リポジトリのルールセット（Settings → Rules
 
 ## 何を決めているか
 
-| 項目                                                 | 値                                                    | なぜ                                                                                                                            |
-| ---------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| 対象                                                 | 既定のブランチ（`~DEFAULT_BRANCH`）                   | main の名前を変えても、そのまま効く                                                                                             |
-| 削除の禁止（`deletion`）                             | あり                                                  | main を消せないようにする                                                                                                       |
-| force push の禁止（`non_fast_forward`）              | あり                                                  | main の履歴を書き換えられないようにする                                                                                         |
-| PR 必須（`pull_request`）                            | 承認は0件                                             | 1人で開発しているので、承認は求めない。直接 push はできない                                                                     |
-| マージの方法                                         | merge と squash                                       |                                                                                                                                 |
-| CodeQL（`code_scanning`）                            | セキュリティの警告は high 以上、ほかは error で止める |                                                                                                                                 |
-| Code Quality（`code_quality`）                       | error で止める                                        |                                                                                                                                 |
-| 必須のステータスチェック（`required_status_checks`） | `ci`・`e2e`                                           | CI の workflow（`.github/workflows/ci.yaml`）の job 名。`e2e` は通しの E2E（Playwright）                                        |
-| チェックを送ってよいアプリ（`integration_id`）       | `15368`                                               | GitHub Actions のアプリの ID。ほかの仕組みが同じ `ci`・`e2e` という名前で成功を送ってきても、必須のチェックの結果として使わない |
-| strict（main に追いついていることを求める）          | なし                                                  | 1人で開発しているので、PR を出すたびに main を取り込み直す手間を省く                                                            |
-| bypass                                               | なし                                                  | admin も例外にしない。CI が通らない PR は、誰もマージできない                                                                   |
+| 項目                                                 | 値                                                    | なぜ                                                                                                                                                                                                        |
+| ---------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 対象                                                 | 既定のブランチ（`~DEFAULT_BRANCH`）                   | main の名前を変えても、そのまま効く                                                                                                                                                                         |
+| 削除の禁止（`deletion`）                             | あり                                                  | main を消せないようにする                                                                                                                                                                                   |
+| force push の禁止（`non_fast_forward`）              | あり                                                  | main の履歴を書き換えられないようにする                                                                                                                                                                     |
+| PR 必須（`pull_request`）                            | 承認は0件                                             | 1人で開発しているので、承認は求めない。直接 push はできない                                                                                                                                                 |
+| マージの方法                                         | squash だけ                                           | PR 1つが main の1コミットになり、その題名が CHANGELOG の1行になる（ADR 0009・[release.md](release.md)）                                                                                                     |
+| CodeQL（`code_scanning`）                            | セキュリティの警告は high 以上、ほかは error で止める |                                                                                                                                                                                                             |
+| Code Quality（`code_quality`）                       | error で止める                                        |                                                                                                                                                                                                             |
+| 必須のステータスチェック（`required_status_checks`） | `ci`・`e2e`・`pr-title`                               | `ci` と `e2e`（通しの E2E）は `.github/workflows/ci.yaml`、`pr-title`（PR の題名の確認）は `pr-title.yaml` の job 名。どれも main への push でも動かす。デプロイの `verify-ci` が main のコミットで探すため |
+| チェックを送ってよいアプリ（`integration_id`）       | `15368`                                               | GitHub Actions のアプリの ID。ほかの仕組みが同じ名前で成功を送ってきても、必須のチェックの結果として使わない                                                                                                |
+| strict（main に追いついていることを求める）          | なし                                                  | 1人で開発しているので、PR を出すたびに main を取り込み直す手間を省く                                                                                                                                        |
+| bypass                                               | なし                                                  | admin も例外にしない。CI が通らない PR は、誰もマージできない                                                                                                                                               |
 
 ## 今の設定を見る
 
@@ -38,7 +38,7 @@ gh api -X POST repos/XeicuLy/zubatto-quiz/rulesets --input docs/runbooks/main-ru
 ```
 
 - `main-ruleset.json` には、`id`・`_links`・`created_at` など、GitHub が付ける項目を入れていない。入っていると作れないので、`gh api` で取り出した JSON から写すときは、これらを消す
-- 作ったら、適当な PR で `ci` と `e2e` が必須のチェックとして表示され、通るまでマージのボタンが押せないことを確かめる
+- 作ったら、適当な PR で `ci`・`e2e`・`pr-title` が必須のチェックとして表示され、通るまでマージのボタンが押せないことを確かめる
 
 ## 設定を変える
 
@@ -58,14 +58,14 @@ gh api -X PUT repos/XeicuLy/zubatto-quiz/rulesets/<id> --input docs/runbooks/mai
 
 当てたら、`gh api repos/XeicuLy/zubatto-quiz/rulesets/<id> --jq '.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks'` で、必須のチェックが `main-ruleset.json` と同じになったことを確かめる。
 
-### CI の job 名を変えるとき
+### 必須のチェックの job 名を変えるとき
 
-必須のチェックの名前は、job の表示名で決まる。表示名は `jobs.<job_id>.name` があればその値、なければ job ID（今は `ci` と `e2e`）になる。`ci.yaml` の job ID や `name:` だけを変えると、その名前のチェックがいつまでも来ないので、どの PR もマージできなくなる。job 名を変えるときは、同じ PR で次の両方を行う。
+必須のチェックの名前は、job の表示名で決まる。表示名は `jobs.<job_id>.name` があればその値、なければ job ID（今は `ci`・`e2e`・`pr-title`）になる。workflow の job ID や `name:` だけを変えると、その名前のチェックがいつまでも来ないので、どの PR もマージできなくなる。job 名を変えるときは、同じ PR で次の両方を行う。
 
 1. ルールセットの必須のチェックの名前を、新しい job 名に変える
 2. `main-ruleset.json` の `context` も同じ名前にする
 
-`main-ruleset.json` の名前が `ci.yaml` のどの job の表示名とも合わないと、`tools/docs-check` のテストが落ちる。テストは名前を決め打ちしていないので、テストを直す必要はない。
+`main-ruleset.json` の名前が `.github/workflows/` のどの job の表示名とも合わないとき、2つの workflow の job が同じ名前のとき、その workflow が main への PR と push の両方で動かないときは、`tools/docs-check` のテストが落ちる。テストは名前を決め打ちしていないので、テストを直す必要はない。
 
 ## CI が壊れて直せないとき
 
