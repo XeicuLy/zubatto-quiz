@@ -2,11 +2,15 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   // wrangler types と TanStack Router のプラグインが作るファイルは見ない
   "ignorePatterns": ["**/worker-configuration.d.ts", "**/routeTree.gen.ts"],
-  "plugins": ["typescript", "unicorn", "oxc", "react", "import", "vitest"],
+  "plugins": ["typescript", "unicorn", "oxc", "react", "import", "vitest", "jsx-a11y"],
   "categories": {
     "correctness": "error"
   },
   "rules": {
+    // role="status" の <p> を <output> に、<svg role="img"> を <img> にと勧めるが、どちらも当てはまらない。
+    // <output> は計算や操作の結果を出す欄で、読み上げられるかが読み上げソフトによって違う。
+    // インラインの SVG に名前を付けるには role="img" と aria-label を使う
+    "jsx-a11y/prefer-tag-over-role": "off",
     "react/no-danger": "error",
     "react/no-danger-with-children": "error",
     // ADR 0004: 名前などの入力を HTML として解釈させない。文字として描画するには textContent や JSX の {} を使う

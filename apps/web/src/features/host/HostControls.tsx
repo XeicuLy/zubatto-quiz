@@ -145,6 +145,8 @@ function ConfirmBar({ title, detail, confirmLabel, onConfirm, onCancel }: Confir
   }
 
   return (
+    // 帯の中のボタンから上がってくる Esc を受けるだけで、帯そのものは操作しない。役割は alertdialog のままにする
+    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
       role="alertdialog"
       aria-labelledby={titleId}

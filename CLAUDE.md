@@ -31,6 +31,7 @@ mkdir -p logs && pnpm -s run logs:api >> "logs/api-$(date +%Y%m%d-%H%M%S).json" 
 - Each package's `tsconfig.json` extends `tsconfig.base.json` and adds its own `types`/`lib`. A package with a `tsc` script is type-checked by the root `pnpm run tsc`.
 - vitest 4 fails with "No projects were found" when no project glob matches, so `vitest.config.ts` leaves `projects` unset while `apps/`, `packages/` and `tools/` are empty. `@cloudflare/vitest-pool-workers` is deprecated and renamed to `@cloudflare/vitest-plugin`, which supports vitest 4 and 5 (checked 2026-10-11).
 - oxlint rejects `dangerouslySetInnerHTML`, `innerHTML`-style DOM APIs (ADR 0004) and imports of test code (`test/`, `*.test.*`, `*.spec.*`) from production code. Test code may import production code.
+- oxlint's `jsx-a11y` plugin is on (its `correctness` rules, except `prefer-tag-over-role`: `<output>` and `<img>` don't fit a `role="status"` `<p>` or an inline `<svg role="img">`). Move initial focus with a ref and `useLayoutEffect`, never `autoFocus` (`no-autofocus`). A false positive gets `// oxlint-disable-next-line <rule>` with the reason on the line above (`autocomplete="nickname"`, an `alertdialog` catching a bubbled Esc).
 
 ## Commits
 
