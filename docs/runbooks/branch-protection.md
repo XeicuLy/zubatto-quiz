@@ -1,8 +1,11 @@
-# main のルールセット
+# ルールセット（main と v\* のタグ）
 
-main ブランチは、リポジトリのルールセット（Settings → Rules → Rulesets）で守る。classic のブランチ保護（Settings → Branches）は使わない。CI が通らないと main にマージできないようにするためのもの（M1）。
+main ブランチと `v*` のタグは、リポジトリのルールセット（Settings → Rules → Rulesets）で守る。classic のブランチ保護（Settings → Branches）は使わない。
 
-設定の正本は [main-ruleset.json](main-ruleset.json) で、これを `gh api` に渡せば一から作り直せる。
+- main のルールセット: CI が通らないと main にマージできないようにする（M1）。設定の正本は [main-ruleset.json](main-ruleset.json)
+- `v*` のタグのルールセット: `v*` のタグを作れる（動かせる・消せる）のを release-please の App だけにする（ADR 0010）。設定の正本は [release-tag-ruleset.json](release-tag-ruleset.json)。[下の「v\* のタグのルールセット」](#v-のタグのルールセット)
+
+どちらも、正本の JSON を `gh api` に渡せば一から作り直せる。
 
 ## 何を決めているか
 
@@ -79,4 +82,58 @@ gh api -X PUT repos/XeicuLy/zubatto-quiz/rulesets/<id> -f enforcement=active
 ```
 
 - 止めている間は、force push や main の削除も防げない。マージが終わったらすぐに戻す
+- 戻したら、`gh api repos/XeicuLy/zubatto-quiz/rulesets/<id> --jq .enforcement` が `active` になっていることを確かめる
+
+## v\* のタグのルールセット
+
+`v*` のタグは、本番への入口になる。production の Environment は `v*` のタグからのデプロイを許しているので（[deploy.md](deploy.md#github-の-environmentproductionを作る)）、誰でもタグを打てると、好きなコミットに `v*` を打ち、そのタグの上で deploy.yaml を動かして本番に出せてしまう。タグを作れるのを App だけにすれば、タグは「リリース PR をマージした」ときにしかできない（ADR 0010）。
+
+### タグのルールセットで決めていること
+
+| 項目                     | 値                                                    | なぜ                                                                                                         |
+| ------------------------ | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 対象                     | `refs/tags/v*`                                        | 版のタグだけを守る。`*` は `/` をまたがない                                                                  |
+| 作成の禁止（`creation`） | あり                                                  | 人が好きなコミットに `v*` を打てないようにする                                                               |
+| 更新の禁止（`update`）   | あり                                                  | 今あるタグを別のコミットへ付け直せないようにする。付け直すと、同じ版の名前で別のコードが本番に出る           |
+| 削除の禁止（`deletion`） | あり                                                  | 消してから同じ名前で打ち直す道もふさぐ                                                                       |
+| bypass                   | release-please の App だけ（`Integration`・`always`） | App はリリース PR のマージで Release を作り、そのときタグも作る。bypass したことは監査ログに残る（`always`） |
+
+- `actor_id` は App の **App ID**（数字）。Client ID（`Iv` で始まる文字列）ではない。App ID は App の設定画面（`https://github.com/settings/apps/<App の名前>`）の About に出る。非公開の App なので、`gh api apps/<App の名前>` では読めない
+- 作る前からある `v1.0.0` などのタグは、そのまま残る。作ったあとは、それらも動かせず消せなくなる
+
+### タグのルールセットを作る
+
+リポジトリを作り直したときや、App を作り直したとき（App ID が変わる）は、先に `release-tag-ruleset.json` の `actor_id` を新しい App ID にしてから作る。production に `v*` を許す（[deploy.md](deploy.md#github-の-environmentproductionを作る)）より**前に**作る。逆の順だと、その間は誰でもタグを打って本番に出せる。
+
+```sh
+gh api -X POST repos/XeicuLy/zubatto-quiz/rulesets --input docs/runbooks/release-tag-ruleset.json
+```
+
+作ったら、名前・対象・ルール・bypass を確かめる。`id` は、下の止め方でも使う。
+
+```sh
+gh api repos/XeicuLy/zubatto-quiz/rulesets --jq '.[] | select(.name == "release-tags") | .id'
+gh api repos/XeicuLy/zubatto-quiz/rulesets/<id> \
+  --jq '{enforcement, target, include: .conditions.ref_name.include, rules: [.rules[].type], bypass: [.bypass_actors[] | {actor_id, actor_type, bypass_mode}]}'
+```
+
+`enforcement` が `active`、`target` が `tag`、`include` が `["refs/tags/v*"]`、`rules` が `creation`・`update`・`deletion`、`bypass` が App ID の `Integration` 1つだけになっていればよい。設定を画面やコマンドで変えたときは、main のルールセットと同じく（[上の「設定を変える」](#設定を変える)）、`release-tag-ruleset.json` もそろえる。
+
+- `tools/docs-check` のテストは、対象が `v*` のタグだけであること、3つの禁止がそろっていること、bypass が App 1つだけであること、GitHub が付ける項目を含まないことを確かめる。App ID の値そのものは確かめないので、作り直したときは自分で見比べる
+- App ID が違っていると、リリース PR をマージしても release-please がタグを作れず、Release もできない（[release.md の「失敗したとき」](release.md#失敗したとき)）
+
+### 打ち間違えたタグを消す
+
+bypass は App だけなので、admin でも `v*` のタグを消せない。release-please が違う版のタグを作ったときなど、どうしても消すときだけ、ルールセットを一時的に止める。
+
+```sh
+# 止める
+gh api -X PUT repos/XeicuLy/zubatto-quiz/rulesets/<id> -f enforcement=disabled
+# Release とタグを消す
+gh release delete <タグ> --cleanup-tag --yes
+# すぐに戻す
+gh api -X PUT repos/XeicuLy/zubatto-quiz/rulesets/<id> -f enforcement=active
+```
+
+- 止めている間は、誰でも `v*` のタグを打てる。production は `v*` のタグからのデプロイを許しているので、止めている間は本番への入口が開いている。消したらすぐに戻す
 - 戻したら、`gh api repos/XeicuLy/zubatto-quiz/rulesets/<id> --jq .enforcement` が `active` になっていることを確かめる
