@@ -1,0 +1,43 @@
+name: Release Please
+
+# main に入るたびに、release-please がリリース PR（chore: vX.Y.Z をリリースする）を開くか更新する。
+# リリース PR をマージすると、そのコミットにタグ vX.Y.Z と GitHub Release を作る。本番へのデプロイはしない（ADR 0005・0009）
+on:
+  push:
+    branches:
+      - main
+
+# GITHUB_TOKEN は使わない。書き込みは、下で作る GitHub App の token が持つ
+permissions:
+  contents: read
+
+# 2つの run が同じリリース PR を同時に書き換えないよう、1つずつ動かす。途中で止めると PR やタグが半端に残るので、取り消さない
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # App の秘密鍵は、main だけに絞った Environment の secret に置く（docs/runbooks/release.md）
+    environment: release
+    steps:
+      # GITHUB_TOKEN で作った PR では、ci / e2e が承認待ちになる。App の token で作れば、ふつうの PR と同じく動く
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          # token の権限を、App に許した中からさらに絞る。issues はリリース PR のラベル（autorelease: pending）のため
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+
+      - name: Release Please
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

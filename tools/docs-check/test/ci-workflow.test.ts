@@ -36,6 +36,18 @@ function actionRefsOf(text: string): { uses: string; comment?: string }[] {
 }
 
 /**
+ * run: の中に ${{ }} で直接埋め込んだ、利用者が書ける値（PR の題名、コミットのメッセージ、ブランチ名など）を返す。
+ * Actions は ${{ }} をシェルに渡す前に文字列として埋め込むので、題名に `"; curl ... #` と書かれると、そのまま命令として動く
+ */
+function untrustedExpressionsInRun(text: string): string[] {
+  const jobs = Object.values((parse(text) as Workflow).jobs);
+  return jobs
+    .flatMap(({ steps }) => (steps ?? []).map(({ run }) => run ?? ''))
+    .flatMap((run) => [...run.matchAll(/\$\{\{([^}]*)\}\}/g)].map(([, body = '']) => body.trim()))
+    .filter((body) => /\bgithub\.(event|head_ref)\b/.test(body));
+}
+
+/**
  * step の if の式を、cache-hit の出力だけで評価する。この workflow で使う形だけを知っていて、ほかの形は例外にする。
  * actions/cache の cache-hit は、key がそのまま当たったときだけ 'true' になる（restore-keys で戻したときは 'false'）。
  * 前の step が失敗しない場合を考えるので、failure() は false にする
@@ -82,6 +94,28 @@ describe('actionRefsOf', () => {
 
   it('文字列から読めない書き方（flow の形など）は例外にする（読めなかった uses を黙って飛ばさない）', () => {
     expect(() => actionRefsOf('jobs:\n  ci:\n    steps:\n      - { uses: a/b@v4 }\n')).toThrow('読みきれない');
+  });
+});
+
+describe('untrustedExpressionsInRun', () => {
+  it.each([
+    ['PR の題名を埋め込む', 'jobs:\n  a:\n    steps:\n      - run: echo "${{ github.event.pull_request.title }}"\n', 1],
+    ['ブランチ名を埋め込む', 'jobs:\n  a:\n    steps:\n      - run: git log ${{ github.head_ref }}\n', 1],
+    [
+      '環境変数で渡すのはよい',
+      'jobs:\n  a:\n    steps:\n      - run: echo "$T"\n        env:\n          T: ${{ github.event.pull_request.title }}\n',
+      0,
+    ],
+    ['利用者が書けない値はよい', 'jobs:\n  a:\n    steps:\n      - run: echo ${{ steps.x.outputs.path }}\n', 0],
+  ])('%s', (_, workflow, count) => {
+    expect(untrustedExpressionsInRun(workflow)).toHaveLength(count);
+  });
+});
+
+describe('run: への埋め込み（すべての workflow）', () => {
+  it.each(workflowFiles)('%s の run: は、github.event や github.head_ref を ${{ }} で直接埋め込まない', (file) => {
+    // 題名などは env: で環境変数にして、シェルの変数として読む
+    expect(untrustedExpressionsInRun(readRepoFile(`.github/workflows/${file}`))).toEqual([]);
   });
 });
 
