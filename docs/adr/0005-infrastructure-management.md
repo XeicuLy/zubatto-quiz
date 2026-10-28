@@ -82,6 +82,7 @@ ADR 0001〜0004 で、基盤は Cloudflare Workers + Durable Objects（Free プ�
     - 自動で作る仕組みは、初回の手順を飛ばしたときの備えにはならない。D1 がないと、workflow の最初のマイグレーションが「D1 が見つからないので `wrangler d1 create` を実行して」というエラーで止まり、D1 を自動で作る API の Worker のデプロイまで進まない（wrangler 4.149.0 のソースで確かめた）。D1 を作り直すときも、同じコマンドで先に作る
   - 本番のデプロイとマイグレーションは、GitHub Actions の workflow から行う
     - 手で動かしたとき（`workflow_dispatch`）だけ動く workflow にする。main にマージしてもデプロイしない。本番中は API の Worker をデプロイしない決まり（ADR 0006）を、マージで破らないため
+      - ADR 0010 で、Release ができたときにも動くように変えた。本番に出す前に承認が要る（ADR 0009）ので、動き始めても承認しなければ出ない。手で動かす形も残す
     - 動かすときに「画面だけ」か「API と画面」かを選ぶ。「API と画面」では、マイグレーション（`wrangler d1 migrations apply DB --remote`）→ API の Worker → 画面の Worker の順に行う。Service binding の相手が先にないといけないので、API の Worker を先にする（ADR 0006）
     - マイグレーションは、古いコードのままでも動くもの（テーブルや列を足すもの）にする。マイグレーションを当ててから API の Worker をデプロイし終えるまでは、古いコードが新しいスキーマで動くため
     - 手元からはデプロイしない。デプロイの手順が workflow のファイルに残り（DD2）、手元の wrangler.jsonc に ID が書き戻されることもない

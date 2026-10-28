@@ -71,6 +71,7 @@ R1 の中で決めること
 - V1（リポジトリ全体で1つ）: npm に出すパッケージはなく、デプロイの単位（web と api の Worker）とパッケージ（protocol など）も一致しない。V2 はタグと Release が倍になり、どれを本番に出したかも分かりにくくなる（DD4）
 - bootstrap: これまでのコミットは、マージコミットの本文に PR の題名が入った形で残っているので、読ませると二重の行が約110行出る。release-please は main が進むたびにリリース PR を書き直すので、手で直すならマージの直前にしかできない（DD4）
 - v\* タグの ruleset は入れない: タグを作るのは release-please だけで、打ち間違えたタグを消すたびに ruleset を無効にする手間がかかる。必要になったら足す
+  - ADR 0010 で入れることにした。Release をきっかけにタグのコミットをデプロイするので、タグを打つことが本番への入口になったため
 
 ## Consequences
 
@@ -82,6 +83,7 @@ R1 の中で決めること
 - 悪い影響: PR の題名が main のコミット名になる。題名が Conventional Commits の形でないと CHANGELOG に出ないので、PR の題名を CI で確かめる必要がある
 - 悪い影響: タグは「本番に出た」印ではない。本番に何があるかは production の Deployments と deploy.yaml の run で見る。Deployment は production を使う job ごとに作られ、job が失敗しても残るので、Worker ごとの版は、`deploy-api`・`deploy-web` が成功したいちばん新しい run の SHA から読む（deploy.md の「デプロイのあとに確かめる」）
 - 悪い影響: 承認は production を使う job ごとに求められる。`all` では migrate・deploy-api・deploy-web の前に1回ずつ、3回押す（2026-10-27 に `all` を動かして確かめた。ドキュメントには書かれていない）。承認だけの job を先頭に置いて1回にまとめる形は採らない。そうするには production から reviewers を外すことになり、main の別の workflow が production を使えば、承認なしで Cloudflare のトークンを読める。守りはトークンのそばに置く。`all` は本番の外でたまに出すだけなので、手間はまれ
+  - ADR 0010 で、Release のたびに `all` で動くようにしたので、production を使う job を1つにまとめ、承認を1回にした。reviewers は production に残すので、守りはトークンのそばのまま
 - 対応事項（#158）: release-please を入れる
   - GitHub App を作り、このリポジトリにだけ入れる。権限は Contents・Pull requests・Issues の Read and write（リリース PR に付ける `autorelease: pending` のラベルに Issues が要る）。App の ID と秘密鍵は main だけに絞った Environment の secret に置き、token は `actions/create-github-app-token` で作る
   - `release-please-config.json` と `.release-please-manifest.json` をルートに置く。`release-type: node`、`include-component-in-tag: false`（指定しないとタグが `zubatto-quiz-v1.0.0` になる）、`pull-request-title-pattern: "chore: v${version} をリリースする"`、`changelog-sections` で feat を「新機能」、fix を「修正」、perf を「性能」にし、ほかは `hidden`、`bootstrap-sha`
