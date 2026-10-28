@@ -22,8 +22,10 @@ describe('v* のタグのルールセット（docs/runbooks/release-tag-ruleset.
   });
 
   it('タグを作る・動かす・消すのを、どれも禁止する', () => {
-    // v* のタグは本番への入口になる。1つでも欠けると、好きなコミットに v* を打てる（または付け直せる）
-    expect(ruleset.rules.map(({ type }) => type).sort()).toEqual(['creation', 'deletion', 'update']);
+    // v* のタグは本番への入口になる。1つでも欠けると、好きなコミットに v* を打てる（または付け直せる）。
+    // GitHub はタグの update の parameters（update_allows_fetch_and_merge）を受け付けても保存しないので、
+    // 付けると書き出した設定と合わなくなる（2026-10-28 に作って確かめた）
+    expect(ruleset.rules).toEqual([{ type: 'creation' }, { type: 'update' }, { type: 'deletion' }]);
   });
 
   it('有効で、bypass は release-please の App だけ', () => {
