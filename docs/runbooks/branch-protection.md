@@ -119,7 +119,8 @@ gh api repos/XeicuLy/zubatto-quiz/rulesets/<id> \
 
 `enforcement` が `active`、`target` が `tag`、`include` が `["refs/tags/v*"]`、`rules` が `creation`・`update`・`deletion`、`bypass` が App ID の `Integration` 1つだけになっていればよい。設定を画面やコマンドで変えたときは、main のルールセットと同じく（[上の「設定を変える」](#設定を変える)）、`release-tag-ruleset.json` もそろえる。
 
-- `tools/docs-check` のテストは、対象が `v*` のタグだけであること、3つの禁止がそろっていること、bypass が App 1つだけであること、GitHub が付ける項目を含まないことを確かめる。App ID の値そのものは確かめないので、作り直したときは自分で見比べる
+- `update` のルールには `parameters` を付けない。API のドキュメントでは `update_allows_fetch_and_merge` が必須と書かれているが、タグのルールセットでは付けても受け付けたうえで捨てられ、書き出した設定と合わなくなる（2026-10-28 に作って確かめた）
+- `tools/docs-check` のテストは、対象が `v*` のタグだけであること、3つの禁止がそろっていること（`parameters` がないことも）、bypass が App 1つだけであること、GitHub が付ける項目を含まないことを確かめる。App ID の値そのものは確かめないので、作り直したときは自分で見比べる
 - App ID が違っていると、リリース PR をマージしても release-please がタグを作れず、Release もできない（[release.md の「失敗したとき」](release.md#失敗したとき)）
 
 ### 打ち間違えたタグを消す
