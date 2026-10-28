@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useBlocker } from '@tanstack/react-router';
 import { MAX_QUESTIONS, type QuestionSet, type QuestionSetDetail } from '@zubatto-quiz/protocol';
-import { useId, useReducer, useState } from 'react';
+import { useId, useLayoutEffect, useReducer, useRef, useState } from 'react';
 
 import { ApiError, questionSetsQueryOptions, saveQuestionSet } from './api';
 import { draftOf, editorReducer, errorSummaryOf, newQuestionKey, validateDraft } from './question-set-draft';
@@ -193,9 +193,19 @@ function SaveError({ error }: { error: Error }) {
   );
 }
 
-/** 保存していない変更があるまま、管理画面の中を移ろうとしたときの確かめ */
+/**
+ * 保存していない変更があるまま、管理画面の中を移ろうとしたときの確かめ。
+ * 開いたら「編集に戻る」にフォーカスし、押し間違えても書いた内容が消えない方に合わせる。
+ * autoFocus は jsx-a11y の no-autofocus に当たるので、ref で動かす
+ */
 function LeaveDialog({ onStay, onLeave }: { onStay: () => void; onLeave: () => void }) {
   const id = useId();
+  const stayButton = useRef<HTMLButtonElement>(null);
+
+  useLayoutEffect(() => {
+    stayButton.current?.focus();
+  }, []);
+
   return (
     <div className="fixed inset-0 z-10 grid place-items-center bg-backstage-ink/40 px-5">
       <div
@@ -220,9 +230,8 @@ function LeaveDialog({ onStay, onLeave }: { onStay: () => void; onLeave: () => v
             保存せずに離れる
           </button>
           <button
+            ref={stayButton}
             type="button"
-            // 押し間違えても書いた内容が消えない方に、初めから合わせておく
-            autoFocus
             onClick={onStay}
             className="rounded-full bg-stage px-5 py-2 text-sm font-bold text-on-stage focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage"
           >

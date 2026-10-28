@@ -138,6 +138,8 @@ describe('問題セットの編集（F4・F7・F9）', () => {
 
     fireEvent.click(screen.getByRole('link', { name: '問題セットの一覧に戻る' }));
     const dialog = await screen.findByRole('alertdialog', { name: '保存していない変更があります' });
+    // 押し間違えても書いた内容が消えない方に、初めからフォーカスがある
+    expect(within(dialog).getByRole('button', { name: '編集に戻る' })).toHaveFocus();
     fireEvent.click(within(dialog).getByRole('button', { name: '編集に戻る' }));
 
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
