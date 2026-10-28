@@ -55,6 +55,23 @@ describe('release-please の設定（release-please-config.json・ADR 0009）', 
     expect(config['include-component-in-tag']).toBe(false);
   });
 
+  it('release-please が丸ごと書き直すファイルは、oxfmt の対象から外す', () => {
+    // manifest は整えた形から始めても {".":"1.1.0"} と詰めて書き直され、CHANGELOG には空行が3つ続く。
+    // 外さないとリリース PR の fmt:check が毎回落ちる（2026-10-28、release-please 17.6.0 で確かめた）
+    const { ignorePatterns } = JSON.parse(readRepoFile('.oxfmtrc.json').replace(/^\s*\/\/.*$/gm, '')) as {
+      ignorePatterns: string[];
+    };
+    expect(ignorePatterns).toEqual(expect.arrayContaining(['CHANGELOG.md', '.release-please-manifest.json']));
+  });
+
+  it('ルートの package.json は、oxfmt が並べる位置（name のすぐ下）に version を先に持つ', () => {
+    // version がないと release-please はいちばん最後に足し、sortPackageJson の並びと合わずに fmt:check が落ちる。
+    // あれば、その位置のまま値だけを書き換える
+    const pkg = JSON.parse(readRepoFile('package.json')) as Record<string, unknown>;
+    expect(Object.keys(pkg).slice(0, 2)).toEqual(['name', 'version']);
+    expect(pkg.version).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
   it('リリース PR の題名は、PR の題名の確認（pr-title）を通る', () => {
     // squash マージでは PR の題名が main のコミット名になり、pr-title がそれを確かめる
     const pattern = config['pull-request-title-pattern'] ?? '';
