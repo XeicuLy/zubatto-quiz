@@ -8,7 +8,7 @@ accepted
 
 本番は 2026-10-18 から動いているが、タグも GitHub Release も CHANGELOG もない。そのため「いま本番にあるのはどのコミットか」「前に出してから何が変わったか」に答えにくい。コミットは commitlint で Conventional Commits になっているので、それを材料に番号とリリースノートを作れる。
 
-仕組みを選ぶうえでの制約は次のとおり。GitHub と各ツールの振る舞いは、2026-10-27 時点の公式ドキュメントと、changelogen 0.6.2・release-please 17.11.2 のソースで確かめた。
+仕組みを選ぶうえでの制約は次のとおり。GitHub と各ツールの振る舞いは、2026-10-27 時点の公式ドキュメントと、changelogen 0.6.2・release-please 17.11.2 のソースで確かめた。workflow で動くのは release-please-action v5.0.0 が中に入れている release-please 17.6.0 で、下で根拠にした関数（`splitMessages` と、PR の本文の `BEGIN_COMMIT_OVERRIDE` を読む `preprocessCommitMessage`）は、17.11.2 と中身が同じだと確かめた。
 
 - main のルールセットは PR 必須で、`bypass_actors` が空。workflow から main へ push できない
 - GITHUB_TOKEN が起こしたイベントは、新しい workflow run を作らない。例外の `pull_request`（opened・synchronize・reopened）も、run は承認待ちになり、書き込み権限のある人が「Approve workflows to run」を押すまで動かない。GitHub App の token や PAT で作った PR なら、承認なしで動く
@@ -16,7 +16,7 @@ accepted
 - ADR 0005 で、本番のデプロイは `workflow_dispatch` で手で動かすと決めた。main にマージしてもデプロイしない。本番中に API の Worker を出さないため（ADR 0006）
 - Release API でまだないタグを指定すると、`target_commitish`（既定は既定のブランチ）の先頭にタグが作られる
 - `environment:` を書いた job は、動くたびに GitHub の Deployment を記録する。deploy.yaml でも、production の Deployment が SHA つきで残っている
-- このリポジトリは public なので、Environment の Required reviewers を無料のプランで使える（private では Team 以上が要る）
+- Environment の Required reviewers は、Free・Pro・Team のプランでは public のリポジトリでしか使えない（private では Enterprise が要る）。このリポジトリは public なので、Free のまま使える
 
 この ADR は、検討の途中で方向を変えた。はじめは「タグはデプロイが成功したコミットに打つ」形（下の R4）を選んでいたが、仕事の現場の運用（版とデプロイを分けて記録する）を取り入れたいという考えから、R1 に変えた。
 

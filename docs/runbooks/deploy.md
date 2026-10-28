@@ -82,16 +82,16 @@ jq -n --argjson id "$(gh api user --jq .id)" '{prevent_self_review: false, can_a
 - `prevent_self_review` は `false` にする。`true` にすると、自分で動かした run を自分で承認できず、1人ではデプロイできなくなる
 - `can_admins_bypass` は `false` にする。`true` だと、管理者（自分）は承認の画面で決まりを飛ばせてしまう
 - PUT は送らなかった項目を既定に戻すので、`deployment_branch_policy` も一緒に送る。「main だけ」の一覧（`deployment-branch-policies`）は別の API にあり、`custom_branch_policies: true` を送れば消えない
-- Required reviewers は、public のリポジトリなら無料のプランで使える。private にするなら Team 以上が要る（2026-10-27 に GitHub のドキュメントで確かめた）
+- Required reviewers は、Free・Pro・Team のプランでは public のリポジトリでしか使えない。private のリポジトリで使うには Enterprise が要る（2026-10-27 に GitHub のドキュメントで確かめた）。このリポジトリは public なので、Free のまま使える
 - 画面からも付けられる。Settings → Environments → `production` → Required reviewers に自分を足し、「Prevent self-review」は外し、「Allow administrators to bypass configured protection rules」も外す
 
-入れたら、名前と決まりを確かめる。
+入れたら、名前と決まりを確かめる。最後のコマンドは、`rules` が `branch_policy` と `required_reviewers`、`can_admins_bypass` が `false`、`reviewers` が自分のログイン名だけ、`prevent_self_review` が `false` になっていればよい。
 
 ```sh
 gh secret list --env production   # CLOUDFLARE_API_TOKEN と CLOUDFLARE_ACCOUNT_ID がある
 gh secret list                    # リポジトリの secret には、どちらもない
 gh api repos/XeicuLy/zubatto-quiz/environments/production/deployment-branch-policies --jq '.branch_policies[].name'   # main だけ
-gh api repos/XeicuLy/zubatto-quiz/environments/production --jq '{rules: [.protection_rules[].type], can_admins_bypass}'   # branch_policy と required_reviewers、false
+gh api repos/XeicuLy/zubatto-quiz/environments/production --jq '{rules: [.protection_rules[].type], can_admins_bypass, reviewers: [.protection_rules[] | select(.type == "required_reviewers") | .reviewers[].reviewer.login], prevent_self_review: (.protection_rules[] | select(.type == "required_reviewers") | .prevent_self_review)}'
 ```
 
 ## 動かす

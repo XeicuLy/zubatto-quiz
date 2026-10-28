@@ -112,6 +112,14 @@ gh api repos/XeicuLy/zubatto-quiz --jq '{allow_merge_commit, allow_rebase_merge,
 
 6. 本番に出すときは、[deploy.md](deploy.md#動かす) の手順で動かす。本番の最中には出さない（ADR 0006）
 
+## 最初のリリース（v1.0.0）のあと
+
+`release-please-config.json` の `bootstrap-sha` と `packages["."]["release-as"]`（`1.0.0`）は、最初のリリースのためだけのもの。v1.0.0 のタグと Release ができたことを確かめたら、両方を消す PR を出す（#161）。
+
+- `release-as` を残すと、次のリリース PR も 1.0.0 を作ろうとする。`bootstrap-sha` は、リリース PR が1度マージされたあとは読まれないが、残すと読み手が迷う
+- その PR の題名は `chore:` にする（CHANGELOG に出ず、リリース PR も作られない）
+- 消したあとの最初の feat / fix / perf の PR をマージしたら、リリース PR の題名が `chore: v1.1.0 をリリースする`（fix / perf だけなら `v1.0.1`）になっていることを確かめる。`.release-please-manifest.json` には、v1.0.0 のリリース PR のマージで `{ ".": "1.0.0" }` が書かれている
+
 ## CHANGELOG の行を直す
 
 リリース PR のブランチで CHANGELOG.md を直しても、main が進むたびに release-please が書き戻す。行を直すときは、その行の元になった（マージ済みの）PR の本文の最後に、次の形で書く。
