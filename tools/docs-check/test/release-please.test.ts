@@ -55,6 +55,14 @@ describe('release-please の設定（release-please-config.json・ADR 0009）', 
     expect(config['include-component-in-tag']).toBe(false);
   });
 
+  it('一度リリースしたら（manifest に版がある）、最初のリリース専用の bootstrap-sha と release-as を残さない', () => {
+    // release-as が残ると、次のリリース PR も同じ版を作ろうとする（docs/runbooks/release.md の「最初のリリース（v1.0.0）のあと」）
+    const manifest = JSON.parse(readRepoFile('.release-please-manifest.json')) as Record<string, string>;
+    expect(manifest['.']).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(config).not.toHaveProperty('bootstrap-sha');
+    expect(config.packages?.['.']).not.toHaveProperty('release-as');
+  });
+
   it('release-please が丸ごと書き直すファイルは、oxfmt の対象から外す', () => {
     // manifest は整えた形から始めても {".":"1.1.0"} と詰めて書き直され、CHANGELOG には空行が3つ続く。
     // 外さないとリリース PR の fmt:check が毎回落ちる（2026-10-28、release-please 17.6.0 で確かめた）
