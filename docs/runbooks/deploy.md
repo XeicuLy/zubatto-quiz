@@ -55,7 +55,9 @@ workflow が Cloudflare に入るためのトークン。2026-10-17 に Cloudfla
 
 トークンとアカウント ID は、リポジトリの secret ではなく、Environment（`production`）の secret に入れる。workflow の中で `environment: production` を書いた job だけが読めるので、PR ごとの CI（`ci.yaml`）からは読めない（ADR 0005 の DD4）。
 
-さらに、デプロイしてよいブランチを main だけに絞る。`workflow_dispatch` はどのブランチでも動かせるので、絞らないと、マージ前のブランチのコードを本番にデプロイでき、トークンも読めてしまう。
+さらに、デプロイしてよい ref を、main ブランチと `v*` のタグだけに絞る。`workflow_dispatch` はどのブランチやタグの上でも動かせるので、絞らないと、マージ前のブランチのコードを本番にデプロイでき、トークンも読めてしまう。`v*` のタグは、Release のタグのコミットを出すためと、前の版に戻すとき（そのタグの上で動かす）のために許す（ADR 0010）。
+
+`v*` を許す前に、`v*` のタグを release-please の App だけが作れるようにしておく（[branch-protection.md の「タグのルールセットを作る」](branch-protection.md#タグのルールセットを作る)）。タグのルールセットがないまま許すと、書き込みの権限があれば誰でも、好きなコミットに `v*` を打って本番に出せる。
 
 リポジトリのいちばん上で、次を実行する。
 
@@ -65,12 +67,17 @@ gh api -X PUT repos/XeicuLy/zubatto-quiz/environments/production \
   -F 'deployment_branch_policy[custom_branch_policies]=true'
 gh api -X POST repos/XeicuLy/zubatto-quiz/environments/production/deployment-branch-policies \
   -f name=main -f type=branch
+gh api -X POST repos/XeicuLy/zubatto-quiz/environments/production/deployment-branch-policies \
+  -f name='v*' -f type=tag
 gh secret set CLOUDFLARE_API_TOKEN --env production
 gh secret set CLOUDFLARE_ACCOUNT_ID --env production
 ```
 
 - `gh secret set` は値を聞いてくるので、そこで貼る。引数に値を書くと、シェルの履歴に残る
-- 画面からも作れる。Settings → Environments → New environment で `production` を作り、Deployment branches and tags を「Selected branches and tags」にして `main` を足し、Environment secrets に2つを入れる
+- `v*` は引用符で囲む。囲まないと、シェルがファイル名として展開することがある。名前は fnmatch で読まれ、`*` は `/` をまたがない
+- `v*` のタグのルールセットがまだないとき（README の順で一から作るときは、リリースの App があとになる）は、3つ目のコマンドをいったん飛ばす。[release.md の 5](release.md#5-v-のタグを-app-だけが作れるようにする) でルールセットを作ってから実行する
+- すでに `production` があるとき（main だけを許していたとき）は、ルールセットを作ってから、`v*` を足す3つ目のコマンドだけを実行すればよい
+- 画面からも作れる。Settings → Environments → New environment で `production` を作り、Deployment branches and tags を「Selected branches and tags」にして、`main`（Ref type は Branch）と `v*`（Ref type は Tag）を足し、Environment secrets に2つを入れる
 
 続けて、本番に出す job が承認を待つようにする（Required reviewers）。reviewers は自分にする。
 
@@ -85,12 +92,12 @@ jq -n --argjson id "$(gh api user --jq .id)" '{prevent_self_review: false, can_a
 - Required reviewers は、Free・Pro・Team のプランでは public のリポジトリでしか使えない。private のリポジトリで使うには Enterprise が要る（2026-10-27 に GitHub のドキュメントで確かめた）。このリポジトリは public なので、Free のまま使える
 - 画面からも付けられる。Settings → Environments → `production` → Required reviewers に自分を足し、「Prevent self-review」は外し、「Allow administrators to bypass configured protection rules」も外す
 
-入れたら、名前と決まりを確かめる。最後のコマンドは、`rules` が `branch_policy` と `required_reviewers`、`can_admins_bypass` が `false`、`reviewers` が自分のログイン名だけ、`prevent_self_review` が `false` になっていればよい。
+入れたら、名前と決まりを確かめる。3つ目のコマンドは、ほかのブランチやタグが混ざっていないことも見る。最後のコマンドは、`rules` が `branch_policy` と `required_reviewers`、`can_admins_bypass` が `false`、`reviewers` が自分のログイン名だけ、`prevent_self_review` が `false` になっていればよい。
 
 ```sh
 gh secret list --env production   # CLOUDFLARE_API_TOKEN と CLOUDFLARE_ACCOUNT_ID がある
 gh secret list                    # リポジトリの secret には、どちらもない
-gh api repos/XeicuLy/zubatto-quiz/environments/production/deployment-branch-policies --jq '.branch_policies[].name'   # main だけ
+gh api repos/XeicuLy/zubatto-quiz/environments/production/deployment-branch-policies --jq '.branch_policies[] | "\(.type) \(.name)"'   # branch main と tag v* の2行だけ
 gh api repos/XeicuLy/zubatto-quiz/environments/production --jq '{rules: [.protection_rules[].type], can_admins_bypass, reviewers: [.protection_rules[] | select(.type == "required_reviewers") | .reviewers[].reviewer.login], prevent_self_review: (.protection_rules[] | select(.type == "required_reviewers") | .prevent_self_review)}'
 ```
 
@@ -156,6 +163,7 @@ gh run watch
 | どこで止まったか | よくある理由                                                                                | どうするか                                                                                                          |
 | ---------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | どれも動かない   | 「Branch "..." is not allowed to deploy to production due to environment protection rules」 | main 以外のブランチで動かした。main にマージしてから、Branch を `main` にして動かす                                 |
+| どれも動かない   | タグの上で動かして、同じく「... is not allowed to deploy to production ...」で止まる        | `v*` でないタグで動かしたか、production に `v*` を足していない（上の「GitHub の Environment（production）を作る」） |
 | 承認のところ     | 「Waiting」のまま進まない                                                                   | 承認を待っている。run の画面の **Review deployments** から承認する（上の「動かす」）                                |
 | 承認のところ     | Reject した・承認しないまま30日たった                                                       | その job とその後ろは動いていないが、前の job の分は出ている（上の「動かす」）。出すなら、もう一度動かして承認する  |
 | `verify-ci`      | 「… の ci が成功していない（in_progress）」（`queued` も同じ）                              | main の CI がまだ走っている。終わってから、その run の **Re-run failed jobs** で動かし直す                          |

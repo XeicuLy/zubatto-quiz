@@ -96,6 +96,17 @@ gh api -X PATCH repos/XeicuLy/zubatto-quiz \
 gh api repos/XeicuLy/zubatto-quiz --jq '{allow_merge_commit, allow_rebase_merge, allow_squash_merge, squash_merge_commit_title, squash_merge_commit_message}'
 ```
 
+### 5. v\* のタグを App だけが作れるようにする
+
+`v*` のタグは本番への入口になるので（ADR 0010）、タグを作る・動かす・消すのを、1 の App だけに許すルールセットを入れる。
+
+1. App の設定画面（`https://github.com/settings/apps/<App の名前>`）の About に出る **App ID**（数字）を読む。3 で入れた Client ID とは別のもの
+2. `docs/runbooks/release-tag-ruleset.json` の `bypass_actors[0].actor_id` が、その App ID と同じかを見る。違えば直す PR を出す（App を作り直したときなど）
+3. [branch-protection.md の「タグのルールセットを作る」](branch-protection.md#タグのルールセットを作る)の手順で作る
+4. 作ったあとで、production の Environment に `v*` のタグを許す（[deploy.md](deploy.md#github-の-environmentproductionを作る)）。逆の順にしない
+
+打ち間違えたタグを消すときは、ルールセットを一時的に止める（[branch-protection.md の「打ち間違えたタグを消す」](branch-protection.md#打ち間違えたタグを消す)）。
+
 ## ふだんのリリース
 
 1. PR の題名を Conventional Commits の形にする（[CONTRIBUTING](../../CONTRIBUTING.md#pr-の題名とコミットメッセージ)）。`pr-title` が確かめる
@@ -140,15 +151,16 @@ END_COMMIT_OVERRIDE
 
 ## 失敗したとき
 
-| 症状                                                             | 原因と直し方                                                                                                                                                                                                                                                                                                                                                            |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| release-please の run が `Create GitHub App token` で落ちる      | Client ID か秘密鍵が違う、または App がこのリポジトリに入っていない。上の 1〜3 を見直す                                                                                                                                                                                                                                                                                 |
-| release-please の run が `release` の Environment で止まる・待つ | Environment の branch の絞り込みに main がない。2 を見直す                                                                                                                                                                                                                                                                                                              |
-| リリース PR の ci / e2e が「承認待ち」になる                     | GITHUB_TOKEN で動いている。workflow の `token:` が App の token になっているかを見る                                                                                                                                                                                                                                                                                    |
-| PR のマージのボタンが押せず、`pr-title` が落ちている             | PR の題名が Conventional Commits の形でない。題名を直すと、`pr-title` が自動で動き直す                                                                                                                                                                                                                                                                                  |
-| リリース PR に同じ変更が2行ずつ出る                              | マージコミットで入った PR がある。4 の設定を見直す。出てしまった行は、その PR の本文の `BEGIN_COMMIT_OVERRIDE` で1行にする（上の「CHANGELOG の行を直す」）                                                                                                                                                                                                              |
-| リリース PR をマージしたのにタグができない                       | release-please の run のログを見る。リリース PR に `autorelease: pending` のラベルがないと、マージ済みのリリース PR として見つけられない。ラベルを付けて、main の run を動かし直す                                                                                                                                                                                      |
-| main の変更（設定や package.json）がリリース PR に入らない       | release-please は、リリースノートが変わったときだけ、リリース PR のファイルを作り直す。`ci:` や `docs:` だけの PR では、リリース PR は前の main から作ったファイルのまま残る（ログに「remained the same」）。リリース PR の本文に1行足してから、main の release-please の run を動かし直す。本文が違うので作り直され、足した行も消える（2026-10-28 に #165 で確かめた） |
+| 症状                                                                        | 原因と直し方                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| release-please の run が `Create GitHub App token` で落ちる                 | Client ID か秘密鍵が違う、または App がこのリポジトリに入っていない。上の 1〜3 を見直す                                                                                                                                                                                                                                                                                 |
+| release-please の run が `release` の Environment で止まる・待つ            | Environment の branch の絞り込みに main がない。2 を見直す                                                                                                                                                                                                                                                                                                              |
+| リリース PR の ci / e2e が「承認待ち」になる                                | GITHUB_TOKEN で動いている。workflow の `token:` が App の token になっているかを見る                                                                                                                                                                                                                                                                                    |
+| PR のマージのボタンが押せず、`pr-title` が落ちている                        | PR の題名が Conventional Commits の形でない。題名を直すと、`pr-title` が自動で動き直す                                                                                                                                                                                                                                                                                  |
+| リリース PR に同じ変更が2行ずつ出る                                         | マージコミットで入った PR がある。4 の設定を見直す。出てしまった行は、その PR の本文の `BEGIN_COMMIT_OVERRIDE` で1行にする（上の「CHANGELOG の行を直す」）                                                                                                                                                                                                              |
+| リリース PR をマージしたのにタグができない                                  | release-please の run のログを見る。リリース PR に `autorelease: pending` のラベルがないと、マージ済みのリリース PR として見つけられない。ラベルを付けて、main の run を動かし直す                                                                                                                                                                                      |
+| release-please の run が Release を作るところで落ち、ルールに拒まれたと出る | `v*` のタグのルールセットの bypass が、この App になっていない。`actor_id` に Client ID を入れたか、App を作り直して App ID が変わった。上の 5 を見直す                                                                                                                                                                                                                 |
+| main の変更（設定や package.json）がリリース PR に入らない                  | release-please は、リリースノートが変わったときだけ、リリース PR のファイルを作り直す。`ci:` や `docs:` だけの PR では、リリース PR は前の main から作ったファイルのまま残る（ログに「remained the same」）。リリース PR の本文に1行足してから、main の release-please の run を動かし直す。本文が違うので作り直され、足した行も消える（2026-10-28 に #165 で確かめた） |
 
 ## 秘密鍵を入れ替える
 
@@ -159,4 +171,4 @@ END_COMMIT_OVERRIDE
 3. main の release-please の run を動かし直し（Actions の画面の Re-run）、通ることを確かめる
 4. `key_pairs` のページで、古い鍵を消す
 
-App そのものをやめるときは、App の設定画面の Advanced から Delete GitHub App を押し、Environment `release` も消す。
+App そのものをやめるときは、App の設定画面の Advanced から Delete GitHub App を押し、Environment `release` も消す。`v*` のタグのルールセットの bypass は消えた App を指したまま残るので、新しい App に替えるときは、5 の手順で `actor_id` を新しい App ID にして当て直す。
