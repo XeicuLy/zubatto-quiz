@@ -56,6 +56,8 @@ export function JoinForm({ notice, defaultName, onJoin }: JoinFormProps) {
         <input
           id="join-name"
           name="name"
+          // nickname は HTML の仕様にある値（MDN で確かめた、2026-10-28）。oxlint 1.87.0 の一覧に抜けている
+          // oxlint-disable-next-line jsx-a11y/autocomplete-valid
           autoComplete="nickname"
           defaultValue={defaultName}
           aria-invalid={error !== null}
