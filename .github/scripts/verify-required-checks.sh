@@ -35,16 +35,20 @@ while true; do
   pending=()
   while read -r name app_id; do
     # integration_id（15368 は GitHub Actions）を app_id に渡し、ルールセットと同じく GitHub Actions が付けたチェックだけを見る。
-    # 動かし直すと同じ名前の check run が増えるので、いちばん新しい（ID が大きい）ものを見る
-    result=$(gh api -X GET "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" \
+    # 動かし直すと同じ名前の check run が増えるので、いちばん新しい（ID が大きい）ものを見る。
+    # 読み出しに失敗したとき（GitHub の API の 5xx など）は api_error として、次の周で確かめ直す。
+    # 30 分の間に一度失敗しただけで止めると、Release の run を動かし直すことになる。gh のエラーは stderr に出る
+    if ! result=$(gh api -X GET "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" \
       -f check_name="$name" -F app_id="$app_id" -f filter=latest |
       jq -r '.check_runs | max_by(.id)
-        | if . == null then "not_found" elif .status != "completed" then .status else .conclusion end')
+        | if . == null then "not_found" elif .status != "completed" then .status else .conclusion end'); then
+      result=api_error
+    fi
     echo "${name}: ${result}"
     case "$result" in
     success) ;;
-    # まだ終わっていない（queued・in_progress など）か、CI の job がまだ作られていない
-    not_found | queued | in_progress | waiting | requested | pending) pending+=("${name} ${result}") ;;
+    # まだ終わっていない（queued・in_progress など）か、CI の job がまだ作られていないか、読み出しに失敗した
+    not_found | api_error | queued | in_progress | waiting | requested | pending) pending+=("${name} ${result}") ;;
     *)
       # 変数のすぐ後ろに全角の文字があると、そのバイトまで変数名に読まれることがあるので、{} で囲む
       echo "::error::${GITHUB_SHA} の ${name} が成功していない（${result}）。直して main にマージしてから出す"
