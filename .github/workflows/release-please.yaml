@@ -1,7 +1,8 @@
 name: Release Please
 
 # main に入るたびに、release-please がリリース PR（chore: vX.Y.Z をリリースする）を開くか更新する。
-# リリース PR をマージすると、そのコミットにタグ vX.Y.Z と GitHub Release を作る。本番へのデプロイはしない（ADR 0005・0009）
+# リリース PR をマージすると、そのコミットにタグ vX.Y.Z と GitHub Release を作る。ここではデプロイしない。
+# できた Release で deploy.yaml（release: published）が動き、承認を待ってから本番に出す（ADR 0010）
 on:
   push:
     branches:
@@ -23,7 +24,8 @@ jobs:
     # App の秘密鍵は、main だけに絞った Environment の secret に置く（docs/runbooks/release.md）
     environment: release
     steps:
-      # GITHUB_TOKEN で作った PR では、ci / e2e が承認待ちになる。App の token で作れば、ふつうの PR と同じく動く
+      # GITHUB_TOKEN で作った PR では、ci / e2e が承認待ちになる。App の token で作れば、ふつうの PR と同じく動く。
+      # Release も同じで、GITHUB_TOKEN で作ると deploy.yaml が動かない
       - name: Create GitHub App token
         id: app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0

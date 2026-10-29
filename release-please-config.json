@@ -3,7 +3,7 @@
   "release-type": "node",
   "include-component-in-tag": false,
   "pull-request-title-pattern": "chore: v${version} をリリースする",
-  "pull-request-header": "このリリース PR をマージすると、タグと GitHub Release ができる。本番へのデプロイはしないので、マージのあとに deploy.yaml を動かす。",
+  "pull-request-header": "このリリース PR をマージすると、タグと GitHub Release ができ、本番のデプロイ（deploy.yaml）が動き始めて承認を待つ。本番の最中はマージしない。",
   "changelog-sections": [
     { "type": "feat", "section": "新機能" },
     { "type": "fix", "section": "修正" },

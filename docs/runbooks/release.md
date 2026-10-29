@@ -3,14 +3,15 @@
 版の番号と CHANGELOG は、release-please が開く「リリース PR」で決める。リリース PR をマージすると、そのコミットにタグ `vX.Y.Z` と GitHub Release ができる。決めた理由は [ADR 0009](../adr/0009-release-versioning-and-tagging.md) にある。
 
 - タグは「この版ができた」印で、本番に出た印ではない。本番の Worker がどのコミット・どの版かは、[deploy.md の「デプロイのあとに確かめる」](deploy.md#デプロイのあとに確かめる)の 0 で読む
-- リリース PR をマージしても、本番にはデプロイしない。出すときは [deploy.md](deploy.md#動かす) の手順で動かす（ADR 0005）
+- リリース PR をマージすると、できた Release で本番のデプロイ（deploy.yaml）が動き始め、承認を待つ。承認すると、タグのコミットが本番に出る（ADR 0010）。承認しなければ出ないが、本番の最中はリリース PR をマージしない（[deploy.md の「動かす」](deploy.md#動かす)）
 
 ## 何が動くか
 
-| workflow                                                           | いつ                                | 何をするか                                                                                                          |
-| ------------------------------------------------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| [release-please.yaml](../../.github/workflows/release-please.yaml) | main への push                      | リリース PR を開くか更新する。リリース PR がマージされたときは、タグと GitHub Release を作る                        |
-| [pr-title.yaml](../../.github/workflows/pr-title.yaml)             | main への PR（題名の編集も）と push | PR の題名（push では main のコミット名）を commitlint で確かめる。main のルールセットの必須のチェック（`pr-title`） |
+| workflow                                                           | いつ                                   | 何をするか                                                                                                          |
+| ------------------------------------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| [release-please.yaml](../../.github/workflows/release-please.yaml) | main への push                         | リリース PR を開くか更新する。リリース PR がマージされたときは、タグと GitHub Release を作る                        |
+| [pr-title.yaml](../../.github/workflows/pr-title.yaml)             | main への PR（題名の編集も）と push    | PR の題名（push では main のコミット名）を commitlint で確かめる。main のルールセットの必須のチェック（`pr-title`） |
+| [deploy.yaml](../../.github/workflows/deploy.yaml)                 | Release ができたとき（手でも動かせる） | main の CI を待ってから、タグのコミットを本番に出す。出す前に承認を待つ（[deploy.md](deploy.md)）                   |
 
 - 設定は [release-please-config.json](../../release-please-config.json)、今の版は [.release-please-manifest.json](../../.release-please-manifest.json) にある。版の番号は、ルートの `package.json` の `version` にも書かれる
 - release-please は GitHub App の token で動く。GITHUB_TOKEN で作った PR では、ci / e2e が「承認待ち」になって自動では動かないため
@@ -112,7 +113,7 @@ gh api repos/XeicuLy/zubatto-quiz --jq '{allow_merge_commit, allow_rebase_merge,
 1. PR の題名を Conventional Commits の形にする（[CONTRIBUTING](../../CONTRIBUTING.md#pr-の題名とコミットメッセージ)）。`pr-title` が確かめる
 2. PR を squash でマージする。main に入るたびに、release-please がリリース PR（`chore: vX.Y.Z をリリースする`）を開くか更新する
 3. 出したくなったら、リリース PR を開いて CHANGELOG を読む。件名が利用者に通じない行は、下の「CHANGELOG の行を直す」の方法で直す
-4. ci / e2e / pr-title が通ったら、リリース PR を squash でマージする
+4. ci / e2e / pr-title が通ったら、リリース PR を squash でマージする。マージすると本番のデプロイが動き始めるので、本番の最中はマージしない（ADR 0006）
 5. 数分たったら、タグと Release ができたことを確かめる
 
    ```sh
@@ -121,7 +122,7 @@ gh api repos/XeicuLy/zubatto-quiz --jq '{allow_merge_commit, allow_rebase_merge,
    gh release view --json tagName,url --jq '"\(.tagName) \(.url)"'
    ```
 
-6. 本番に出すときは、[deploy.md](deploy.md#動かす) の手順で動かす。本番の最中には出さない（ADR 0006）
+6. Release で deploy.yaml が動き、main の CI が終わるのを待ってから、承認を待つ。[deploy.md の「Release で動かす」](deploy.md#release-で動かすふだん)の手順で承認する
 
 ## 最初のリリース（v1.0.0）のあと
 

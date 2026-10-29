@@ -1,7 +1,8 @@
 name: Deploy
 
-# 本番のデプロイは、手で動かしたときだけ行う。main にマージしてもデプロイしない（ADR 0005）
-# 本番の最中は API の Worker をデプロイしない決まり（ADR 0006）を、マージで破らないため
+# 本番のデプロイは、Release ができたとき（release: published）と、手で動かしたとき（workflow_dispatch）に動く（ADR 0010）。
+# どちらも、本番に出す前に production の承認を待つ（ADR 0009）。承認しなければ本番には何も出ない。
+# main にマージしただけでは動かない。本番の最中は API の Worker をデプロイしない決まり（ADR 0006）を、マージで破らないため（ADR 0005）
 # 動かし方と、Cloudflare の API トークンの入れ方は docs/runbooks/deploy.md
 on:
   workflow_dispatch:
@@ -14,6 +15,10 @@ on:
           - all
         default: web
         required: true
+  # release-please が App の token で Release を作るので、workflow が動く（GITHUB_TOKEN で作った Release では動かない）。
+  # run はタグのコミット（GITHUB_SHA）を checkout し、この workflow のファイルもそのコミットのものを使う
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -25,15 +30,22 @@ concurrency:
   group: deploy-production
   cancel-in-progress: false
 
+# Release で動くときは all にする（ADR 0010 の N1）。release のイベントには inputs がない。
+# 手で動かしたときは、選んだ target をそのまま使う
+env:
+  TARGET: ${{ github.event_name == 'release' && 'all' || inputs.target }}
+
 # Cloudflare の API トークンとアカウント ID は、Environment（production）の secret にだけ置く。
 # environment: production を書いた job だけが読める。PR の CI（ci.yaml）からは読めない（ADR 0005 の DD4）
 jobs:
-  # このコミットで、main のルールセットの必須のチェック（ci と e2e）がどれも成功しているかを確かめる。
-  # 失敗したものか、まだ終わっていないものがあれば止まり、本番の job はどれも動かない（docs/runbooks/deploy.md）
-  # 本番には触らないので、Environment を使わず、Cloudflare の secret も読まない
+  # このコミットが main の履歴にあり、main のルールセットの必須のチェック（ci・e2e・pr-title）がどれも成功しているかを確かめる。
+  # まだ終わっていないものは、終わるまで待つ（上限は CI_WAIT_SECONDS）。main にないか、失敗したものがあるか、上限を過ぎたら止まり、
+  # 本番の job は動かない（docs/runbooks/deploy.md）
+  # 本番には触らないので、Environment を使わず、Cloudflare の secret も読まない。待っている間に、トークンを読める job はない
   verify-ci:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # 待つ上限（30 分）より長くする。先に job の timeout が来ると、どのチェックが終わらないかが出ない
+    timeout-minutes: 35
     permissions:
       contents: read
       checks: read
@@ -52,12 +64,17 @@ jobs:
         run: bash .github/scripts/verify-required-checks.sh docs/runbooks/main-ruleset.json
         env:
           GH_TOKEN: ${{ github.token }}
+          CI_WAIT_SECONDS: '1800'
+          CI_POLL_SECONDS: '30'
 
-  migrate:
+  # production を使う job はこれだけにする。承認は production を使う job ごとに求められるので、1つにまとめて1回にする（ADR 0010 の E3）。
+  # step は、マイグレーション → API → 画面の順。Service binding の相手が先にないといけないので、API を先にする（ADR 0006）。
+  # どれかの step が失敗すると、その後ろの step は動かない
+  deploy:
     needs: verify-ci
-    if: inputs.target == 'all'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 3つを1つの job で行う。2026-10-28 の all では、job ごとに 20 秒ほどだった
+    timeout-minutes: 30
     environment: production
     steps:
       - name: Checkout
@@ -75,59 +92,19 @@ jobs:
 
       # D1 は名前（zubakui）で探す。ないとここで止まるので、初回だけ手元で wrangler d1 create を実行しておく（ADR 0005）
       - name: Apply D1 migrations
+        if: env.TARGET == 'all'
         run: pnpm run db:migrate:remote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-  deploy-api:
-    needs: migrate
-    if: inputs.target == 'all'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment: production
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Install tools via mise
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        env:
-          HUSKY: '0'
-
       # アプリのシークレットは手元の wrangler secret put で入れてあり、デプロイで引き継がれる（docs/runbooks/secrets.md）
       - name: Deploy API Worker
+        if: env.TARGET == 'all'
         run: pnpm run deploy:api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-  deploy-web:
-    needs: [verify-ci, deploy-api]
-    # 状態の関数がない if には success() が付いたものとして扱われ、「画面だけ」で deploy-api が飛ばされると、ここも飛ばされてしまう。
-    # failure() は needs でつながった前の job のどれかが失敗すると true になるので、CI の確認・マイグレーション・API のどれかが失敗したら動かない
-    if: ${{ !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment: production
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Install tools via mise
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        env:
-          HUSKY: '0'
 
       - name: Deploy web Worker
         run: pnpm run deploy:web
