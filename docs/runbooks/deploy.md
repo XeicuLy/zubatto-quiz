@@ -16,7 +16,7 @@ Release で動くときは、いつも `all` になる（前のタグとの差�
 | 手で `web`（既定） | `verify-ci` → `deploy`（画面の Worker だけ）                      | よい。画面の Worker だけなら、部屋の接続は切れない                              | 1回  |
 | 手で `all`         | `verify-ci` → `deploy`（マイグレーション → API の Worker → 画面） | 選ばない。部屋の WebSocket が切れることがある（下の注）                         | 1回  |
 
-- どれでも、はじめに `verify-ci` が、動かしたコミットが main の履歴にあるかと、そのコミットで必須のチェック（`ci`・`e2e`・`pr-title`）が成功しているかを確かめる。main にないコミットなら止まる。失敗したチェックがあれば止まる。まだ走っているチェックと、まだ見つからないチェックは、終わるまで待つ（30 秒ごとに確かめ、30 分で止める）。止まったときは、本番には何も出さない
+- どれでも、はじめに `verify-ci` が、動かしたコミットが main の履歴にあるかと、そのコミットで必須のチェック（`ci`・`e2e`・`pr-title`）が成功しているかを確かめる。main にないコミットなら止まる。失敗したチェックがあれば止まる。まだ走っているチェックと、まだ見つからないチェックは、終わるまで待つ（30 秒ごとに確かめ、30 分で止める）。GitHub の API から読めなかったとき（`api_error`）も、次の周で確かめ直す。止まったときは、本番には何も出さない
   - Release の run は、リリース PR のマージで動いた main の CI が走っている間に始まる。待たずに止めると、毎回動かし直すことになる（ADR 0010 の Q1）
   - main の履歴にあるかは、GitHub の compare API（`main...<コミット>`）で見る。`identical`（main の先頭）か `behind`（main の先頭より前。リリースのあとに別の PR が入ったときや、前の版のタグで動かしたとき）なら、main にある
   - 確かめるチェックの名前は、main のルールセット（[main-ruleset.json](main-ruleset.json)）の必須のチェックから読む。ルールセットにチェックを足せば、`verify-ci` も同じものを見る
@@ -191,6 +191,7 @@ gh run watch
 | `verify-ci`                     | 「… は main の履歴にない（ahead）」（`diverged` も同じ）                                              | main にマージしていないコミットで動かした。main にマージしてから、main で動かす                                                                                                          |
 | `verify-ci`                     | 「… の ci が 1800 秒待っても終わらない（in_progress）」（`queued` も同じ）                            | main の CI が30分で終わらなかった。Actions の CI の run を見て、通ってから、その run の **Re-run failed jobs** で動かし直す                                                              |
 | `verify-ci`                     | 「… の ci が 1800 秒待っても終わらない（not_found）」                                                 | main への push で CI が動いていない。Actions → **CI** → **Run workflow** を main で動かし、通ってから動かし直す                                                                          |
+| `verify-ci`                     | 「… の ci が 1800 秒待っても終わらない（api_error）」                                                 | GitHub の API から check run を読めないまま30分たった。ログの `gh` のエラー（すぐ上の行）を見る。GitHub の障害なら、直ってから **Re-run failed jobs** で動かし直す                       |
 | `verify-ci`                     | 「… の e2e が成功していない（failure）」                                                              | そのコミットはテストが落ちている。直して main にマージし、次のリリースで出す。落ちたのが不安定なテストなら、CI の run の **Re-run failed jobs** で通してから、deploy の run を動かし直す |
 | `verify-ci`                     | 「… の ci が成功していない（cancelled）」                                                             | CI が途中で止まった。Actions の CI の run で **Re-run all jobs** を行い、通ってから動かし直す                                                                                            |
 | `deploy` の Apply D1 migrations | D1 が見つからず、`wrangler d1 create` を実行するように言われる                                        | 本番の D1 をまだ作っていない。[README](../../README.md#本番の環境を一から作る)の手順 2 で作ってから、もう一度動かす                                                                      |
