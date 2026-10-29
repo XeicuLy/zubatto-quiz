@@ -18,8 +18,14 @@
 
 ```sh
 make setup              # 初回だけ
-pnpm run mock:build     # mock/dist/mock.css を作る（編集しながら見るときは pnpm run mock:watch）
+pnpm run mock:build     # mock/dist/mock.css を作る
 open docs/design/mock/player.html
+```
+
+編集しながら見るときは、`mock:build` の代わりに、別のターミナルで次を動かしたままにする。保存のたびに `mock/dist/mock.css` を作り直す。
+
+```sh
+pnpm run mock:watch
 ```
 
 - HTML はブラウザで直接開ける（`file://` のままでよい）。フォントは Google Fonts から読み込むので、ネットにつながっている必要がある
