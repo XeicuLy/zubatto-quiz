@@ -18,7 +18,8 @@
 
 ```sh
 make setup              # 初回だけ
-pnpm run mock:build     # mock/dist/mock.css を作る（編集しながら見るときは pnpm run mock:watch）
+pnpm run mock:build     # mock/dist/mock.css を作る
+pnpm run mock:watch     # 編集しながら見るときは、build の代わりにこちら（保存のたびに作り直す）
 open docs/design/mock/player.html
 ```
 
