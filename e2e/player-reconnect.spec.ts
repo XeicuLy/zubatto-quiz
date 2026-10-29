@@ -1,9 +1,9 @@
-import { expect, test, type Browser, type Page } from '@playwright/test';
-import { createQuestionSetResponseSchema, createRoomResponseSchema } from '@zubatto-quiz/protocol';
+import { expect, test, type Page } from '@playwright/test';
 
 import { tokenKey } from '../apps/web/src/features/player/token-storage';
 import { loginAsHost } from './helpers/login';
 import { countWebSockets, expectWaiting, joinRoom, PHONE, relayPlayerSocket, submitName } from './helpers/player';
+import { createRoom } from './helpers/room';
 
 /**
  * 回答者のつなぎ直しまわり（ADR 0004・A1・F19）。画面と部屋の DO は別々のテストで確かめてあるので、
@@ -19,24 +19,14 @@ let room: { roomId: string; joinUrl: string };
 const participantsNamed = (player: Page, name: string) =>
   player.getByRole('list', { name: '参加者' }).getByText(name, { exact: true });
 
-/** 部屋の作り方は full-game.spec.ts が画面で確かめているので、ここでは API で作る（F1） */
-async function createRoom(browser: Browser) {
-  const context = await browser.newContext();
-  await loginAsHost(context);
-  const set = await context.request.post('/api/question-sets', {
-    data: { title: 'つなぎ直しの部屋', questions: [{ text: '1 + 1 は？', choices: ['1', '2'], correctIndex: 1 }] },
-  });
-  expect(set.status()).toBe(201);
-  const { id } = createQuestionSetResponseSchema.parse(await set.json());
-  const created = await context.request.post('/api/rooms', { data: { questionSetId: id } });
-  expect(created.status()).toBe(201);
-  const result = createRoomResponseSchema.parse(await created.json());
-  await context.close();
-  return result;
-}
-
 test.beforeAll(async ({ browser }) => {
-  room = await createRoom(browser);
+  const host = await browser.newContext();
+  await loginAsHost(host);
+  room = await createRoom(host, {
+    title: 'つなぎ直しの部屋',
+    questions: [{ text: '1 + 1 は？', choices: ['1', '2'], correctIndex: 1 }],
+  });
+  await host.close();
 });
 
 test('読み込み直すと、名前を聞かずに同じ回答者として待機画面に戻る（F19）', async ({ page }) => {

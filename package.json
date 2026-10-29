@@ -20,6 +20,7 @@
     "logs:web": "pnpm --silent --filter @zubatto-quiz/web run logs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@commitlint/types": "^21.2.3",
