@@ -11,6 +11,8 @@ const markdownIn = (dir: string) =>
 export const documents = [
   'README.md',
   'CONTRIBUTING.md',
+  // 文書の入口。ほとんどの文書へリンクし、見出しのアンカーも多い
+  'docs/README.md',
   // いちばん読まれる設計資料。ADR は互いにリンクし、要件の ID から読み返される
   ...markdownIn('docs/adr/'),
   'docs/requirements/zubatto-quiz.md',
