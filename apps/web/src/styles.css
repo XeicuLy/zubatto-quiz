@@ -5,6 +5,10 @@
 
 @import 'tailwindcss';
 
+/* テストに書いた class 名（cn や トークンを確かめる表）を、本番の CSS に入れない */
+@source not '../test';
+@source not './**/*.test.{ts,tsx}';
+
 /*
  * フォントは Google Fonts ではなく同じオリジンから配る。CSP の font-src・style-src を 'self' のままにできる。
  * 日本語のフォントは文字の範囲ごとに約120個の @font-face を持ち、太さごとに読み込むと CSS が大きくなる。
@@ -13,8 +17,21 @@
 @import '@fontsource/dela-gothic-one/400.css';
 @import '@fontsource-variable/m-plus-1';
 
+/*
+ * shadcn/ui の部品が使う variant（data-open: など）。variant と utility は使わなければ CSS に出ないが、
+ * スクロールのぼかしなどのための @property（8個）だけは毎回出る。見た目は変えない。
+ * shadcn init が足した tw-animate-css と Geist は入れない（ADR 0007: 動きは1か所だけ、字体は M PLUS 1 のまま）
+ */
+@import 'shadcn/tailwind.css';
+
+/* 部品の dark: は、暗い面（.stage を付けた要素とその中）で効かせる */
+@custom-variant dark (&:where(.stage, .stage *));
+
 @theme {
-  /* 進行画面・回答者画面の面。クイズ番組のスタジオのセットの青 */
+  /*
+   * 進行画面・回答者画面の面。クイズ番組のスタジオのセットの青。
+   * stage・backstage の名前は古い名前で、役割の名前（このファイルの最後の :root・.stage）に移し終えたら消す（#134）
+   */
   --color-stage: oklch(0.26 0.1 274);
   --color-stage-raised: oklch(0.32 0.12 274);
   --color-stage-line: oklch(0.44 0.12 274);
@@ -26,16 +43,28 @@
   --color-choice-2: oklch(0.62 0.18 245);
   --color-choice-3: oklch(0.64 0.17 152);
   --color-choice-4: oklch(0.86 0.16 95);
-  --color-on-choice: oklch(0.99 0 0);
-  --color-on-choice-4: oklch(0.26 0.1 274);
+  --color-choice-1-foreground: oklch(0.99 0 0);
+  --color-choice-2-foreground: oklch(0.99 0 0);
+  --color-choice-3-foreground: oklch(0.99 0 0);
+  --color-choice-4-foreground: oklch(0.26 0.1 274);
 
   /* 最速正解者と1位にだけ使う、ただ1つの目立つ色 */
   --color-spotlight: oklch(0.74 0.19 352);
-  --color-on-spotlight: oklch(0.2 0.08 352);
+  --color-spotlight-foreground: oklch(0.2 0.08 352);
 
-  /* 正誤と注意 */
+  /* 正誤と注意。注意（alert）は暗い面の「再接続中」などの帯。誤りと危ない操作は、面ごとに入れ替わる destructive を使う */
   --color-correct: oklch(0.82 0.17 152);
+  --color-correct-foreground: oklch(0.26 0.1 274);
   --color-alert: oklch(0.76 0.16 45);
+  --color-alert-foreground: oklch(0.26 0.1 274);
+
+  /*
+   * 古い名前。画面を <名前>-foreground と destructive に移し終えたら消す（#134）。
+   * 値は新しい名前と同じにしておく（styles.test.ts が確かめる）
+   */
+  --color-on-choice: oklch(0.99 0 0);
+  --color-on-choice-4: oklch(0.26 0.1 274);
+  --color-on-spotlight: oklch(0.2 0.08 352);
   --color-alert-strong: oklch(0.55 0.2 30);
 
   /* 管理画面の面（楽屋）。明るく落ち着いた道具の面 */
@@ -109,4 +138,78 @@
 @utility name-wrap {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+/*
+ * 役割で名前を付けた色（ADR 0007）。名前は shadcn/ui の部品が使う名前（bg-primary text-primary-foreground など）にそろえる。
+ * 値は、:root が明るい面（管理画面）、.stage が暗い面（進行画面・回答者画面）。部品は同じ class のまま、どちらの面でも使える。
+ * @theme inline にすると、bg-primary が var(--primary) を直接読むので、.stage の中で入れ替えた値が効く。
+ * 今の値は、上の古い名前（stage・backstage など）と同じ（styles.test.ts が対応を確かめる）
+ */
+@theme inline {
+  --font-heading: var(--font-sans);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  --background: oklch(0.975 0.006 274);
+  --foreground: oklch(0.24 0.06 274);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.06 274);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.06 274);
+  --primary: oklch(0.26 0.1 274);
+  --primary-foreground: oklch(0.97 0.012 95);
+  --secondary: oklch(0.975 0.006 274);
+  --secondary-foreground: oklch(0.24 0.06 274);
+  --muted: oklch(0.975 0.006 274);
+  --muted-foreground: oklch(0.5 0.035 274);
+  --accent: oklch(0.975 0.006 274);
+  --accent-foreground: oklch(0.24 0.06 274);
+  --destructive: oklch(0.55 0.2 30);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.9 0.015 274);
+  --input: oklch(0.9 0.015 274);
+  --ring: oklch(0.26 0.1 274);
+}
+
+.stage {
+  --background: oklch(0.26 0.1 274);
+  --foreground: oklch(0.97 0.012 95);
+  --card: oklch(0.32 0.12 274);
+  --card-foreground: oklch(0.97 0.012 95);
+  --popover: oklch(0.32 0.12 274);
+  --popover-foreground: oklch(0.97 0.012 95);
+  --primary: oklch(0.97 0.012 95);
+  --primary-foreground: oklch(0.26 0.1 274);
+  --secondary: oklch(0.32 0.12 274);
+  --secondary-foreground: oklch(0.97 0.012 95);
+  --muted: oklch(0.32 0.12 274);
+  --muted-foreground: oklch(0.8 0.045 274);
+  --accent: oklch(0.32 0.12 274);
+  --accent-foreground: oklch(0.97 0.012 95);
+  --destructive: oklch(0.76 0.16 45);
+  --destructive-foreground: oklch(0.26 0.1 274);
+  --border: oklch(0.44 0.12 274);
+  --input: oklch(0.44 0.12 274);
+  --ring: oklch(0.97 0.012 95);
 }

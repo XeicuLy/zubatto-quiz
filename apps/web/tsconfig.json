@@ -1,6 +1,10 @@
 {
   // エディタが、ファイルごとに下の3つのどれかを選ぶ。画面（DOM）と Worker の型を混ぜると Request などがぶつかるので分ける
   "files": [],
+  // shadcn の CLI は、このファイルの paths から import の別名を読む（references は読まない）。tsconfig.app.json と同じにする
+  "compilerOptions": {
+    "paths": { "@/*": ["./src/*"] }
+  },
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.worker.json" },
