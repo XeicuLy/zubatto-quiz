@@ -6,13 +6,14 @@ Cloudflare の無料プランの上で、TypeScript だけで動く。画面の 
 
 ## 文書
 
-| 場所                                                                   | 中身                                                         |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------ |
-| [docs/requirements/zubatto-quiz.md](docs/requirements/zubatto-quiz.md) | 要件定義書。要件の ID（`F*`・`P*`・`S*` など）はここで決める |
-| [docs/adr/](docs/adr/)                                                 | 技術の判断の記録（ADR）                                      |
-| [docs/design/](docs/design/README.md)                                  | 画面のデザインモック                                         |
-| [docs/runbooks/](#運用の手順書)                                        | コードで表せないものの手順書                                 |
-| [CONTRIBUTING.md](CONTRIBUTING.md)                                     | コントリビュートの方針と進め方                               |
+| 場所                                                                   | 中身                                                                  |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [docs/README.md](docs/README.md)                                       | 文書の入口。読む順番、ADR の一覧、用語集（要件 ID・T 番号・①②③ など） |
+| [docs/requirements/zubatto-quiz.md](docs/requirements/zubatto-quiz.md) | 要件定義書。要件の ID（`F*`・`P*`・`S*` など）はここで決める          |
+| [docs/adr/](docs/adr/)                                                 | 技術の判断の記録（ADR）                                               |
+| [docs/design/](docs/design/README.md)                                  | 画面のデザインモック                                                  |
+| [docs/runbooks/](#運用の手順書)                                        | コードで表せないものの手順書                                          |
+| [CONTRIBUTING.md](CONTRIBUTING.md)                                     | コントリビュートの方針と進め方                                        |
 
 ## 開発環境を作る
 
