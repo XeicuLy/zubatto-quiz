@@ -154,7 +154,106 @@ describe('役割で名前を付けた色（ADR 0007）', () => {
     expect(css).not.toContain('Geist');
     // 角の丸みは Tailwind の既定のまま
     expect(css).toContain('--radius-lg: 0.5rem');
-    // body の背景や、すべての要素の枠とフォーカスの色に、役割の色を当てない
-    expect(css).not.toMatch(/var\(--(background|foreground|border|ring)\)/);
+    // body の背景や、すべての要素の枠の色に、役割の色を当てない。--ring はフォーカスリング（下の describe）だけが使う
+    expect(css.replace(focusVisibleRuleOf(css), '')).not.toMatch(/var\(--(background|foreground|border|ring)\)/);
+  });
+});
+
+/**
+ * @layer base の :focus-visible のルール（ブロックの中身）。ちょうど1つあることも確かめる。
+ * styles.css に書いた @layer base は、preflight とは別のブロックとして utilities より後ろに出る（層の順番は先頭の宣言で決まる）
+ */
+function focusVisibleRuleOf(css: string): string {
+  const base = css
+    .split('@layer ')
+    .filter((block) => block.startsWith('base {'))
+    .join('');
+  const rules = [...base.matchAll(/(?:^|\n)\s*:focus-visible \{([^}]*)\}/g)];
+  expect(rules, ':focus-visible のルールがちょうど1つある').toHaveLength(1);
+  return rules[0][1];
+}
+
+describe('文字の大きさと行間の段（デジタル庁デザインシステムの値を手本にする）', () => {
+  it.each([
+    // [名前, 大きさ, 行間, 字間, 手本にしたトークン]
+    ['title', '1.75rem', '1.5', '0.01em', 'Std-28B-150'],
+    ['heading', '1.25rem', '1.5', '0.02em', 'Std-20B-150'],
+    ['body', '1rem', '1.7', '0.02em', 'Std-16N-170'],
+    ['note', '0.875rem', '1.5', '0.02em', '14px の付随情報'],
+    ['label', '1rem', '1', '0.02em', 'Oln-16B-100'],
+  ])('text-%s は %s、行間 %s、字間 %s（%s）', async (name, size, lineHeight, letterSpacing) => {
+    const css = await buildCss([`text-${name}`]);
+    const variables = themeVariablesOf(css);
+
+    expect(valueOf(variables, `--text-${name}`)).toBe(size);
+    expect(valueOf(variables, `--text-${name}--line-height`)).toBe(lineHeight);
+    expect(valueOf(variables, `--text-${name}--letter-spacing`)).toBe(letterSpacing);
+    // 1つの class で、大きさ・行間・字間がそろって出る
+    expect(css).toContain(`font-size: var(--text-${name})`);
+    expect(css).toContain(`line-height: var(--tw-leading, var(--text-${name}--line-height))`);
+    expect(css).toContain(`letter-spacing: var(--tw-tracking, var(--text-${name}--letter-spacing))`);
+  });
+
+  it('投影の vw のトークンは、そのまま残す', async () => {
+    const variables = themeVariablesOf(await buildCss(['text-stage-label', 'text-question']));
+
+    expect(valueOf(variables, '--text-stage-label')).toBe('clamp(0.875rem, 1.3vw, 1.5rem)');
+    expect(valueOf(variables, '--text-question')).toBe('clamp(1.375rem, 3.6vw, 4.5rem)');
+  });
+});
+
+describe('余白の段（8px を基本にした4段）', () => {
+  it.each([
+    // [名前, 値, 使う場所]
+    ['related', '0.5rem', 'ラベルと入力のような、関係の近いもの同士'],
+    ['item', '1rem', '並んだ項目の間と、部品の内側'],
+    ['cluster', '1.5rem', 'まとまり同士の間'],
+    ['section', '4rem', '節の間'],
+  ])('%s は %s（%s）', async (name, value) => {
+    const css = await buildCss([`gap-${name}`, `p-${name}`, `mt-${name}`]);
+
+    expect(valueOf(themeVariablesOf(css), `--spacing-${name}`)).toBe(value);
+    expect(css).toContain(`gap: var(--spacing-${name})`);
+    expect(css).toContain(`padding: var(--spacing-${name})`);
+    expect(css).toContain(`margin-top: var(--spacing-${name})`);
+  });
+
+  it('余白の名前が、回答者画面の列の幅（max-w-md）を変えない', async () => {
+    expect(await buildCss(['max-w-md'])).toContain('max-width: var(--container-md)');
+  });
+});
+
+describe('全体に効くフォーカスリング（ADR 0007）', () => {
+  it('フォーカスの黄は、デジタル庁デザインシステムの Yellow-300（#ffd43d）で、面で変わらない', async () => {
+    const css = await buildCss(['ring-focus']);
+
+    expect(valueOf(themeVariablesOf(css), '--color-focus')).toBe('oklch(0.883 0.164 92)');
+    expect(variablesOf(css, ':root').has('--focus')).toBe(false);
+  });
+
+  it(':focus-visible に、面ごとの --ring の outline 4px と、その内側の黄の ring 2px を重ねる', async () => {
+    const rule = focusVisibleRuleOf(await buildCss([]));
+
+    expect(rule).toContain('outline-width: 4px');
+    expect(rule).toContain('outline-offset: 2px');
+    expect(rule).toContain('outline-color: var(--ring)');
+    expect(rule).toContain('0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor)');
+    expect(rule).toContain('--tw-ring-color: var(--color-focus)');
+  });
+
+  it('早押しパネルの影（shadow-panel）と黄の ring は、打ち消し合わずに重なる', async () => {
+    const css = await buildCss(['shadow-panel']);
+    const shadowOf = (rule: string) => rule.match(/box-shadow: ([^;]+);/)?.[1];
+
+    // どちらも Tailwind の影の変数をつないだ同じ式なので、影は --tw-shadow、ring は --tw-ring-shadow に入る
+    expect(shadowOf(focusVisibleRuleOf(css))).toBeDefined();
+    expect(shadowOf(focusVisibleRuleOf(css))).toBe(shadowOf(css.slice(css.indexOf('.shadow-panel {'))));
+  });
+
+  it('focus-target は、フォーカスを移すだけの投影の見出しから、outline と黄の ring の両方を消す', async () => {
+    const rule = (await buildCss(['focus-target'])).match(/\.focus-target:focus \{([^}]*)\}/)?.[1];
+
+    expect(rule).toContain('outline-style: none');
+    expect(rule).toContain('--tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(0px + var(--tw-ring-offset-width))');
   });
 });

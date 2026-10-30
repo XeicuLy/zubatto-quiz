@@ -246,9 +246,9 @@ function StageFrame({ question, questionCount, aside, children }: StageFrameProp
 
 /**
  * フォーカスを受けるだけの見出し。押せるものではなく、投影にも映るので、フォーカスの枠は出さない。
- * キーボードで進めるホストには、読み上げと、Tab で操作の帯へ戻れることで伝わる
+ * キーボードで進めるホストには、読み上げと、Tab で操作の帯へ戻れることで伝わる。focus-target は styles.css にある
  */
-const focusTarget = 'focus:outline-none';
+const focusTarget = 'focus-target';
 
 /** 結果が届くまでのつなぎ。画面ごと現れるので role="status" は付けず、読み上げ領域に文を渡す */
 function StatusScreen({ children }: { children: string }) {
