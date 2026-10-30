@@ -74,13 +74,50 @@
   --color-backstage-ink: oklch(0.24 0.06 274);
   --color-backstage-muted: oklch(0.5 0.035 274);
 
+  /*
+   * フォーカスリングの内側の黄。デジタル庁デザインシステムの Yellow-300（#ffd43d）で、面で変わらない。
+   * 外側は面ごとに入れ替わる --ring で、どちらの面でも、2層のどちらかが背景から見分けられる（下の :focus-visible）
+   */
+  --color-focus: oklch(0.883 0.164 92);
+
   /* 文字。見出しと数字は Dela Gothic One、本文は M PLUS 1 */
   --font-display: 'Dela Gothic One', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
   --font-sans: 'M PLUS 1 Variable', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
 
   /*
+   * 文字の大きさの段。管理画面と回答者画面で使い、大きさは text-lg などではなく役割の名前で選ぶ。
+   * 値はデジタル庁デザインシステムのタイポグラフィ（2026-08-05 更新）を手本にした。括弧の中が手本のトークン。
+   * 1つの class で、大きさ・行間・字間がそろって決まる（字間は 26px 以下で 2%）
+   */
+  --text-title: 1.75rem; /* ページの見出し（Std-28B-150） */
+  --text-title--line-height: 1.5;
+  --text-title--letter-spacing: 0.01em;
+  --text-heading: 1.25rem; /* 節の見出し（Std-20B-150） */
+  --text-heading--line-height: 1.5;
+  --text-heading--letter-spacing: 0.02em;
+  --text-body: 1rem; /* 本文（Std-16N-170） */
+  --text-body--line-height: 1.7;
+  --text-body--letter-spacing: 0.02em;
+  /* 注記。ヒントや件数のような付随の情報だけに使う。手本では 14px は 130% までだが、2行に折れても詰まらないよう 150% にした */
+  --text-note: 0.875rem;
+  --text-note--line-height: 1.5;
+  --text-note--letter-spacing: 0.02em;
+  --text-label: 1rem; /* ボタンなど1行で出すもの（Oln-16B-100） */
+  --text-label--line-height: 1;
+  --text-label--letter-spacing: 0.02em;
+
+  /*
+   * 余白の段。8px を基本に、近いものほど狭く、関係の薄いものほど広くあける（デジタル庁デザインシステムの「余白」）。
+   * 名前は大きさ（sm・md）ではなく関係で付ける。--spacing-md を作ると、max-w-md まで列の幅ではなくこの値を読む
+   */
+  --spacing-related: 0.5rem; /* ラベルと入力のような、関係の近いもの同士 */
+  --spacing-item: 1rem; /* 並んだ項目の間と、部品の内側 */
+  --spacing-cluster: 1.5rem; /* まとまり同士の間 */
+  --spacing-section: 4rem; /* 節の間 */
+
+  /*
    * 投影でも読める大きさ。画面の幅に合わせて、スマホと投影の両方で効く。
-   * 画面いっぱいに出す進行画面とランキングで使い、幅を絞る回答者画面では使わない
+   * 画面いっぱいに出す進行画面とランキングで使い、幅を絞る回答者画面では使わない（上の文字と余白の段を使う）
    */
   --spacing-stage: clamp(1rem, 2.5vw, 3rem);
   --text-stage-label: clamp(0.875rem, 1.3vw, 1.5rem);
@@ -114,6 +151,27 @@
       opacity: 1;
       transform: scale(1);
     }
+  }
+}
+
+/*
+ * フォーカスリング（ADR 0007）。キーボードで動かしたときだけ、すべての要素に同じ枠を出す。
+ * 面ごとの --ring の outline 4px を 2px 離し、そのすき間を黄の ring 2px で埋める（デジタル庁デザインシステムの二重の枠）。
+ * ring は Tailwind の影と同じ変数に入るので、shadow-panel の影と重ねても消えない
+ */
+@layer base {
+  :focus-visible {
+    @apply ring-2 ring-focus outline-4 outline-offset-2 outline-ring;
+  }
+}
+
+/*
+ * プログラムでフォーカスを移すだけの要素（ホストの操作のあとの投影の見出し）。押せるものではなく、投影にも映るので、枠を出さない。
+ * outline-none だけでは、上の黄の ring が残る
+ */
+@utility focus-target {
+  &:focus {
+    @apply ring-0 outline-none;
   }
 }
 

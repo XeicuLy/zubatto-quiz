@@ -39,7 +39,7 @@ export function StandingsRanking({ standings, variant, meId, headingRef }: Stand
         <h2
           ref={headingRef}
           tabIndex={headingRef ? -1 : undefined}
-          className={`font-display focus:outline-none ${size.title}`}
+          className={`font-display focus-target ${size.title}`}
         >
           途中経過（第{standings.questionIndex + 1}問まで）
         </h2>
@@ -156,7 +156,7 @@ export function FinalRanking({ ranking, variant, meId, headingRef }: FinalRankin
         <h2
           ref={headingRef}
           tabIndex={headingRef ? -1 : undefined}
-          className={`font-display focus:outline-none ${size.title}`}
+          className={`font-display focus-target ${size.title}`}
         >
           最終ランキング
         </h2>

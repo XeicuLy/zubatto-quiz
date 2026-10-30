@@ -49,7 +49,7 @@ function FastestStage({ fastest, questionIndex, choices, headingRef }: Omit<Fast
       <h2
         ref={headingRef}
         tabIndex={headingRef ? -1 : undefined}
-        className="font-display text-stage-title focus:outline-none"
+        className="font-display text-stage-title focus-target"
       >
         第{questionIndex + 1}問の最速正解
       </h2>

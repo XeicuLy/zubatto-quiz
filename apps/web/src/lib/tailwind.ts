@@ -9,8 +9,20 @@ import { createCn } from 'cn/config';
 export const cn = createCn({
   extend: {
     theme: {
-      text: ['stage-label', 'stage-title', 'question', 'choice', 'timer', 'hero'],
-      spacing: ['stage'],
+      text: [
+        'title',
+        'heading',
+        'body',
+        'note',
+        'label',
+        'stage-label',
+        'stage-title',
+        'question',
+        'choice',
+        'timer',
+        'hero',
+      ],
+      spacing: ['related', 'item', 'cluster', 'section', 'stage'],
       radius: ['panel', 'chip'],
       shadow: ['panel'],
       animate: ['spotlight-in'],
