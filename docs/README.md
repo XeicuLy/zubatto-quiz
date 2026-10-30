@@ -34,7 +34,7 @@
 1. [CONTRIBUTING.md](../CONTRIBUTING.md) で、進め方と PR の題名の形を知る
 2. [README.md の「開発環境を作る」](../README.md#開発環境を作る)のとおりに、手元で動かす
 3. [CLAUDE.md](../CLAUDE.md) で、触る場所の約束を読む。破ると安全（S1〜S4）や同時に起きる処理の正しさが崩れるものが多い
-4. 触る場所に関わる ADR を、下の一覧から読む。部屋と WebSocket なら 0001・0003・0004、問題セットなら 0002、画面なら 0006、CI とリリースなら 0005・0009・0010
+4. 触る場所に関わる ADR を、下の一覧から読む。部屋と WebSocket なら 0001・0003・0004、問題セットなら 0002、画面なら 0006・0007、CI とリリースなら 0005・0009・0010
 5. メッセージや HTTP API の形を変えるときは、[ws.schema.json](../packages/protocol/schema/ws.schema.json) と [openapi.json](../packages/protocol/schema/openapi.json) も作り直す（作り方は CLAUDE.md にある）
 
 ### 本番を運用する人
@@ -57,7 +57,7 @@
 | [0004](adr/0004-player-identification-and-reconnection.md)  | 回答者は participantId と端末が作る秘密で見分け、秘密は localStorage に置いて最初のメッセージで送る           | accepted                                                       |
 | [0005](adr/0005-infrastructure-management.md)               | インフラは wrangler の設定ファイルで管理し、Terraform は Go へ移すときに入れる                                | accepted（デプロイを動かすきっかけを ADR 0010 で変えた）       |
 | [0006](adr/0006-spa-and-api-worker-layout.md)               | 画面の Worker と API の Worker に分け、`/api/*` を Service binding で転送して同じオリジンにする               | accepted                                                       |
-| 0007                                                        | UI 部品の作り方（shadcn/ui と CSP）。#123 で書く                                                              | 予約                                                           |
+| [0007](adr/0007-ui-components-approach.md)                  | UI 部品は shadcn/ui の Base UI 版で作り、役割トークンは shadcn の名前にそろえる                               | accepted                                                       |
 | 0008                                                        | Go を Cloud Run に移すか、Cloudflare に残すか。#146 で書く                                                    | 予約                                                           |
 | [0009](adr/0009-release-versioning-and-tagging.md)          | 版と CHANGELOG は release-please のリリース PR で決め、本番には承認してからデプロイする                       | accepted（タグのルールセットと承認の回数を ADR 0010 で変えた） |
 | [0010](adr/0010-deploy-on-release.md)                       | 本番のデプロイは Release をきっかけに動かし、タグのコミットを1回の承認で出す                                  | accepted                                                       |
