@@ -4,7 +4,9 @@
     // 画面のコードはブラウザで動く
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    // @/ はこのアプリの src/（ADR 0007）。vite.config.ts と vitest.config.ts の alias も同じにする
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": [
     "src/**/*.ts",
