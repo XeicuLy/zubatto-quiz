@@ -71,7 +71,7 @@ describe('本番中にログをファイルへ残すスクリプト（docs/runbo
 });
 
 describe('ログをファイルへ残すコマンド', () => {
-  const saves = [...documents, 'CLAUDE.md'].flatMap((document) =>
+  const saves = documents.flatMap((document) =>
     [...read(new URL(document, repoRoot)).matchAll(/run logs:\w+ (>+) /g)].map(([command, redirect]) => ({
       document,
       command,

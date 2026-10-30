@@ -13,6 +13,10 @@ export const documents = [
   'CONTRIBUTING.md',
   // 文書の入口。ほとんどの文書へリンクし、見出しのアンカーも多い
   'docs/README.md',
+  // コードを書くときの約束。約束の行から docs/architecture の見出しへリンクする
+  'CLAUDE.md',
+  // CLAUDE.md から移した仕組みの説明。CLAUDE.md の約束の行がここの見出しを指す
+  ...markdownIn('docs/architecture/'),
   // いちばん読まれる設計資料。ADR は互いにリンクし、要件の ID から読み返される
   ...markdownIn('docs/adr/'),
   'docs/requirements/zubatto-quiz.md',

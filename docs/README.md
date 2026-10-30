@@ -4,20 +4,21 @@
 
 ## 文書の地図
 
-| 場所                                                                                                                   | 中身                                                                                             |
-| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| [README.md](../README.md)                                                                                              | ズバクイが何か、開発環境と本番の環境の作り方、手順書の一覧                                       |
-| [requirements/zubatto-quiz.md](requirements/zubatto-quiz.md)                                                           | 要件定義書。要件の ID（`F*`・`P*` など）と、スコアの計算はここで決める                           |
-| [adr/](#adr-の一覧)                                                                                                    | 技術の判断の記録（ADR）。下の一覧から開く                                                        |
-| [design/README.md](design/README.md)                                                                                   | 画面のデザインモックと、1問の流れ（①②③）                                                         |
-| [runbooks/](../README.md#運用の手順書)                                                                                 | コードで表せないものの手順書。本番を作る・出す・止める・ログを見る                               |
-| [rehearsal/o2-rehearsal.md](rehearsal/o2-rehearsal.md)                                                                 | 本番の環境で行った O2 のリハーサルの記録と、使用量                                               |
-| [CONTRIBUTING.md](../CONTRIBUTING.md)                                                                                  | コントリビュートの方針、PR の題名とコミットメッセージの形                                        |
-| [CLAUDE.md](../CLAUDE.md)                                                                                              | コードを書くときに守る約束とコマンド。Claude Code が読むが、人が読んでもよい                     |
-| [plan.md](../plan.md)                                                                                                  | 最初の大まかな案。要件定義書や ADR と食い違うところは、そちらが正しい                            |
-| [ws.schema.json](../packages/protocol/schema/ws.schema.json)・[openapi.json](../packages/protocol/schema/openapi.json) | WebSocket のメッセージと HTTP API の形。`packages/protocol` の zod から作る。Go へ移すときの正本 |
-| [CHANGELOG.md](../CHANGELOG.md)                                                                                        | 版ごとの変更。release-please が書く（ADR 0009）                                                  |
-| [tools/docs-check/](../tools/docs-check/)                                                                              | 文書のリンク・コマンド・設定が、リポジトリの今の形とずれていないかを確かめるテスト               |
+| 場所                                                                                                                   | 中身                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| [README.md](../README.md)                                                                                              | ズバクイが何か、開発環境と本番の環境の作り方、手順書の一覧                                                                                 |
+| [requirements/zubatto-quiz.md](requirements/zubatto-quiz.md)                                                           | 要件定義書。要件の ID（`F*`・`P*` など）と、スコアの計算はここで決める                                                                     |
+| [adr/](#adr-の一覧)                                                                                                    | 技術の判断の記録（ADR）。下の一覧から開く                                                                                                  |
+| [architecture/backend.md](architecture/backend.md)                                                                     | API の Worker・部屋の DO・`packages/protocol`・`packages/scoring` の動き方と、約束をコードのどこで守っているか。CLAUDE.md の約束の行の説明 |
+| [design/README.md](design/README.md)                                                                                   | 画面のデザインモックと、1問の流れ（①②③）                                                                                                   |
+| [runbooks/](../README.md#運用の手順書)                                                                                 | コードで表せないものの手順書。本番を作る・出す・止める・ログを見る                                                                         |
+| [rehearsal/o2-rehearsal.md](rehearsal/o2-rehearsal.md)                                                                 | 本番の環境で行った O2 のリハーサルの記録と、使用量                                                                                         |
+| [CONTRIBUTING.md](../CONTRIBUTING.md)                                                                                  | コントリビュートの方針、PR の題名とコミットメッセージの形                                                                                  |
+| [CLAUDE.md](../CLAUDE.md)                                                                                              | コードを書くときに守る約束とコマンド。Claude Code が読むが、人が読んでもよい                                                               |
+| [plan.md](../plan.md)                                                                                                  | 最初の大まかな案。要件定義書や ADR と食い違うところは、そちらが正しい                                                                      |
+| [ws.schema.json](../packages/protocol/schema/ws.schema.json)・[openapi.json](../packages/protocol/schema/openapi.json) | WebSocket のメッセージと HTTP API の形。`packages/protocol` の zod から作る。Go へ移すときの正本                                           |
+| [CHANGELOG.md](../CHANGELOG.md)                                                                                        | 版ごとの変更。release-please が書く（ADR 0009）                                                                                            |
+| [tools/docs-check/](../tools/docs-check/)                                                                              | 文書のリンク・コマンド・設定が、リポジトリの今の形とずれていないかを確かめるテスト                                                         |
 
 ## 最初に読む順番
 
@@ -33,9 +34,9 @@
 
 1. [CONTRIBUTING.md](../CONTRIBUTING.md) で、進め方と PR の題名の形を知る
 2. [README.md の「開発環境を作る」](../README.md#開発環境を作る)のとおりに、手元で動かす
-3. [CLAUDE.md](../CLAUDE.md) で、触る場所の約束を読む。破ると安全（S1〜S4）や同時に起きる処理の正しさが崩れるものが多い
+3. [CLAUDE.md](../CLAUDE.md) で、触る場所の約束を読む。破ると安全（S1〜S4）や同時に起きる処理の正しさが崩れるものが多い。バックエンドの約束の理由と、コードのどこで守っているかは [architecture/backend.md](architecture/backend.md) にある
 4. 触る場所に関わる ADR を、下の一覧から読む。部屋と WebSocket なら 0001・0003・0004、問題セットなら 0002、画面なら 0006・0007、CI とリリースなら 0005・0009・0010
-5. メッセージや HTTP API の形を変えるときは、[ws.schema.json](../packages/protocol/schema/ws.schema.json) と [openapi.json](../packages/protocol/schema/openapi.json) も作り直す（作り方は CLAUDE.md にある）
+5. メッセージや HTTP API の形を変えるときは、[ws.schema.json](../packages/protocol/schema/ws.schema.json) と [openapi.json](../packages/protocol/schema/openapi.json) も作り直す（作り方は [backend.md の「メッセージの形」](architecture/backend.md#メッセージの形)にある）
 
 ### 本番を運用する人
 
