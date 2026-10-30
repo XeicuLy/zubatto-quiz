@@ -99,6 +99,13 @@ describe('main のルールセット（docs/runbooks/main-ruleset.json・M1）',
     expect(rule?.parameters?.allowed_merge_methods).toEqual(['squash']);
   });
 
+  it('コードオーナー（.github/CODEOWNERS）の承認を必須にしない（ADR 0009）', () => {
+    // オーナーは自分1人で、PR を作った本人はその PR を承認できず、bypass もない。
+    // 必須にすると自分の PR がどれもマージできなくなる
+    const rule = ruleset.rules.find(({ type }) => type === 'pull_request');
+    expect(rule?.parameters?.require_code_owner_review).toBe(false);
+  });
+
   it('必須のチェックは GitHub Actions から来たものだけを使う', () => {
     // 15368 は GitHub Actions のアプリの ID。ほかの仕組みが同じ ci という名前で成功を送っても使わない
     expect(requiredChecks().every(({ integration_id }) => integration_id === 15368)).toBe(true);
