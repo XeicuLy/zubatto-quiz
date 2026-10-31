@@ -35,7 +35,7 @@ Release で動くときは、いつも `all` になる（前のタグとの差�
 - 待てるのは1つだけ。待っている run があるときにさらに動かすと、待っていた run は取り消され（Cancelled）、新しいほうに置き換わる。頼んだ run がすべて動くとは限らない（2026-10-17 に GitHub のドキュメントで確かめた）
   - 最後にデプロイされるのは、いつも最後に頼んだ run のコードになる。困るのは、取り消された run が `all`（Release の run を含む）で、残ったほうが `web` のとき。マイグレーションと API のデプロイが行われないまま終わる
   - 続けて動かしたときは、Actions の一覧で取り消された run がないかを見る。あれば、そのときの target で動かし直す。Release の run なら、その run の **Re-run all jobs** で動かし直す
-  - 承認を待っている Release の run も、動いている1つに数えられる見込み（#172 で確かめる）。本番の最中に `web` を出すときに Release の run が承認を待っていたら、先にその run を **Reject** する
+  - 承認を待っている run も、動いている1つに数えられる。Release の run が承認を待っている間に `web` を動かすと、`web` の run は `verify-ci` も始まらないまま `pending` で待ち、Release の run が終わってから動き出した（2026-10-31 に v1.1.0 で確かめた）。本番の最中に `web` を出すときに Release の run が承認を待っていたら、先にその run を **Reject** する
   - すべての run を並べて順に動かす設定（`queue: max`）は使わない。並んだ順に動く保証がなく、古いコミットの run があとから動いて、古い画面に戻ることがありうる
 - 呼ぶスクリプトは root の `db:migrate:remote`・`deploy:api`・`deploy:web`。API の Worker は `--env=""` で本番の設定（`wrangler.jsonc` の先頭）を選ぶ。画面の Worker は `vite build` の直後に `wrangler deploy` する
 
