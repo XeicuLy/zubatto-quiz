@@ -51,13 +51,17 @@ const buttonVariants = cva(
   },
 );
 
+/**
+ * className は文字列だけを受け取る。Base UI は状態を受け取る関数も許すが、cva を通すと捨てられるうえ、
+ * 画面が土台の API につながってしまう（ADR 0007 の DD4）
+ */
+type ButtonProps = Omit<ButtonPrimitive.Props, 'className'> &
+  VariantProps<typeof buttonVariants> & {
+    className?: string;
+  };
+
 /** type の既定は "button"（Base UI が付ける）。フォームを送るボタンだけ type="submit" を渡す */
-function Button({
-  className,
-  variant = 'default',
-  size = 'default',
-  ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+function Button({ className, variant = 'default', size = 'default', ...props }: ButtonProps) {
   return <ButtonPrimitive data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props} />;
 }
 

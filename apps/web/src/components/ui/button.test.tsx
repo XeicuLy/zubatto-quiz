@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import type { ComponentProps } from 'react';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import { Button, buttonVariants } from './button';
 
@@ -78,6 +79,12 @@ describe('Button', () => {
     const button = screen.getByRole('button', { name: '消す' });
     expect(button).toHaveClass('mt-8', 'text-destructive');
     expect(button).not.toHaveClass('text-muted-foreground');
+  });
+
+  // Base UI の className は状態を受け取る関数も許すが、cva を通すと関数は捨てられる。関数は Base UI だけの API なので、
+  // 画面から渡せないようにする（ADR 0007 の DD4: 画面を土台の API につなげない）。tsc がこの型を確かめる
+  it('className は文字列だけを受け取る', () => {
+    expectTypeOf<ComponentProps<typeof Button>['className']>().toEqualTypeOf<string | undefined>();
   });
 
   // フォーカスリングは styles.css の :focus-visible が全体に出す（#125）。部品が上書きすると、面ごとの二重の枠が崩れる

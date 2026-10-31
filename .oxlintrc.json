@@ -64,7 +64,8 @@
       }
     },
     {
-      // UI 部品は Base UI を土台にする（ADR 0007）。上書きすると全体の設定が置き換わるので、テストの import の禁止だけを残す
+      // UI 部品は Base UI を土台にする（ADR 0007）。上書きすると全体の設定が丸ごと置き換わるので、
+      // @base-ui/* の禁止のほかは、全体の設定（patterns と paths）をそのまま書き写す。全体を直したら、ここも直す
       "files": ["apps/web/src/components/ui/**"],
       "rules": {
         "no-restricted-imports": [
@@ -74,6 +75,21 @@
               {
                 "group": ["**/test", "**/test/**", "**/*.test", "**/*.test.*", "**/*.spec", "**/*.spec.*"],
                 "message": "本番のコードからテストのコードを import しない。"
+              }
+            ],
+            "paths": [
+              {
+                "name": "cloudflare:test",
+                "message": "テスト専用のモジュール。本番のコードでは cloudflare:workers を使う。"
+              },
+              {
+                "name": "better-auth/plugins",
+                "importNames": ["testUtils"],
+                "message": "testUtils はテスト専用の auth インスタンス（apps/api/test/auth）にだけ入れる（ADR 0003）。"
+              },
+              {
+                "name": "better-auth/test",
+                "message": "Better Auth のテスト用のモジュール。本番のコードからは import しない（ADR 0003）。"
               }
             ]
           }
