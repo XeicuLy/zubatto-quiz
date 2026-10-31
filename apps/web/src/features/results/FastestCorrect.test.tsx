@@ -148,4 +148,18 @@ describe('② 最速正解の発表の、大きさごとの違い', () => {
     const mobile = renderFastest(fastest, 'mobile');
     expect(mobile.querySelector('[class*="text-stage"], .text-hero, .text-timer, .p-stage')).toBeNull();
   });
+
+  it('投影では秒数と上げた幅だけを font-numeral にし、見出しと名前は本文の字体のまま', () => {
+    const projector = renderFastest(fastest, 'projector');
+
+    const numerals = [...projector.querySelectorAll('.font-numeral')].map((node) => node.textContent);
+    expect(numerals).toEqual(['0.84秒', '1.02秒', '1.37秒', '▲5つ上げた']);
+    expect(screen.getByRole('heading', { level: 2 })).not.toHaveClass('font-numeral');
+  });
+
+  it('回答者画面では、飾り文字を使わない', () => {
+    const mobile = renderFastest(fastest, 'mobile');
+
+    expect(mobile.querySelector('.font-numeral, .font-display')).toBeNull();
+  });
 });

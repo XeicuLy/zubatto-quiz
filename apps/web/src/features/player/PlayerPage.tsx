@@ -33,7 +33,7 @@ export function PlayerPage({ player, sound }: { player: PlayerRoom; sound: Sound
     case 'full':
       return (
         <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
-          <h1 className="font-display text-3xl leading-snug">この部屋は満員です</h1>
+          <h1 className="text-3xl leading-snug font-bold">この部屋は満員です</h1>
           <p className="mt-4 leading-relaxed text-on-stage-muted">
             1つの部屋に入れるのは{MAX_PARTICIPANTS}人までです。ホストに、別の部屋を作れるか聞いてください。
           </p>
@@ -42,7 +42,7 @@ export function PlayerPage({ player, sound }: { player: PlayerRoom; sound: Sound
     case 'not_found':
       return (
         <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
-          <h1 className="font-display text-3xl leading-snug">部屋が見つかりません</h1>
+          <h1 className="text-3xl leading-snug font-bold">部屋が見つかりません</h1>
           <p className="mt-4 leading-relaxed text-on-stage-muted">URL が正しいか、ホストに確かめてください。</p>
         </main>
       );

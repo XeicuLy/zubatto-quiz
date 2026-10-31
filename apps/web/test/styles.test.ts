@@ -88,7 +88,8 @@ describe('styles.css の @theme（T1 のトークン）', () => {
     ['text-on-choice-4', 'color: var(--color-on-choice-4)'],
     ['bg-spotlight', 'background-color: var(--color-spotlight)'],
     ['text-backstage-ink', 'color: var(--color-backstage-ink)'],
-    ['font-display', 'font-family: var(--font-display)'],
+    ['font-numeral', 'font-family: var(--font-numeral)'],
+    ['font-logo', 'font-family: var(--font-logo)'],
     ['text-question', 'font-size: var(--text-question)'],
     ['p-stage', 'padding: var(--spacing-stage)'],
     ['rounded-panel', 'border-radius: var(--radius-panel)'],
@@ -106,12 +107,36 @@ describe('styles.css の @theme（T1 のトークン）', () => {
     expect(css).toContain('word-break: auto-phrase');
   });
 
-  it('見出しと本文のフォントを、同じオリジンから配る（CSP の font-src を広げない）', async () => {
+  it('飾り文字と本文のフォントを、同じオリジンから配る（CSP の font-src を広げない）', async () => {
     const css = await buildCss([]);
 
     expect(css).toMatch(/font-family: ['"]Dela Gothic One['"]/);
     expect(css).toMatch(/font-family: ['"]M PLUS 1 Variable['"]/);
     expect(css).not.toMatch(/url\(["']?https?:/);
+  });
+});
+
+describe('字体の役割（飾り文字は投影の数字・順位とロゴだけ）', () => {
+  it('投影の数字（font-numeral）とロゴ（font-logo）は Dela Gothic One、本文は M PLUS 1', async () => {
+    const variables = themeVariablesOf(await buildCss(['font-numeral', 'font-logo', 'font-sans']));
+
+    expect(valueOf(variables, '--font-numeral')).toMatch(/^['"]Dela Gothic One['"]/);
+    expect(valueOf(variables, '--font-logo')).toBe(valueOf(variables, '--font-numeral'));
+    expect(valueOf(variables, '--font-sans')).toMatch(/^['"]M PLUS 1 Variable['"]/);
+  });
+
+  it('前の名前 font-display は、もう CSS に出ない', async () => {
+    expect(await buildCss(['font-display'])).not.toContain('--font-display');
+  });
+
+  it('太字の中でも、太さが 400 しかない Dela Gothic One をブラウザに太らせない', async () => {
+    const css = await buildCss([]);
+    const base = css
+      .split('@layer ')
+      .filter((block) => block.startsWith('base {'))
+      .join('');
+
+    expect(base).toMatch(/(?:^|\n)\s*html \{[^}]*font-synthesis-weight: none;/);
   });
 });
 

@@ -36,13 +36,13 @@ export function JoinForm({ notice, defaultName, onJoin }: JoinFormProps) {
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-14 pb-24">
       {notice === 'resume_failed' ? (
         <>
-          <h1 className="font-display text-3xl leading-snug">前回の参加には戻れませんでした</h1>
+          <h1 className="text-3xl leading-snug font-bold">前回の参加には戻れませんでした</h1>
           <p className="mt-4 leading-relaxed text-on-stage-muted">
             参加してから時間がたったか、参加の手続きが途中で切れたため、前回の名前と得点では戻れません。新しく名前を入れて参加してください。
           </p>
         </>
       ) : (
-        <h1 className="font-display text-5xl leading-tight">
+        <h1 className="font-logo text-5xl leading-tight">
           ズバッと
           <br />
           クイズ

@@ -200,3 +200,26 @@ describe('最終ランキングの、自分の強調と大きさ', () => {
     expect(mobile.querySelector('[class*="md:"]')).toBeNull();
   });
 });
+
+describe('ランキングの字体（飾り文字は投影の数字・順位だけ）', () => {
+  it.each([
+    ['途中経過', <StandingsRanking key="standings" standings={standings} variant="projector" />],
+    ['最終ランキング', <FinalRanking key="final" ranking={finalRanking} variant="projector" />],
+  ])('投影の%sは、順位と点だけを font-numeral にし、見出しと名前は本文の字体のまま', (_, element) => {
+    const { container } = render(element);
+
+    const numerals = [...container.querySelectorAll('.font-numeral')].map((node) => node.textContent);
+    expect(numerals.length).toBeGreaterThan(0);
+    expect(numerals.every((text) => /^[\d,]+(位|点)?$/.test(text ?? ''))).toBe(true);
+    expect(screen.getByRole('heading', { level: 2 })).not.toHaveClass('font-numeral');
+  });
+
+  it.each([
+    ['途中経過', <StandingsRanking key="standings" standings={standings} variant="mobile" />],
+    ['最終ランキング', <FinalRanking key="final" ranking={finalRanking} variant="mobile" />],
+  ])('回答者画面の%sは、飾り文字を使わない', (_, element) => {
+    const { container } = render(element);
+
+    expect(container.querySelector('.font-numeral, .font-display')).toBeNull();
+  });
+});

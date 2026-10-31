@@ -33,7 +33,7 @@ export function JoinUrlCard({ joinUrl }: { joinUrl: string }) {
       aria-labelledby="join-url-heading"
       className="flex flex-col gap-4 self-start rounded-panel bg-stage-raised p-stage"
     >
-      <h2 id="join-url-heading" className="font-display text-stage-title">
+      <h2 id="join-url-heading" className="text-stage-title font-bold">
         スマホで参加
       </h2>
       {/* 文字の側は 14rem を基準にする。flex-1（基準 0）だと折り返さず、スマホでは QR の横に細く押し込まれる。

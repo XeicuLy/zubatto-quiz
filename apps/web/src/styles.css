@@ -80,8 +80,13 @@
    */
   --color-focus: oklch(0.883 0.164 92);
 
-  /* 文字。見出しと数字は Dela Gothic One、本文は M PLUS 1 */
-  --font-display: 'Dela Gothic One', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  /*
+   * 文字。飾り文字の Dela Gothic One は、投影の数字・順位（font-numeral）とロゴ（font-logo）だけに使う。
+   * 見出しやラベルを含むほかの文字は、入力欄と同じ M PLUS 1 にし、見出しは font-bold で太くする。
+   * 回答者画面と管理画面の数字は、投影でないので M PLUS 1 にする（results の部品は variant の対応表で分ける）
+   */
+  --font-numeral: 'Dela Gothic One', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  --font-logo: 'Dela Gothic One', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
   --font-sans: 'M PLUS 1 Variable', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
 
   /*
@@ -162,6 +167,14 @@
 @layer base {
   :focus-visible {
     @apply ring-2 ring-focus outline-4 outline-offset-2 outline-ring;
+  }
+
+  /*
+   * Dela Gothic One は太さ 400 しかなく、font-bold の中に置くと、ブラウザが字を太らせて潰れる（疑似太字）。
+   * M PLUS 1 は可変フォントで本物の太さを持つので、太らせるのを止めても変わらない。継承するので html に1回書く
+   */
+  html {
+    font-synthesis-weight: none;
   }
 }
 

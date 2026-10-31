@@ -86,7 +86,7 @@ function closedMessageOf(reason: CloseReason | null): Message {
 function ClosedScreen({ message }: { message: Message }) {
   return (
     <main className="flex min-h-dvh flex-col justify-center gap-4 p-stage">
-      <h1 className="font-display text-stage-title">{message.title}</h1>
+      <h1 className="text-stage-title font-bold">{message.title}</h1>
       <p className="text-stage-label leading-relaxed text-on-stage-muted">{message.body}</p>
       <BackToListLink />
     </main>

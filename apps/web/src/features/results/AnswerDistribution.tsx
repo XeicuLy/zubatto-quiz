@@ -39,7 +39,7 @@ export function AnswerDistribution({ revealed, choices }: AnswerDistributionProp
               <ChoiceNumber index={index} className={isCorrect ? colors.badge : colors.badgeMuted} />
               <span className="min-w-0 flex-1 wrap-anywhere">{choices?.[index] ?? ''}</span>
               {isCorrect && <span className="shrink-0 text-[0.7em]">○ 正解</span>}
-              <span className="shrink-0 font-display tabular-nums">
+              <span className="shrink-0 font-numeral tabular-nums">
                 {count}
                 <span className="ml-1 text-[0.6em]">人</span>
               </span>
