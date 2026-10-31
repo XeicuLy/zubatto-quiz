@@ -17,8 +17,10 @@ const standingsSizes = {
     title: 'text-stage-title',
     sub: 'text-stage-label',
     table: 'text-stage-label',
+    // 飾り文字は投影の数字・順位だけ。回答者画面の数字は本文の字体の太字にする
+    numeral: 'font-numeral',
   },
-  mobile: { root: 'mt-6 gap-3', title: 'text-xl', sub: 'text-sm', table: 'text-sm' },
+  mobile: { root: 'mt-6 gap-3', title: 'text-xl', sub: 'text-sm', table: 'text-sm', numeral: 'font-bold' },
 } as const;
 
 export interface StandingsRankingProps {
@@ -36,11 +38,7 @@ export function StandingsRanking({ standings, variant, meId, headingRef }: Stand
   return (
     <section aria-label="途中経過" className={`flex flex-col ${size.root}`}>
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h2
-          ref={headingRef}
-          tabIndex={headingRef ? -1 : undefined}
-          className={`font-display focus-target ${size.title}`}
-        >
+        <h2 ref={headingRef} tabIndex={headingRef ? -1 : undefined} className={`font-bold focus-target ${size.title}`}>
           途中経過（第{standings.questionIndex + 1}問まで）
         </h2>
         <p className={`text-on-stage-muted ${size.sub}`}>
@@ -76,8 +74,8 @@ export function StandingsRanking({ standings, variant, meId, headingRef }: Stand
             const isMe = entry.participantId === meId;
             return (
               <tr key={entry.participantId} className={isMe ? 'bg-on-stage text-stage' : 'bg-stage-raised'}>
-                <td className="rounded-l-chip px-2 py-1.5 font-display whitespace-nowrap tabular-nums">
-                  {entry.rank}位
+                <td className="rounded-l-chip px-2 py-1.5 font-bold whitespace-nowrap tabular-nums">
+                  <span className={size.numeral}>{entry.rank}</span>位
                 </td>
                 <td className="px-2 py-1.5">
                   <p className="flex items-baseline gap-2">
@@ -92,7 +90,7 @@ export function StandingsRanking({ standings, variant, meId, headingRef }: Stand
                 >
                   +{formatPoints(entry.points)}
                 </td>
-                <td className="rounded-r-chip px-2 py-1.5 text-right font-display tabular-nums">
+                <td className={`rounded-r-chip px-2 py-1.5 text-right tabular-nums ${size.numeral}`}>
                   {formatPoints(entry.totalScore)}
                 </td>
               </tr>
@@ -117,6 +115,7 @@ const finalSizes = {
     podium: 'text-stage-title',
     // 投影では2列にして、人数が多くても1画面に収める。columns は人数によらず、左の列から縦に流す
     rest: 'gap-x-stage text-stage-label md:columns-2',
+    numeral: 'font-numeral',
   },
   mobile: {
     root: 'mt-6 gap-4',
@@ -129,6 +128,7 @@ const finalSizes = {
     unit: 'text-lg',
     podium: 'text-lg',
     rest: 'text-base',
+    numeral: 'font-bold',
   },
 } as const;
 
@@ -153,11 +153,7 @@ export function FinalRanking({ ranking, variant, meId, headingRef }: FinalRankin
   return (
     <section aria-label="最終ランキング" className={`flex flex-col ${size.root}`}>
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h2
-          ref={headingRef}
-          tabIndex={headingRef ? -1 : undefined}
-          className={`font-display focus-target ${size.title}`}
-        >
+        <h2 ref={headingRef} tabIndex={headingRef ? -1 : undefined} className={`font-bold focus-target ${size.title}`}>
           最終ランキング
         </h2>
         <p className={`text-on-stage-muted ${size.sub}`}>
@@ -173,19 +169,19 @@ export function FinalRanking({ ranking, variant, meId, headingRef }: FinalRankin
             aria-label="優勝"
             className={`flex flex-col justify-center gap-2 rounded-panel bg-spotlight text-on-spotlight motion-safe:animate-spotlight-in ${size.winnerBox}`}
           >
-            <p className={`font-display ${size.winnerLabel}`}>優勝</p>
+            <p className={`font-bold ${size.winnerLabel}`}>優勝</p>
             {winners.map((entry) => (
               <div key={entry.participantId}>
-                <p className={`name-wrap font-display ${size.winnerName}`}>
+                <p className={`name-wrap font-bold ${size.winnerName}`}>
                   {entry.name}
                   {entry.participantId === meId && (
-                    <span className="ml-3 inline-block rounded-full bg-on-spotlight px-2 align-middle font-sans text-xs font-bold text-spotlight">
+                    <span className="ml-3 inline-block rounded-full bg-on-spotlight px-2 align-middle text-xs font-bold text-spotlight">
                       あなた
                     </span>
                   )}
                 </p>
-                <p className={`font-display whitespace-nowrap tabular-nums ${size.winnerName}`}>
-                  {formatPoints(entry.totalScore)}
+                <p className={`font-bold whitespace-nowrap tabular-nums ${size.winnerName}`}>
+                  <span className={size.numeral}>{formatPoints(entry.totalScore)}</span>
                   <span className={`ml-2 ${size.unit}`}>点</span>
                 </p>
               </div>
@@ -199,6 +195,7 @@ export function FinalRanking({ ranking, variant, meId, headingRef }: FinalRankin
                   key={entry.participantId}
                   entry={entry}
                   isMe={entry.participantId === meId}
+                  numeralClassName={size.numeral}
                   className="rounded-panel px-4 py-2 font-bold"
                   idleClassName="bg-stage-raised"
                 />
@@ -215,6 +212,7 @@ export function FinalRanking({ ranking, variant, meId, headingRef }: FinalRankin
               key={entry.participantId}
               entry={entry}
               isMe={entry.participantId === meId}
+              numeralClassName={size.numeral}
               className="break-inside-avoid border-b border-stage-line px-2 py-1"
               idleClassName=""
             />
@@ -231,21 +229,25 @@ interface RankRowProps {
   className: string;
   /** 自分でない行の色 */
   idleClassName: string;
+  /** 順位と点の字体。投影だけ飾り文字にする */
+  numeralClassName: string;
 }
 
-function RankRow({ entry, isMe, className, idleClassName }: RankRowProps) {
+function RankRow({ entry, isMe, className, idleClassName, numeralClassName }: RankRowProps) {
   return (
     <li className={`flex items-center gap-4 ${className} ${isMe ? 'bg-on-stage text-stage' : idleClassName}`}>
-      <span className="w-[2.8em] shrink-0 font-display whitespace-nowrap tabular-nums">{entry.rank}位</span>
+      <span className="w-[2.8em] shrink-0 font-bold whitespace-nowrap tabular-nums">
+        <span className={numeralClassName}>{entry.rank}</span>位
+      </span>
       <span className="name-clip flex-1" title={entry.name}>
         {entry.name}
       </span>
       {isMe && <MeChip />}
-      <span className="shrink-0 font-display tabular-nums">{formatPoints(entry.totalScore)}</span>
+      <span className={`shrink-0 tabular-nums ${numeralClassName}`}>{formatPoints(entry.totalScore)}</span>
     </li>
   );
 }
 
 function MeChip() {
-  return <span className="shrink-0 rounded-full bg-stage px-2 font-sans text-xs text-on-stage">あなた</span>;
+  return <span className="shrink-0 rounded-full bg-stage px-2 text-xs text-on-stage">あなた</span>;
 }

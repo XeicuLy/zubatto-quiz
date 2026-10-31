@@ -18,7 +18,7 @@ export function HostLobby({ room, participants, joinUrl }: HostLobbyProps) {
   return (
     <main className="flex flex-1 flex-col gap-stage p-stage">
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h1 className="font-display text-stage-title wrap-anywhere">{room.title}</h1>
+        <h1 className="text-stage-title font-bold wrap-anywhere">{room.title}</h1>
         <p className="text-stage-label text-on-stage-muted">全{room.questionCount}問</p>
       </header>
 
@@ -43,8 +43,8 @@ export function HostLobby({ room, participants, joinUrl }: HostLobbyProps) {
 
         <section aria-labelledby="participants-heading" className="flex flex-col gap-4">
           <h2 id="participants-heading" className="flex items-baseline gap-3">
-            <span className="font-display text-stage-title">参加者</span>
-            <span className="font-display text-question tabular-nums">{participants.length}</span>
+            <span className="text-stage-title font-bold">参加者</span>
+            <span className="font-numeral text-question tabular-nums">{participants.length}</span>
             <span className="text-stage-label text-on-stage-muted">/ {MAX_PARTICIPANTS} 人</span>
           </h2>
           {participants.length === 0 ? (

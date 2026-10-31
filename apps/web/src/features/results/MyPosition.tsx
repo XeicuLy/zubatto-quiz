@@ -46,8 +46,7 @@ export function goalOf(position: PlayerPosition): Goal | null {
 export function MyPosition({ position, totalScore, remainingMaxPoints, remainingQuestions }: MyPositionProps) {
   const remaining = remainingQuestions > 0 && (
     <p className="mt-3 text-sm font-bold">
-      残り{remainingQuestions}問で、最大{' '}
-      <span className="font-display tabular-nums">{formatPoints(remainingMaxPoints)}</span>
+      残り{remainingQuestions}問で、最大 <span className="tabular-nums">{formatPoints(remainingMaxPoints)}</span>
       点 取れます
     </p>
   );
@@ -68,7 +67,7 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
   const rank = position.kind === 'leader' ? 1 : position.kind === 'podium' ? position.rank : null;
   const total = (
     <>
-      <span className="font-display text-base text-on-stage tabular-nums">{formatPoints(totalScore)}</span>点
+      <span className="text-base font-bold text-on-stage tabular-nums">{formatPoints(totalScore)}</span>点
     </>
   );
 
@@ -76,7 +75,7 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
     <section className="mt-8 rounded-panel bg-stage-raised p-5" aria-label="あなたの位置">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         {rank !== null && (
-          <p className="font-display text-4xl tabular-nums">
+          <p className="text-4xl font-bold tabular-nums">
             {rank}
             <span className="ml-1 text-lg">位</span>
           </p>
@@ -91,7 +90,7 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
       </div>
       {goal !== null && (
         <p className="mt-2 text-lg font-bold">
-          {goal.label} <span className="font-display tabular-nums">{formatPoints(goal.points)}</span>点
+          {goal.label} <span className="tabular-nums">{formatPoints(goal.points)}</span>点
         </p>
       )}
       {position.kind === 'chasing' ? (
@@ -104,7 +103,7 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
             <div>
               <dt>トップとの差</dt>
               <dd>
-                <span className="font-display text-base text-on-stage tabular-nums">
+                <span className="text-base font-bold text-on-stage tabular-nums">
                   {formatPoints(position.gapToTop)}
                 </span>
                 点

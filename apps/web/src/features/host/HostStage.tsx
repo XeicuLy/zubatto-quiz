@@ -144,7 +144,7 @@ function AcceptingStage({ question, choices, questionCount, participantCount, he
       aside={
         <p className="text-stage-label">
           <span>回答</span>{' '}
-          <span className="font-display text-stage-title tabular-nums">{progress?.answeredCount ?? 0}</span>
+          <span className="font-numeral text-stage-title tabular-nums">{progress?.answeredCount ?? 0}</span>
           <span className="text-on-stage-muted">/ {progress?.participantCount ?? participantCount} 人</span>
         </p>
       }
@@ -159,7 +159,7 @@ function AcceptingStage({ question, choices, questionCount, participantCount, he
         </h1>
         <p className="shrink-0 text-center">
           <span className="sr-only">残り</span>
-          <span className="block font-display text-timer tabular-nums">{Math.ceil(leftMs / 1000)}</span>
+          <span className="block font-numeral text-timer tabular-nums">{Math.ceil(leftMs / 1000)}</span>
           <span className="text-stage-label text-on-stage-muted">秒</span>
         </p>
       </div>
@@ -233,8 +233,10 @@ function StageFrame({ question, questionCount, aside, children }: StageFrameProp
   return (
     <main className="flex flex-1 flex-col gap-stage p-stage">
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <p className="font-display text-stage-title">
-          <span>第{question.questionIndex + 1}問</span>{' '}
+        <p className="text-stage-title font-bold">
+          <span>
+            第<span className="font-numeral">{question.questionIndex + 1}</span>問
+          </span>{' '}
           <span className="text-stage-label text-on-stage-muted">/ {questionCount}</span>
         </p>
         {aside}

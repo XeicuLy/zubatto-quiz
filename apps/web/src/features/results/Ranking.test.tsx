@@ -200,3 +200,50 @@ describe('最終ランキングの、自分の強調と大きさ', () => {
     expect(mobile.querySelector('[class*="md:"]')).toBeNull();
   });
 });
+
+/** その要素の中で font-numeral を付けた要素の文字。単位（位・点）は本文の字体なので入らない */
+const numeralsIn = (element: Element) => [...element.querySelectorAll('.font-numeral')].map((node) => node.textContent);
+
+describe('ランキングの字体（飾り文字は投影の数字だけ）', () => {
+  it('投影の途中経過は、どの行も順位と合計の数字だけを font-numeral にする', () => {
+    render(<StandingsRanking standings={standings} variant="projector" />);
+
+    const rows = within(screen.getByRole('table', { name: '途中経過' }))
+      .getAllByRole('row')
+      .slice(1);
+    expect(rows.map(numeralsIn)).toEqual([
+      ['1', '2,980'],
+      ['2', '2,845'],
+      ['2', '2,845'],
+      ['4', '2,205'],
+    ]);
+    expect(screen.getByRole('heading', { level: 2 })).not.toHaveClass('font-numeral');
+  });
+
+  it('投影の最終ランキングは、優勝・2〜3位・4位から下のどれも、順位と点の数字だけを font-numeral にする', () => {
+    render(<FinalRanking ranking={finalRanking} variant="projector" />);
+
+    const listItems = (name: string) => within(screen.getByRole('list', { name })).getAllByRole('listitem');
+    expect(numeralsIn(screen.getByRole('region', { name: '優勝' }))).toEqual(['7,820']);
+    expect(listItems('2位と3位').map(numeralsIn)).toEqual([
+      ['2', '7,105'],
+      ['3', '6,930'],
+    ]);
+    expect(listItems('4位から下').map(numeralsIn)).toEqual([
+      ['4', '6,410'],
+      ['5', '5,980'],
+      ['5', '5,980'],
+      ['7', '5,215'],
+    ]);
+    expect(screen.getByRole('heading', { level: 2 })).not.toHaveClass('font-numeral');
+  });
+
+  it.each([
+    ['途中経過', <StandingsRanking key="standings" standings={standings} variant="mobile" />],
+    ['最終ランキング', <FinalRanking key="final" ranking={finalRanking} variant="mobile" />],
+  ])('回答者画面の%sは、飾り文字を使わない', (_, element) => {
+    const { container } = render(element);
+
+    expect(container.querySelector('.font-numeral, .font-display')).toBeNull();
+  });
+});

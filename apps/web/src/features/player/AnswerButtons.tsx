@@ -93,7 +93,7 @@ function AnsweredList({ choices, chosen, focus }: { choices: string[]; chosen: n
 
 function ChoiceNumber({ index, className }: { index: number; className: string }) {
   return (
-    <span className={`grid size-11 shrink-0 place-items-center rounded-full font-display text-2xl ${className}`}>
+    <span className={`grid size-11 shrink-0 place-items-center rounded-full text-2xl font-bold ${className}`}>
       {index + 1}
     </span>
   );

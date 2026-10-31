@@ -30,10 +30,10 @@ export const choiceColors = [
   },
 ] as const;
 
-/** 選択肢の番号（1から）を丸で囲んで出す */
+/** 選択肢の番号（1から）を丸で囲んで出す。進行画面（投影）だけで使うので、飾り文字にする */
 export function ChoiceNumber({ index, className }: { index: number; className: string }) {
   return (
-    <span className={`grid size-[1.6em] shrink-0 place-items-center rounded-full font-display ${className}`}>
+    <span className={`grid size-[1.6em] shrink-0 place-items-center rounded-full font-numeral ${className}`}>
       {index + 1}
     </span>
   );

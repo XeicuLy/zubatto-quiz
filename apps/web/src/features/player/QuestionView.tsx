@@ -113,7 +113,7 @@ function Answering({ question, choices, questionCount, onAnswer }: AnsweringProp
       questionCount={questionCount}
       aside={
         <p className="shrink-0 font-bold">
-          残り <span className="font-display text-2xl tabular-nums">{remainingSeconds}</span> 秒
+          残り <span className="text-2xl tabular-nums">{remainingSeconds}</span> 秒
         </p>
       }
       // 次に描き直すときの残りへ、それまでの時間をかけて縮める。棒は秒の変わり目を待たずに、なめらかに減る
@@ -150,7 +150,7 @@ function QuestionFrame({ question, questionCount, aside, progress, children }: Q
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
       <header className="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
-        <p className="shrink-0 font-display text-lg">
+        <p className="shrink-0 text-lg font-bold">
           第{question.questionIndex + 1}問 <span className="text-sm text-on-stage-muted">/ {questionCount}</span>
         </p>
         {aside}
@@ -180,7 +180,7 @@ function AnswerFooter({ answer, limitMs, closed }: { answer: MyAnswer | null; li
       {answer !== null && (
         <>
           <p className="text-on-stage-muted">回答までの時間</p>
-          <p className="font-display text-6xl tabular-nums">
+          <p className="text-6xl font-bold tabular-nums">
             {secondsOf(answer, limitMs)}
             <span className="ml-1 text-2xl">秒</span>
           </p>

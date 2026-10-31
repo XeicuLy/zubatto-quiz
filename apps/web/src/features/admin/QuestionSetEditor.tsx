@@ -63,7 +63,7 @@ export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
         <Link to="/admin" className="font-bold underline focus-visible:outline-2 focus-visible:outline-stage">
           問題セットの一覧に戻る
         </Link>
-        <h1 className="mt-6 font-display text-3xl">問題セットの編集</h1>
+        <h1 className="mt-6 text-3xl font-bold">問題セットの編集</h1>
 
         <label htmlFor={`${id}-title`} className="mt-8 block text-sm font-bold text-backstage-muted">
           問題セットの名前
@@ -74,7 +74,7 @@ export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
           onChange={(event) => dispatch({ type: 'setTitle', title: event.target.value })}
           aria-invalid={titleError !== undefined}
           aria-describedby={titleError === undefined ? undefined : `${id}-title-error`}
-          className="mt-2 w-full rounded-chip border-2 border-backstage-line bg-backstage-surface px-4 py-3 font-display text-2xl focus-visible:border-stage focus-visible:outline-none aria-invalid:border-alert-strong"
+          className="mt-2 w-full rounded-chip border-2 border-backstage-line bg-backstage-surface px-4 py-3 text-2xl font-bold focus-visible:border-stage focus-visible:outline-none aria-invalid:border-alert-strong"
         />
         {titleError !== undefined && (
           <p id={`${id}-title-error`} className="mt-2 text-sm font-bold text-alert-strong">

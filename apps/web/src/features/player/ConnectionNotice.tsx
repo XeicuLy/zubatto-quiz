@@ -114,7 +114,7 @@ function closedMessageOf(reason: CloseReason | null, roomEnd: RoomEnd | null): M
 function ClosedScreen({ message }: { message: Message }) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
-      <h1 className="font-display text-3xl leading-snug">{message.title}</h1>
+      <h1 className="text-3xl leading-snug font-bold">{message.title}</h1>
       <p className="mt-4 leading-relaxed text-on-stage-muted">{message.body}</p>
     </main>
   );

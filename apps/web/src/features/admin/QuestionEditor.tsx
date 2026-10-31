@@ -44,7 +44,7 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
       className={`rounded-panel bg-backstage-surface p-5 ${hasError ? 'border-2 border-alert-strong' : 'border border-backstage-line'}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <h2 id={`${id}-heading`} className="font-display text-xl">
+        <h2 id={`${id}-heading`} className="text-xl font-bold">
           第{number}問
         </h2>
         <div className="flex items-center gap-3">
@@ -110,7 +110,7 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
                 <div className="flex items-center gap-3">
                   <span
                     aria-hidden="true"
-                    className={`grid size-9 shrink-0 place-items-center rounded-full font-display ${choiceBadge[choiceIndex]}`}
+                    className={`grid size-9 shrink-0 place-items-center rounded-full font-bold ${choiceBadge[choiceIndex]}`}
                   >
                     {choiceNumber}
                   </span>

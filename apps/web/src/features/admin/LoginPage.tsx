@@ -33,7 +33,7 @@ export function LoginPage({ error }: LoginPageProps) {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-16">
-      <p className="font-display text-4xl">ズバクイ</p>
+      <p className="font-logo text-4xl">ズバクイ</p>
       <h1 className="mt-2 text-xl font-bold">ホストの管理画面</h1>
 
       {denied ? (

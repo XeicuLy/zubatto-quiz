@@ -34,7 +34,7 @@ export function AdminLayout({ host }: AdminLayoutProps) {
     <div className="min-h-dvh bg-backstage font-sans text-backstage-ink antialiased">
       <header className="border-b border-backstage-line bg-backstage-surface">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-5 py-3">
-          <p className="shrink-0 font-display text-xl">ズバクイ</p>
+          <p className="shrink-0 font-logo text-xl">ズバクイ</p>
           <div className="flex min-w-0 items-center gap-3 text-sm">
             <p className="name-clip text-backstage-muted" title={host.name}>
               {host.name}

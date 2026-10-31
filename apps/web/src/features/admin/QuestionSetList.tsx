@@ -21,7 +21,7 @@ export function QuestionSetList() {
   return (
     <main className="mx-auto max-w-4xl px-5 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="font-display text-3xl">問題セット</h1>
+        <h1 className="text-3xl font-bold">問題セット</h1>
         {sets.data !== undefined && sets.data.length > 0 && <CreateButton align="end" />}
       </div>
       <p className="mt-3 text-sm leading-relaxed text-backstage-muted">

@@ -46,11 +46,7 @@ function FastestStage({ fastest, questionIndex, choices, headingRef }: Omit<Fast
   const climber = climberOf(fastest);
   const header = (
     <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-      <h2
-        ref={headingRef}
-        tabIndex={headingRef ? -1 : undefined}
-        className="font-display text-stage-title focus-target"
-      >
+      <h2 ref={headingRef} tabIndex={headingRef ? -1 : undefined} className="text-stage-title font-bold focus-target">
         第{questionIndex + 1}問の最速正解
       </h2>
       <p className={first === undefined ? 'text-stage-label text-on-stage-muted' : 'text-stage-label'}>
@@ -64,7 +60,7 @@ function FastestStage({ fastest, questionIndex, choices, headingRef }: Omit<Fast
       <section aria-label="最速正解の発表" className="flex flex-1 flex-col gap-stage p-stage">
         {header}
         <div className="my-auto">
-          <p className="font-display text-timer">正解者なし</p>
+          <p className="text-timer font-bold">正解者なし</p>
           <p className="mt-4 text-stage-title text-on-stage-muted">この問題に正解した人はいませんでした</p>
         </div>
       </section>
@@ -83,18 +79,18 @@ function FastestStage({ fastest, questionIndex, choices, headingRef }: Omit<Fast
       >
         <li className="self-center motion-safe:animate-spotlight-in md:col-span-2">
           {/* 見せ場なので省略せず、折り返して全部見せる。長い名前は1段小さくして、3行以上に割れないようにする */}
-          <p className={`name-wrap font-display ${[...first.name].length > 12 ? 'text-question' : 'text-timer'}`}>
+          <p className={`name-wrap font-bold ${[...first.name].length > 12 ? 'text-question' : 'text-timer'}`}>
             {first.name}
           </p>
-          <p className="mt-[0.1em] font-display text-hero tabular-nums">
-            {formatSeconds(first.elapsedMs)}
+          <p className="mt-[0.1em] text-hero font-bold tabular-nums">
+            <span className="font-numeral">{formatSeconds(first.elapsedMs)}</span>
             <span className="ml-[0.15em] text-[0.35em]">秒</span>
           </p>
         </li>
         {rest.map((answer, index) => (
           <li key={answer.participantId} className="min-w-0 border-t-2 border-on-spotlight/25 pt-4">
             <p className="font-bold">{index + 2}番目に速い正解</p>
-            <FastAnswerRow answer={answer} nameClassName="font-display text-stage-title" />
+            <FastAnswerRow answer={answer} nameClassName="text-stage-title font-bold" numeralClassName="font-numeral" />
           </li>
         ))}
       </ol>
@@ -106,7 +102,7 @@ function FastestStage({ fastest, questionIndex, choices, headingRef }: Omit<Fast
         climber !== null && (
           <div className="border-t-2 border-on-spotlight/25 pt-4 text-stage-label">
             <p className="font-bold">この問題で一番順位を上げた人</p>
-            <ClimberRow climber={climber} nameClassName="font-display text-stage-title" />
+            <ClimberRow climber={climber} nameClassName="text-stage-title font-bold" numeralClassName="font-numeral" />
           </div>
         )
       )}
@@ -134,8 +130,8 @@ function FastestCard({ fastest }: { fastest: FastestRevealed }) {
         <ol aria-label="最速の3人" className="mt-2 grid grid-cols-1 gap-1">
           {fastest.fastest.map((answer, index) => (
             <li key={answer.participantId} className={`flex items-baseline gap-3 ${index === 0 ? 'text-xl' : ''}`}>
-              <span className="w-[1.2em] shrink-0 font-display text-sm text-on-stage-muted">{index + 1}</span>
-              <FastAnswerRow answer={answer} nameClassName="font-bold" />
+              <span className="w-[1.2em] shrink-0 text-sm font-bold text-on-stage-muted">{index + 1}</span>
+              <FastAnswerRow answer={answer} nameClassName="font-bold" numeralClassName="font-bold" />
             </li>
           ))}
         </ol>
@@ -143,22 +139,28 @@ function FastestCard({ fastest }: { fastest: FastestRevealed }) {
       {climber !== null && (
         <div className="mt-3 border-t border-stage-line pt-2 text-sm">
           <p className="text-on-stage-muted">この問題で一番順位を上げた人</p>
-          <ClimberRow climber={climber} nameClassName="font-bold" />
+          <ClimberRow climber={climber} nameClassName="font-bold" numeralClassName="font-bold" />
         </div>
       )}
     </section>
   );
 }
 
+/** 秒数や上げた幅の数字の字体。飾り文字は投影だけで、回答者画面では本文の字体の太字にする。単位と記号はどちらも本文の字体 */
+interface RowFontProps {
+  nameClassName: string;
+  numeralClassName: string;
+}
+
 /** 名前と秒数の1行。名前は1行で省略し、title で全文を見せる */
-function FastAnswerRow({ answer, nameClassName }: { answer: FastAnswer; nameClassName: string }) {
+function FastAnswerRow({ answer, nameClassName, numeralClassName }: { answer: FastAnswer } & RowFontProps) {
   return (
     <span className="flex min-w-0 flex-1 items-baseline gap-3">
       <span className={`name-clip flex-1 ${nameClassName}`} title={answer.name}>
         {answer.name}
       </span>
-      <span className="shrink-0 font-display tabular-nums">
-        {formatSeconds(answer.elapsedMs)}
+      <span className="shrink-0 font-bold tabular-nums">
+        <span className={numeralClassName}>{formatSeconds(answer.elapsedMs)}</span>
         <span className="ml-0.5 text-[0.7em]">秒</span>
       </span>
     </span>
@@ -169,18 +171,16 @@ function FastAnswerRow({ answer, nameClassName }: { answer: FastAnswer; nameClas
 function ClimberRow({
   climber,
   nameClassName,
-}: {
-  climber: NonNullable<ReturnType<typeof climberOf>>;
-  nameClassName: string;
-}) {
+  numeralClassName,
+}: { climber: NonNullable<ReturnType<typeof climberOf>> } & RowFontProps) {
   return (
     <p className="flex items-baseline gap-3">
       <span className={`name-clip flex-1 ${nameClassName}`} title={climber.name}>
         {climber.name}
       </span>
-      <span className="shrink-0 font-display tabular-nums">
+      <span className="shrink-0 font-bold tabular-nums">
         <span aria-hidden="true">▲</span>
-        {climber.rankUp}
+        <span className={numeralClassName}>{climber.rankUp}</span>
         <span className="sr-only">つ上げた</span>
       </span>
     </p>
