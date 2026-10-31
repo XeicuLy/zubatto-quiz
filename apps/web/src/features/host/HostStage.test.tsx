@@ -110,10 +110,11 @@ describe('出題と受付中（F8・F9）', () => {
   });
 
   it('出題のあいだは、問題文と制限時間だけを出し、選択肢は出さない', () => {
-    renderStage(room('question'), question());
+    const { container } = renderStage(room('question'), question());
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('部長が最初に歌った曲のジャンルは？');
-    expect(screen.getByText('第3問')).toBeInTheDocument();
+    // 数字だけを飾り文字の span で包むので、getByText ではなく画面の文字で確かめる
+    expect(container).toHaveTextContent('第3問 / 5');
     expect(screen.getByText('制限時間 10秒')).toBeInTheDocument();
     expect(screen.queryByRole('list', { name: '選択肢' })).not.toBeInTheDocument();
   });
@@ -222,6 +223,31 @@ describe('問題文の改行（F5）', () => {
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading.textContent).toBe(text);
     expect(heading).toHaveClass('whitespace-pre-line');
+  });
+});
+
+describe('投影の飾り文字', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // 飾り文字（Dela Gothic One）は数字だけ。「第」「問」「秒」「人」「位」「点」などの単位は、本文の字体で出す
+  it.each<[RoomPhase, CurrentQuestion | null, FinalRanking | null]>([
+    ['accepting', question({ choices: CHOICES, remainingMs: 10_000 }), null],
+    ['revealed', question({ choices: CHOICES, revealed: REVEALED }), null],
+    ['fastest', question({ choices: CHOICES, fastest: FASTEST }), null],
+    ['standings', question({ choices: CHOICES, standings: STANDINGS }), null],
+    ['final', null, FINAL_RANKING],
+  ])('%s のとき、font-numeral の中は数字だけ', (phase, current, finalRanking) => {
+    const { container } = renderStage(room(phase, phase === 'final' ? 4 : 2), current, { finalRanking });
+
+    const numerals = [...container.querySelectorAll('.font-numeral')].map((node) => node.textContent);
+    expect(numerals.length).toBeGreaterThan(0);
+    expect(numerals.filter((text) => !/^[\d,.]+$/.test(text ?? ''))).toEqual([]);
   });
 });
 

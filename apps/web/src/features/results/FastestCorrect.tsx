@@ -82,8 +82,8 @@ function FastestStage({ fastest, questionIndex, choices, headingRef }: Omit<Fast
           <p className={`name-wrap font-bold ${[...first.name].length > 12 ? 'text-question' : 'text-timer'}`}>
             {first.name}
           </p>
-          <p className="mt-[0.1em] font-numeral text-hero tabular-nums">
-            {formatSeconds(first.elapsedMs)}
+          <p className="mt-[0.1em] text-hero font-bold tabular-nums">
+            <span className="font-numeral">{formatSeconds(first.elapsedMs)}</span>
             <span className="ml-[0.15em] text-[0.35em]">秒</span>
           </p>
         </li>
@@ -146,7 +146,7 @@ function FastestCard({ fastest }: { fastest: FastestRevealed }) {
   );
 }
 
-/** 秒数や上げた幅の字体。飾り文字は投影だけで、回答者画面では本文の字体の太字にする */
+/** 秒数や上げた幅の数字の字体。飾り文字は投影だけで、回答者画面では本文の字体の太字にする。単位と記号はどちらも本文の字体 */
 interface RowFontProps {
   nameClassName: string;
   numeralClassName: string;
@@ -159,8 +159,8 @@ function FastAnswerRow({ answer, nameClassName, numeralClassName }: { answer: Fa
       <span className={`name-clip flex-1 ${nameClassName}`} title={answer.name}>
         {answer.name}
       </span>
-      <span className={`shrink-0 tabular-nums ${numeralClassName}`}>
-        {formatSeconds(answer.elapsedMs)}
+      <span className="shrink-0 font-bold tabular-nums">
+        <span className={numeralClassName}>{formatSeconds(answer.elapsedMs)}</span>
         <span className="ml-0.5 text-[0.7em]">秒</span>
       </span>
     </span>
@@ -178,9 +178,9 @@ function ClimberRow({
       <span className={`name-clip flex-1 ${nameClassName}`} title={climber.name}>
         {climber.name}
       </span>
-      <span className={`shrink-0 tabular-nums ${numeralClassName}`}>
+      <span className="shrink-0 font-bold tabular-nums">
         <span aria-hidden="true">▲</span>
-        {climber.rankUp}
+        <span className={numeralClassName}>{climber.rankUp}</span>
         <span className="sr-only">つ上げた</span>
       </span>
     </p>

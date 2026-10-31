@@ -74,8 +74,8 @@ export function StandingsRanking({ standings, variant, meId, headingRef }: Stand
             const isMe = entry.participantId === meId;
             return (
               <tr key={entry.participantId} className={isMe ? 'bg-on-stage text-stage' : 'bg-stage-raised'}>
-                <td className={`rounded-l-chip px-2 py-1.5 whitespace-nowrap tabular-nums ${size.numeral}`}>
-                  {entry.rank}位
+                <td className="rounded-l-chip px-2 py-1.5 font-bold whitespace-nowrap tabular-nums">
+                  <span className={size.numeral}>{entry.rank}</span>位
                 </td>
                 <td className="px-2 py-1.5">
                   <p className="flex items-baseline gap-2">
@@ -180,8 +180,8 @@ export function FinalRanking({ ranking, variant, meId, headingRef }: FinalRankin
                     </span>
                   )}
                 </p>
-                <p className={`whitespace-nowrap tabular-nums ${size.numeral} ${size.winnerName}`}>
-                  {formatPoints(entry.totalScore)}
+                <p className={`font-bold whitespace-nowrap tabular-nums ${size.winnerName}`}>
+                  <span className={size.numeral}>{formatPoints(entry.totalScore)}</span>
                   <span className={`ml-2 ${size.unit}`}>点</span>
                 </p>
               </div>
@@ -236,7 +236,9 @@ interface RankRowProps {
 function RankRow({ entry, isMe, className, idleClassName, numeralClassName }: RankRowProps) {
   return (
     <li className={`flex items-center gap-4 ${className} ${isMe ? 'bg-on-stage text-stage' : idleClassName}`}>
-      <span className={`w-[2.8em] shrink-0 whitespace-nowrap tabular-nums ${numeralClassName}`}>{entry.rank}位</span>
+      <span className="w-[2.8em] shrink-0 font-bold whitespace-nowrap tabular-nums">
+        <span className={numeralClassName}>{entry.rank}</span>位
+      </span>
       <span className="name-clip flex-1" title={entry.name}>
         {entry.name}
       </span>

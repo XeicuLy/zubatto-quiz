@@ -82,6 +82,7 @@
 
   /*
    * 文字。飾り文字の Dela Gothic One は、投影の数字・順位（font-numeral）とロゴ（font-logo）だけに使う。
+   * font-numeral は数字だけを包み、単位（第・問・秒・位・点・人）は外側の M PLUS 1 で出す。
    * 見出しやラベルを含むほかの文字は、入力欄と同じ M PLUS 1 にし、見出しは font-bold で太くする。
    * 回答者画面と管理画面の数字は、投影でないので M PLUS 1 にする（results の部品は variant の対応表で分ける）
    */
