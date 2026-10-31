@@ -3,14 +3,13 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import type { QuestionSetSummary } from '@zubatto-quiz/protocol';
 import { useState } from 'react';
 
+import { Button, buttonVariants } from '@/components/ui/button';
+
 import { CreateRoomButton } from '../host/CreateRoomButton';
 import { ApiError, createDraftQuestionSet, deleteQuestionSet, questionSetsQueryOptions } from './api';
 
 /** 更新した日。ホストは日本にいるので、端末の時刻の設定によらず日本の時刻で出す */
 const updatedDate = new Intl.DateTimeFormat('ja-JP', { month: 'long', day: 'numeric', timeZone: 'Asia/Tokyo' });
-
-const primaryButton =
-  'rounded-full bg-stage px-5 py-2.5 font-bold text-on-stage focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-stage disabled:opacity-60';
 
 /**
  * 自分の問題セットの一覧（F1・F7）。作る・部屋を作る・編集へ移る・消すができる
@@ -72,9 +71,9 @@ function CreateButton({ align }: { align: keyof typeof createButtonAlign }) {
 
   return (
     <div className={`flex flex-col gap-2 ${createButtonAlign[align]}`}>
-      <button type="button" onClick={() => create.mutate()} disabled={create.isPending} className={primaryButton}>
+      <Button onClick={() => create.mutate()} disabled={create.isPending}>
         問題セットを作る
-      </button>
+      </Button>
       {create.isError && (
         <p role="alert" className="text-sm font-bold text-alert-strong">
           問題セットを作れませんでした。もう一度押してください。
@@ -104,22 +103,12 @@ function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
       {confirming ? (
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-bold text-alert-strong">本当に消しますか？</p>
-          <button
-            type="button"
-            onClick={() => remove.mutate()}
-            disabled={remove.isPending}
-            className="rounded-full bg-alert-strong px-4 py-2 text-sm font-bold text-on-choice focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage disabled:opacity-60"
-          >
+          <Button variant="destructive" size="sm" onClick={() => remove.mutate()} disabled={remove.isPending}>
             本当に消す
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirming(false)}
-            disabled={remove.isPending}
-            className="rounded-full border-2 border-backstage-line px-4 py-2 text-sm font-bold focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage disabled:opacity-60"
-          >
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setConfirming(false)} disabled={remove.isPending}>
             やめる
-          </button>
+          </Button>
         </div>
       ) : (
         // min-w-0: 「部屋を作る」の失敗の知らせ（w-full）が出たら、行の幅まで縮んで文を折り返す。shrink-0 だと文が1行に伸びてはみ出す
@@ -128,17 +117,13 @@ function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
           <Link
             to="/admin/sets/$setId"
             params={{ setId: set.id }}
-            className="rounded-full border-2 border-backstage-line px-4 py-2 text-sm font-bold focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage"
+            className={buttonVariants({ variant: 'outline', size: 'sm' })}
           >
             編集
           </Link>
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="rounded-full px-3 py-2 text-sm text-alert-strong underline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage"
-          >
+          <Button variant="link" size="sm" onClick={() => setConfirming(true)} className="text-destructive">
             消す
-          </button>
+          </Button>
         </div>
       )}
       {remove.isError && !(remove.error instanceof ApiError && remove.error.status === 404) && (

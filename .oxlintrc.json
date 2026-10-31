@@ -31,6 +31,10 @@
           {
             "group": ["**/test", "**/test/**", "**/*.test", "**/*.test.*", "**/*.spec", "**/*.spec.*"],
             "message": "本番のコードからテストのコードを import しない。"
+          },
+          {
+            "group": ["@base-ui/*", "@base-ui/**"],
+            "message": "画面は components/ui の部品を使う。Base UI を import するのは apps/web/src/components/ui の中だけ（ADR 0007）。"
           }
         ],
         "paths": [
@@ -57,6 +61,23 @@
       "files": ["**/test/**", "**/*.test.*", "**/*.spec.*", "**/vitest.config.*", "e2e/**", "playwright.config.*"],
       "rules": {
         "no-restricted-imports": "off"
+      }
+    },
+    {
+      // UI 部品は Base UI を土台にする（ADR 0007）。上書きすると全体の設定が置き換わるので、テストの import の禁止だけを残す
+      "files": ["apps/web/src/components/ui/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/test", "**/test/**", "**/*.test", "**/*.test.*", "**/*.spec", "**/*.spec.*"],
+                "message": "本番のコードからテストのコードを import しない。"
+              }
+            ]
+          }
+        ]
       }
     }
   ]
