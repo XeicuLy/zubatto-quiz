@@ -49,7 +49,7 @@ pnpm exec wrangler secret put GITHUB_CLIENT_SECRET --env=""
 ```
 
 - GitHub の2つは、コマンドの引数やパイプで渡さない。シェルの履歴に残る。「Enter a secret value:」と聞かれてから貼ると、画面にも出ない
-- パイプで渡した値は、末尾の改行が削られる（wrangler 4.149.0 のソースで 2026-10-18 に確かめた）
+- 値の末尾の空白と改行は削られる。パイプで渡した値も、聞かれてから貼った値も同じ（wrangler 4.149.0 のソースの `trimEnd()` で、2026-10-31 に確かめた）
 - `--env=""` で、`wrangler.jsonc` の先頭の設定（`zubakui-api`）を選ぶ。付けなくても同じ Worker に入るが、`env.e2e` があるので「Multiple environments are defined」という警告が出る
 - 入れたら、名前だけを確かめる。値は表示されない。4つの名前が並ぶ
 
