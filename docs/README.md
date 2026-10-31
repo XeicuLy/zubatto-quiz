@@ -10,6 +10,7 @@
 | [requirements/zubatto-quiz.md](requirements/zubatto-quiz.md)                                                           | 要件定義書。要件の ID（`F*`・`P*` など）と、スコアの計算はここで決める                                                                        |
 | [adr/](#adr-の一覧)                                                                                                    | 技術の判断の記録（ADR）。下の一覧から開く                                                                                                     |
 | [architecture/backend.md](architecture/backend.md)                                                                     | API の Worker・部屋の DO・`packages/protocol`・`packages/scoring` の動き方と、約束をコードのどこで守っているか。CLAUDE.md の約束の行の説明    |
+| [architecture/frontend.md](architecture/frontend.md)                                                                   | `apps/web`（SPA と画面の Worker）の動き方と、約束をコードのどこで守っているか。CLAUDE.md の約束の行の説明                                     |
 | [architecture/testing.md](architecture/testing.md)                                                                     | Workers の実行環境でのテスト・通しの E2E・O2 のリハーサル用のボットの動き方と、テストの道具                                                   |
 | [architecture/operations.md](architecture/operations.md)                                                               | インフラの設定・ルールセット・リリース・デプロイの workflow・ログがなぜその形かと、それを確かめる docs-check のテスト。手順は runbooks にある |
 | [design/README.md](design/README.md)                                                                                   | 画面のデザインモックと、1問の流れ（①②③）                                                                                                      |
@@ -36,7 +37,7 @@
 
 1. [CONTRIBUTING.md](../CONTRIBUTING.md) で、進め方と PR の題名の形を知る
 2. [README.md の「開発環境を作る」](../README.md#開発環境を作る)のとおりに、手元で動かす
-3. [CLAUDE.md](../CLAUDE.md) で、触る場所の約束を読む。破ると安全（S1〜S4）や同時に起きる処理の正しさが崩れるものが多い。約束の理由と、コードのどこで守っているかは、バックエンドなら [architecture/backend.md](architecture/backend.md)、テストなら [architecture/testing.md](architecture/testing.md) にある
+3. [CLAUDE.md](../CLAUDE.md) で、触る場所の約束を読む。破ると安全（S1〜S4）や同時に起きる処理の正しさが崩れるものが多い。約束の理由と、コードのどこで守っているかは、バックエンドなら [architecture/backend.md](architecture/backend.md)、画面なら [architecture/frontend.md](architecture/frontend.md)、テストなら [architecture/testing.md](architecture/testing.md) にある
 4. 触る場所に関わる ADR を、下の一覧から読む。部屋と WebSocket なら 0001・0003・0004、問題セットなら 0002、画面なら 0006・0007、CI とリリースなら 0005・0009・0010
 5. メッセージや HTTP API の形を変えるときは、[ws.schema.json](../packages/protocol/schema/ws.schema.json) と [openapi.json](../packages/protocol/schema/openapi.json) も作り直す（作り方は [backend.md の「メッセージの形」](architecture/backend.md#メッセージの形)にある）
 
