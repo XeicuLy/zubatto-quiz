@@ -57,7 +57,7 @@
 - `production` には Required reviewers（自分、`prevent_self_review: false`、`can_admins_bypass: false`）を付けている（ADR 0009）。承認は `production` を使う job ごとに求められる（2026-10-27 に、job を3つに分けていたころの `all` で確かめた。ドキュメントには書かれていない）。job を1つにしているので、承認は1回で済む（ADR 0010 の E3）。`deploy` を job に分け直さない。承認だけの job を先頭に置いて reviewers を外す形にもしない。トークンを持つ Environment から reviewers が外れてしまう
 - Reject すると何も出ない。**Re-run failed jobs** は `deploy` の job をはじめからやり直す（当て済みのマイグレーションは飛ばされる）。画面だけを出し直すときは、`web` で新しく動かす。本番の最中にリリース PR をマージしてしまったら、その run を Reject し、本番のあとで **Re-run all jobs** する
 - `timeout-minutes` は `deploy` が 30、`verify-ci` が 35。`verify-ci` は `CI_WAIT_SECONDS`（1800 秒）より長くしておく。短いと、どのチェックを待っていたかを書かずに時間切れで止まる。テストがこれを確かめる
-- `concurrency` は GitHub の既定のまま（待てる run は1つ）。新しい run が来ると、待っている run は取り消される。取り消された `all` や Release の run は、runbook の手順で動かし直す。承認を待っている Release の run も、動いている1つに数えられる見込み（#172 で確かめる）。`queue: max` は足さない。並んだ順に動く保証がなく、古いコミットが最後に出ることがある
+- `concurrency` は GitHub の既定のまま（待てる run は1つ）。新しい run が来ると、待っている run は取り消される。取り消された `all` や Release の run は、runbook の手順で動かし直す。承認を待っている Release の run も、動いている1つに数えられる（#172 で、2026-10-31 に確かめた）。`queue: max` は足さない。並んだ順に動く保証がなく、古いコミットが最後に出ることがある
 - step はルートの `db:migrate:remote`・`deploy:api`・`deploy:web` を呼ぶ。API のものは `--env=""` を付ける。画面の `deploy` は `vite build && wrangler deploy` で、E2E のビルドが残した設定を使わない（[testing.md の「本番と同じビルドで動かす」](testing.md#本番と同じビルドで動かす)）
 
 ## verify-ci

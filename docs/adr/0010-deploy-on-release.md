@@ -93,7 +93,7 @@ Release で動くときの target
 - 良い影響: production を使う job が1つになり、Deployment が run ごとに1つになる。承認を拒むと何も出ないので、「マイグレーションと API だけが新しい」という途中の状態が、拒んだことでは起きなくなる
 - 良い影響: production に `v*` のタグを許すので、前の版に戻すときは、そのタグの上で `workflow_dispatch` を動かせる。使われる deploy.yaml は、そのタグのコミットのもの
 - 悪い影響: リリース PR のマージが、本番へのデプロイの始まりになる。本番の最中は、リリース PR をマージしない。マージしてしまったら、Release の run の承認を押さず、**Reject** する。本番のあとに出すときは、その run の **Re-run all jobs** で動かし直して承認する
-- 悪い影響: 承認を待っている Release の run も、deploy.yaml の concurrency の1つに数えられる見込み。そのため本番の最中に `web` を出すときは、先に Release の run を Reject する（#172 で確かめる）
+- 悪い影響: 承認を待っている Release の run も、deploy.yaml の concurrency の1つに数えられる（#172 で、2026-10-31 に確かめた）。そのため本番の最中に `web` を出すときは、先に Release の run を Reject する
 - 悪い影響: job を1つにまとめるので、**Re-run failed jobs** で画面の Worker だけを動かし直すことはできない。動かし直すと、マイグレーション（当て済みなら飛ばされる）と API も、もう一度行われる。本番の外なら困らない。画面だけを出し直すときは `web` で動かす
 - 悪い影響: `v*` のタグを打ち間違えたときは、タグの ruleset を一時的に外さないと消せない
 - 悪い影響: Release で動くときは、画面だけの変更でも API の Worker を出し直す
@@ -105,7 +105,7 @@ Release で動くときの target
   - `tools/docs-check` の `deploy-workflow.test.ts` を作り直す
   - deploy.md（承認は1回、手順 0 の読み方、本番の最中の扱い）と release.md を直す
   - release-please の PR の見出し（`pull-request-header`）と、release-please.yaml のコメントの「デプロイはしない」を直す
-- 対応事項（#172）: Release からの最初の自動デプロイを試し、次を確かめる
+- 対応事項（#172）: Release からの最初の自動デプロイを試し、次を確かめる（2026-10-31 に v1.1.0 で、すべて確かめた）
   - App の token で作った Release で deploy.yaml が動くこと
   - タグの ruleset が App のタグ作成を通すこと
   - production がタグの run を通すこと
