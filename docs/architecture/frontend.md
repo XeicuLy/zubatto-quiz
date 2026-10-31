@@ -33,6 +33,8 @@
 - 色の役割は shadcn の名前（`background`/`foreground`、`card`、`primary`/`primary-foreground`、`muted`、`destructive`/`destructive-foreground`、`border`、`input`、`ring`…）にそろえる（#124、ADR 0007）。どれも `@theme inline` の項目で、中身は `:root`（明るい管理画面）と `.stage`（暗いステージ）に置いた素の変数。そのため `bg-primary` は `var(--primary)` をそのまま読み、`.stage` の中では値が入れ替わる。`@custom-variant dark` も `.stage` を指す。今は `.stage` を付けた画面はまだない
 - アプリだけの色は `<name>` と `<name>-foreground` の組にする（`choice-1`…`4`、`spotlight`、`correct`、`alert`）。`alert` はステージのお知らせの帯で、エラーと危ない操作には `destructive` を使う
 - 前の名前（`stage*`、`backstage*`、`on-*`、`alert-strong`）は、#134 まで値を残す。`styles.test.ts` が、面ごとに各役割をそれが表す前の名前と比べるので、色を変えても（#126）対応が黙って崩れることはない
+- 文字と背景の組は、投影でもスマホでも 4.5:1 以上にする（ADR 0007）。`test/contrast.test.ts` が、組の表（`<name>-foreground` と `<name>`、面ごとの `foreground` と `background` など）のコントラストを、コンパイルした CSS の値から計算する。計算は oklch → OKLab → 線形 sRGB → 相対輝度で、依存は増やさない。sRGB の外の色は、sRGB の画面では切り詰められ、P3 の画面ではそのまま出て明るさが変わるので、2通りに測って低いほうを見る。新しい組を作ったら表に足す
+- 選択肢の白い文字が 4.5:1 に届くよう、`choice-1`〜`3` は文字ではなく背景を暗くした（#126）。番号がいつも出ているので、4色の見分けは番号でもできる。どれも sRGB の中に収まる値にしてある
 
 ## 文字と余白とフォーカス
 
