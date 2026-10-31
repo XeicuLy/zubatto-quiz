@@ -9,6 +9,7 @@
 - 最初の版は、すべて TypeScript で Cloudflare の無料プランの上に作る。最初の本番のあとで、バックエンドを Go と Cloud Run（Terraform）で作り直す（[ADR 0001](../adr/0001-backend-runtime-and-realtime-transport.md)）。そのため、画面が頼るものにバックエンドの基盤の事情を持ち込まない。とくに **WebSocket の JSON メッセージの仕様は基盤に依存させず、画面とバックエンドで同じものを使う**。こうしておけば、作り直しで画面に手を入れずに済む
 - Hono の Worker が1つと、**部屋ごとに1つの Durable Object（DO）** で動かす。DO は WebSocket Hibernation API と DO の SQLite を使い、部屋の状態・得点・回答の唯一の正本になる。ポーリングや SSE は使わない
 - Worker は2つに分ける（[ADR 0006](../adr/0006-spa-and-api-worker-layout.md)）。`apps/web` は SPA を静的アセットとして配り、`/api/*` を Service binding で `apps/api`（Hono・DO・Better Auth）へ転送する。ブラウザからは1つのオリジンに見えるので、CORS も `crossSubDomainCookies` も使わない。API と WebSocket のパスは、すべて `/api/` の下に置く
+- `GET /api/health` は `{ ok: true }` を返すだけの、生きているかの確かめ
 - `apps/api` は `workers_dev: false` と `preview_urls: false` にしている。本番の最中は `apps/api` をデプロイしない。部屋の WebSocket が切れるため
 
 ## 問題セットと部屋を作る
@@ -29,6 +30,7 @@
 
 ## WebSocket の入口
 
+- 入口は2つある。ホストは `/api/rooms/:roomId/ws/host`、回答者は `/ws/play`（同じ `/api/rooms/:roomId` の下）からつなぐ
 - ホストの WebSocket の入口は、`Origin` を確かめ、cookie のセッションから `ownerId` を引いて DO へ渡す
 - `routes/ws.ts` は次の順に確かめる。`Origin` が `new URL(c.req.url).origin` と同じか（違えば 403。ないときも 403 で、cookie を読む前に断る）、`Upgrade` があるか（なければ 426）、部屋の ID が小文字の16進64文字で `idFromString` に通るか（通らなければ `refuseConnection('room_not_found')` で 4404）。ホストの入口は、そのあとで `requireHost` を通す
 - Worker は、ブラウザのリクエストをそのまま DO へ渡さない。`room/connections.ts` の `roomRequest` が、`Upgrade` と、ホストなら内部用の持ち主のヘッダーだけを持つ新しいリクエストを作る。そのため cookie や偽の持ち主のヘッダーは DO に届かない
