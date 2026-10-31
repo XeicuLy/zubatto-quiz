@@ -74,7 +74,7 @@
 - `outline` の枠は `border-foreground`。文字でない枠も、隣の色に 3:1 以上にする（ADR 0007 のデジタル庁デザインシステムの値）。`border` の色では、どちらの面でも届かない
 - `type` は Base UI が既定で `"button"` を付ける。フォームを送るボタンだけ `type="submit"` を渡す
 - アイコンは文字と並べて子に置く。`svg` は文字の 1.25 倍の大きさになり（`size-*` を付けたものはそのまま）、文字との間は `gap-related` でとる。アイコンは `aria-hidden` にし、ボタンの名前は文字だけにする
-- ブランドのロゴは `src/components/icons/` に、公式が配る SVG の path をそのまま JSX で置く。`lucide-react` は 1.0 でブランドのロゴを消した（2026-10-31 に確かめた）。GitHub のロゴ（`github-mark.tsx`）は Primer Octicons の `mark-github-24`（MIT）。`fill="currentColor"` で文字の色に合わせる。インラインの SVG は `<style>` でも `style` 属性でもないので、CSP は変えなくてよい
+- ブランドのロゴは `src/components/icons/` に、ライセンスのはっきりした配布元の SVG の path をそのまま JSX で置く。`lucide-react` は 1.0 でブランドのロゴを消した（2026-10-31 に確かめた）。GitHub のロゴ（`github-mark.tsx`）は Simple Icons の `github.svg`（CC0-1.0）で、著作権表示が要らない。MIT のもの（Primer Octicons など）を写すときは、著作権表示と許諾文もファイルに入れる。`fill="currentColor"` で文字の色に合わせる。simpleicons.org などから実行時に読み込むと CSP で止まるので、path を写す。インラインの SVG は `<style>` でも `style` 属性でもないので、CSP は変えなくてよい
 - `<Link>` をボタンの見た目にするときは、`className={buttonVariants({ ... })}` で class だけを渡す。`Button` の `render` で `<a>` を描かせると `role="button"` が付き、リンクとして読まれなくなる
 
 ## 部屋の WebSocket
