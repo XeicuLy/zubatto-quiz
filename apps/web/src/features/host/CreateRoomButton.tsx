@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 
+import { Button } from '@/components/ui/button';
+
 import { ApiError, createRoom, questionSetsQueryOptions } from '../admin/api';
 
 /**
@@ -24,14 +26,9 @@ export function CreateRoomButton({ questionSetId }: { questionSetId: string }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => create.mutate()}
-        disabled={create.isPending}
-        className="shrink-0 rounded-full bg-stage px-4 py-2 text-sm font-bold text-on-stage focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage disabled:opacity-60"
-      >
+      <Button size="sm" onClick={() => create.mutate()} disabled={create.isPending}>
         部屋を作る
-      </button>
+      </Button>
       {create.isError && status !== 404 && (
         <p role="alert" className="order-last w-full text-sm font-bold text-alert-strong">
           {status === 401 ? (

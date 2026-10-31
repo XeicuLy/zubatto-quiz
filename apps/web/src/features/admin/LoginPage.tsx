@@ -1,5 +1,8 @@
 import { useState } from 'react';
 
+import { GitHubMark } from '@/components/icons/github-mark';
+import { Button } from '@/components/ui/button';
+
 import { githubSignInUrl } from '../../lib/auth-client';
 
 /** 許可リストの外で拒否されたときに、Better Auth が ?error= に入れる値（apps/api の HOST_NOT_ALLOWED） */
@@ -57,18 +60,10 @@ export function LoginPage({ error }: LoginPageProps) {
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={signIn}
-        disabled={starting}
-        className={
-          denied
-            ? 'mt-8 rounded-panel border-2 border-backstage-line bg-backstage-surface py-3 font-bold focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-stage disabled:opacity-60'
-            : 'mt-8 rounded-panel bg-stage py-4 text-lg font-bold text-on-stage shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-stage active:translate-y-1.5 active:shadow-none disabled:opacity-60'
-        }
-      >
+      <Button variant={denied ? 'outline' : 'default'} size="lg" onClick={signIn} disabled={starting} className="mt-8">
+        <GitHubMark />
         {denied ? '別のアカウントでログイン' : 'GitHub でログイン'}
-      </button>
+      </Button>
       <p className="mt-6 text-sm text-backstage-muted">
         クイズに答えるだけなら、ログインは要りません。ホストから届いた URL を開いてください。
       </p>
