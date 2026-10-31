@@ -46,16 +46,36 @@
 - 余白は、ものどうしの関係で名前を付ける。`related`/`item`/`cluster`/`section`（8/16/24/64 px）。`--spacing-md` のような大きさの名前は足さない。足すと `max-w-md` がそれを読んでしまう
 - `@layer base` の `:focus-visible` が、`--ring` の 4 px の outline を 2 px 離して描き、その間を `--color-focus`（Yellow-300）の `ring-2` で埋める。この ring は Tailwind の影の変数を通るので、`shadow-panel` と重ねられる
 - スクリプトだけでフォーカスを当てる要素（ホストの操作のあとの、映している見出し）には `focus-target` を使う。`outline-none` では黄色の ring が残るため
-- 要素ごとの `focus-visible:outline-*` のクラスは、部品に置き換わるまで（#128、#130）これを上書きしたままになる
+- 要素ごとの `focus-visible:outline-*` のクラスは、これを上書きしてしまう。`components/ui` の部品は持たないので、部品に置き換えると消える。まだ部品になっていないところ（ホストの操作バー、入力欄など）は、#129・#130 などで置き換えるまで残る
 
 ## shadcn と cn
 
-- `shadcn init`（CLI 4.22.1、`base-nova`）は1回だけ動かした。見た目を変えるものは取り除いた。Geist と `--font-sans` の上書き、`--radius-*`、`tw-animate-css`、`*` への `@layer base` のルール（`border-border outline-ring/50` はブラウザの既定のフォーカスリングの色を変えてしまう）、`body` と `html` のルール、チャートとサイドバーの色。`lucide-react` も外した。`@base-ui/react` と `class-variance-authority` は #128 のために残す。Geist、radius の上書き、役割の色を全体に当てるルールが戻ると、テストが落ちる
+- `shadcn init`（CLI 4.22.1、`base-nova`）は1回だけ動かした。見た目を変えるものは取り除いた。Geist と `--font-sans` の上書き、`--radius-*`、`tw-animate-css`、`*` への `@layer base` のルール（`border-border outline-ring/50` はブラウザの既定のフォーカスリングの色を変えてしまう）、`body` と `html` のルール、チャートとサイドバーの色。`lucide-react` も外した。`@base-ui/react` と `class-variance-authority` は、`components/ui` の部品が使う（[UI の部品](#ui-の部品)）。Geist、radius の上書き、役割の色を全体に当てるルールが戻ると、テストが落ちる
 - `shadcn` を devDependency に入れているのは、`@import 'shadcn/tailwind.css'`（`data-open:` のようなバリアント）のためだけ。その中の8つの `@property` のルールと、`.shimmer` の動きを減らすルールはいつも出力に入り、残りは使ったときだけ入る
 - `cn` は `src/lib/tailwind.ts` にある（`cn/config` の `createCn`。`components.json` の `utils` の別名もここを指す）。色とフォントでない `@theme` の名前は、すべて `createCn` に教える。教えないと、`cn('text-stage-label', 'text-on-stage')` が文字の大きさを落としてしまう。`test/cn-theme.test.ts` が styles.css から名前を読むので、新しい `@theme` の名前は、`tailwind.ts` に並べるまでテストが落ちる
 - 試しに作ったプロジェクトでは、`init` が書いた `button.tsx` が `cn` を `cn` から直接 import していた。そういう import は `@/lib/tailwind` に向け直す
 - `@source not` で `test/` と `*.test.*` を Tailwind の読み取りから外している。こうすると、テストの表に書いたクラス名が出力に入らない（`animate-spotlight-in` は、`styles.test.ts` に名前があったせいで出力に入っていた）
 - vitest は、CSS の import をすべて（`?raw` も）`''` に変える。styles.css は、`test/` の node のテストで `node:fs` を使って読む
+
+## UI の部品
+
+画面で使うボタンなどの部品は `src/components/ui/` に置く。shadcn/ui の Base UI 版のひな形をもとにし、このアプリの決まりに合わせて書き換えた（ADR 0007）。
+
+- 画面は `components/ui` の部品だけを使い、`@base-ui/*` を直接 import しない。`.oxlintrc.json` の `no-restricted-imports` が `apps/web/src/components/ui/` の外からの import を止める。土台を替えるときは、`components/ui` の中だけを直せばよい
+- ひな形は `pnpm exec shadcn add <名前> --view`（`apps/web` で、CLI 4.22.1）で見て、手で書き写す。`add` をそのまま動かすと、依存を足し直したり、`cn` を `cn` から import したりする
+- ひな形から外すもの: フォーカスの class（`outline-none`、`focus-visible:ring-3 ring-ring/50` など）。`styles.css` の `:focus-visible` が面ごとの二重の枠を出すので、部品が上書きすると崩れる。`transition-all` も外す。動きは最速正解者と優勝の発表の1か所だけにする決まりのため。`button.test.tsx` が、どの variant と size にもフォーカスの class がないことを確かめる
+- 色は役割の名前（`bg-primary` など）だけで選び、面（明るい・暗い）は variant にしない。`.stage` の中では同じ名前の値が入れ替わるので、同じ部品が両方の面で使える
+
+`Button`（`button.tsx`）:
+
+- `variant` は shadcn の名前にそろえ、使うものだけを残した。`default`（画面でいちばん押してほしい操作）、`outline`（それと並ぶ別の操作）、`destructive`（消すなど戻せない操作）、`link`（目立たせない操作。危ない操作には `className="text-destructive"` を足す）
+- `size` は `sm`（一覧の行の中など、いくつも並ぶ場所）、`default`、`lg`（画面に1つの大きな操作）。高さを決め、文字は1行の `text-label`（`sm` は `text-note`）にする
+- 角はすべて `rounded-full`。早押しパネルの厚み（`shadow-panel` と、押すと沈む `active:translate-y-1.5`）は、cva の `compoundVariants` で `default` × `lg` だけに付ける。目立たせるのは、その画面の大きな主の操作1つにする
+- `outline` の枠は `border-foreground`。文字でない枠も、隣の色に 3:1 以上にする（ADR 0007 のデジタル庁デザインシステムの値）。`border` の色では、どちらの面でも届かない
+- `type` は Base UI が既定で `"button"` を付ける。フォームを送るボタンだけ `type="submit"` を渡す
+- アイコンは文字と並べて子に置く。`svg` は文字の 1.25 倍の大きさになり（`size-*` を付けたものはそのまま）、文字との間は `gap-related` でとる。アイコンは `aria-hidden` にし、ボタンの名前は文字だけにする
+- ブランドのロゴは `src/components/icons/` に、公式が配る SVG の path をそのまま JSX で置く。`lucide-react` は 1.0 でブランドのロゴを消した（2026-10-31 に確かめた）。GitHub のロゴ（`github-mark.tsx`）は Primer Octicons の `mark-github-24`（MIT）。`fill="currentColor"` で文字の色に合わせる。インラインの SVG は `<style>` でも `style` 属性でもないので、CSP は変えなくてよい
+- `<Link>` をボタンの見た目にするときは、`className={buttonVariants({ ... })}` で class だけを渡す。`Button` の `render` で `<a>` を描かせると `role="button"` が付き、リンクとして読まれなくなる
 
 ## 部屋の WebSocket
 
