@@ -24,7 +24,8 @@
 
 - CSP は `script-src 'self'` で、`apps/web/public/_headers` に書く。`apps/web/index.html` には、インラインのスクリプト・スタイル・イベントハンドラを置かない。`test/static-files.test.ts` が両方のファイルを確かめる
 - `_headers` が効くのは `vite build`/`vite preview`/デプロイだけで、`vite dev` では効かない。Worker の応答（`/api/*`）にも効かない
-- 問題文もただの文字列として扱う。F5 は Markdown だったが、改行だけに変えた（#44）。`question.text` を出す要素にはすべて `whitespace-pre-line` を付ける。こうすると、利用者の入力が要素になることはない
+- 問題文もただの文字列として扱う。F5 は Markdown だったが、改行だけに変えた（#44）。`question.text` は JSX の文字としてそのまま描き、Markdown として読んだり、改行で `<br>` に分けたりしない。こうすると、利用者の入力が要素になることはない
+- 改行は、`question.text` を出す要素にすべて付けた `whitespace-pre-line` で見せる。これは空白と改行の見せ方を決める CSS で、XSS を防ぐのは上の「文字のまま描く」ほう
 - 利用者が入れた名前に、`innerHTML` のような API を使わない。oxlint が `dangerouslySetInnerHTML` と `innerHTML` のような DOM の API を断る
 
 ## 色の役割
@@ -74,7 +75,7 @@
 
 ## 回答者の参加
 
-- `player-room.ts` の `join` は、つなぐ前に秘密を作って保存する（`token-storage.ts`、キーは `zubakui:room:<roomId>:token`）。参加やつなぎ直しのたびに、新しい部屋のストアを作る
+- `player-room.ts` の `join` は、つなぐ前に秘密を作って保存する（`token-storage.ts`、キーは `zubakui:room:<roomId>:token`）。`join` か `resumeSaved` のたびに、`connect` が新しい部屋のストアを作る。自動のつなぎ直しは `connectRoom` の中でソケットを開き直すだけで、同じストアを使い続ける
 - `rejectionOf` は、秘密がもう役に立たない閉じ方（`name_taken`、`resume_failed`、`room_full`、`room_not_found`）を選ぶ。そのときは秘密を消し、純粋な関数 `entryAfter` が次の入口を選ぶ。前の2つなら名前の入力欄、あとの2つなら `full`/`not_found` の画面
 - `replaced` と `room_ended` は秘密を残し、部屋の画面にとどまる。`ConnectionNotice` がそれを出す
 - localStorage が例外を投げたら、秘密はメモリにだけ置き（`persisted: false`）、`WaitingRoom` が「再読み込みすると戻れない」と知らせる

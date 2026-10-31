@@ -30,7 +30,7 @@
 
 ## WebSocket の入口
 
-- 入口は2つある。ホストは `/api/rooms/:roomId/ws/host`、回答者は `/ws/play`（同じ `/api/rooms/:roomId` の下）からつなぐ
+- 入口は2つある。ホストは `/api/rooms/:roomId/ws/host`、回答者は `/api/rooms/:roomId/ws/play` からつなぐ
 - ホストの WebSocket の入口は、`Origin` を確かめ、cookie のセッションから `ownerId` を引いて DO へ渡す
 - `routes/ws.ts` は次の順に確かめる。`Origin` が `new URL(c.req.url).origin` と同じか（違えば 403。ないときも 403 で、cookie を読む前に断る）、`Upgrade` があるか（なければ 426）、部屋の ID が小文字の16進64文字で `idFromString` に通るか（通らなければ `refuseConnection('room_not_found')` で 4404）。ホストの入口は、そのあとで `requireHost` を通す
 - Worker は、ブラウザのリクエストをそのまま DO へ渡さない。`room/connections.ts` の `roomRequest` が、`Upgrade` と、ホストなら内部用の持ち主のヘッダーだけを持つ新しいリクエストを作る。そのため cookie や偽の持ち主のヘッダーは DO に届かない
