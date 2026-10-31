@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0](https://github.com/XeicuLy/zubatto-quiz/compare/v1.0.0...v1.1.0) (2026-10-31)
+
+
+### 新機能
+
+* 文字の大きさ・余白・フォーカスリングのトークンを作る ([#185](https://github.com/XeicuLy/zubatto-quiz/issues/185)) ([da4498f](https://github.com/XeicuLy/zubatto-quiz/commit/da4498f10ef92ff70005a69414a95bececde98a9))
+* 飾り文字を投影の数字・順位とロゴだけにする ([#193](https://github.com/XeicuLy/zubatto-quiz/issues/193)) ([4662e28](https://github.com/XeicuLy/zubatto-quiz/commit/4662e288d871c1a063ab3ba6b4804fdbc6183550))
+
+
+### 修正
+
+* 選択肢の白い文字のコントラストを 4.5:1 以上にする ([#192](https://github.com/XeicuLy/zubatto-quiz/issues/192)) ([0bb7b3a](https://github.com/XeicuLy/zubatto-quiz/commit/0bb7b3a45c160435d202d2c87cb33aa236d27847))
+
 ## 1.0.0 (2026-10-28)
 
 
