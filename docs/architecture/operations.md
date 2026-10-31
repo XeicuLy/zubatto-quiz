@@ -65,7 +65,7 @@
 - `verify-ci` の job は `permissions: contents: read, checks: read` で、Environment もシークレットも使わない。`.github/scripts/verify-required-checks.sh` と `main-ruleset.json` だけを sparse checkout する
 - スクリプトは、はじめにコミットが main にあるかを `gh api repos/…/compare/main...$GITHUB_SHA --jq .status` で確かめる。`identical` か `behind` なら通り、`ahead` か `diverged` なら止まる。こうすると、履歴を全部チェックアウトしなくて済む
 - 次に、ルールセットの必須のチェック（`ci`・`e2e`・`pr-title`）を、`CI_POLL_SECONDS`（30）秒ごとに、すべてが `completed`/`success` になるまで見る。チェックは、その `integration_id` を `app_id` にして絞り、`GITHUB_SHA` の上のいちばん新しい check run を読む。名前はルールセットから読み、workflow には写さない
-- 終わって成功でないものがあれば、すぐに止まる。`queued`・`in_progress`・`not_found` と、`gh api` の読み出しの失敗（`api_error`）は、`CI_WAIT_SECONDS`（1800）まで待つ。Release の run は、マージで動いた main の CI が走っている間に始まるため（ADR 0010 の Q1）
+- 終わって成功でないものがあれば、すぐに止まる。まだ終わっていないもの（`queued`・`in_progress`・`waiting`・`requested`・`pending`）と、まだ見つからないもの（`not_found`）と、`gh api` の読み出しの失敗（`api_error`）は、`CI_WAIT_SECONDS`（1800）まで待つ。Release の run は、マージで動いた main の CI が走っている間に始まるため（ADR 0010 の Q1）
 - `api_error` は `if ! result=$(…)` で捕まえる。こうしないと、GitHub の 5xx が1回あっただけで、`set -e` で待つのをやめてしまう。`CI_WAIT_SECONDS` と `CI_POLL_SECONDS` は step の `env` で渡し、スクリプトは `:?` で必須にしている
 - PR の CI は `refs/pull/N/merge` の上で動くので、main に入ったコミットにはチェックが付かない。そのため `ci.yaml` は main への push でも動く
 - シェルでは、全角の文字が続く変数を `{}` で囲む（`${result}）`）。bash は、マルチバイトの文字のバイトを変数名の一部として読むことがある

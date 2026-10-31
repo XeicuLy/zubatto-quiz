@@ -22,7 +22,9 @@
 
 ## HTTP と WebSocket のテストの道具
 
-- HTTP のルートのテストは `test/host-request.ts` を使う。`beforeEach` で `resetHosts`（ホストは `alice` と `mallory`）を呼び、`apiRequest` か `apiRequestAs` で送る。どちらも、ブラウザと同じく `Origin` と `Sec-Fetch-Site` のヘッダーを付ける。`csrf()` がそれを見るため（[backend.md の「問題セットと部屋を作る」](backend.md#問題セットと部屋を作る)）
+- HTTP のルートのテストは `test/host-request.ts` を使う。`beforeEach` で `resetHosts`（ホストは `alice` と `mallory`）を呼び、`apiRequestAs` か `apiRequest` で送る
+  - `apiRequestAs(userId, method, path, body)` は、そのホストのログイン Cookie と、ブラウザと同じ `Origin` と `Sec-Fetch-Site: same-origin` を付けて送る。状態を変えるルートは `csrf()` がこの2つを見るので、ふつうはこちらを使う（[backend.md の「問題セットと部屋を作る」](backend.md#問題セットと部屋を作る)）
+  - `apiRequest(path, init)` は、`init` をそのまま `fetch` に渡すだけで、ヘッダーを足さない。ヘッダーを自分で決めたいとき（ログインしていない要求、別のオリジンからの要求、WebSocket の入口への `Upgrade` 付きの要求など）に使う。これで状態を変えるルートを呼ぶときは、`init` にヘッダーを自分で入れる
 - WebSocket のテストは `test/room-socket.ts` を使う
   - `newRoom(ownerId, questionCount)`: 初期化した部屋を作る。持ち主は `alice` で、問題は既定で1問。`roomSnapshot.questionCount` は1以上でなければならないため。n 問目は `testQuestion(n)` で、ID は `q-n`
   - `connect` は DO へ直につなぐ。`openSocket` は 101 が返ったかを確かめ、クライアントの側を受け入れる。ほかに `closeOf` と `newToken` がある
