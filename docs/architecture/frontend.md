@@ -38,6 +38,8 @@
 
 値は、デジタル庁デザインシステムを 2026-10-30 に確かめたもの（#125、ADR 0007）。
 
+- 字体は2つ。飾り文字の Dela Gothic One は、投影の数字・順位の `font-numeral` とロゴの `font-logo` だけに使う。ほかは本文の M PLUS 1 で、見出しは `font-bold` で太くする。入力欄は親の字体を受け継ぐので、ラベルに飾り文字を付けると入力と字体がずれる。results の部品は、variant の対応表で投影のときだけ `font-numeral` を渡す。`test/font-roles.test.ts` が、使ってよいファイルを確かめる
+- Dela Gothic One は太さ 400 しかなく、`font-bold` の中ではブラウザが字を太らせて潰す。`@layer base` の `html { font-synthesis-weight: none }` がこれを止める。M PLUS 1 は可変フォントで本物の太さを持つので、影響しない
 - 文字の大きさは役割で選ぶ。`text-title`/`heading`/`body`/`note`/`label`（どれも大きさ・行の高さ・字間をまとめて決める）を使い、`text-lg` は使わない。vw の `text-stage-*`/`p-stage` のトークンは、プロジェクターに映す画面だけで使う
 - 余白は、ものどうしの関係で名前を付ける。`related`/`item`/`cluster`/`section`（8/16/24/64 px）。`--spacing-md` のような大きさの名前は足さない。足すと `max-w-md` がそれを読んでしまう
 - `@layer base` の `:focus-visible` が、`--ring` の 4 px の outline を 2 px 離して描き、その間を `--color-focus`（Yellow-300）の `ring-2` で埋める。この ring は Tailwind の影の変数を通るので、`shadow-panel` と重ねられる
