@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/XeicuLy/zubatto-quiz/compare/v1.1.0...v1.2.0) (2026-10-31)
+
+
+### 新機能
+
+* Button 部品を作り、管理画面とログイン画面で使う ([#195](https://github.com/XeicuLy/zubatto-quiz/issues/195)) ([e05ac1f](https://github.com/XeicuLy/zubatto-quiz/commit/e05ac1f7f35a76209edac419eb21381fc81f465b))
+
 ## [1.1.0](https://github.com/XeicuLy/zubatto-quiz/compare/v1.0.0...v1.1.0) (2026-10-31)
 
 
