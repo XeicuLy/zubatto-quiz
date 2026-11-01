@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { GitHubMark } from '@/components/icons/github-mark';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 import { githubSignInUrl } from '../../lib/auth-client';
 
@@ -40,7 +41,7 @@ export function LoginPage({ error }: LoginPageProps) {
       <h1 className="mt-2 text-xl font-bold">ホストの管理画面</h1>
 
       {denied ? (
-        <div className="mt-8 rounded-panel border-2 border-alert-strong bg-backstage-surface p-5" role="alert">
+        <Card variant="destructive" role="alert" className="mt-8">
           <p className="font-bold text-phrase text-alert-strong">このアカウントはホストとして登録されていません</p>
           <p className="mt-2 leading-relaxed">
             ホストになるには、開発者に GitHub のアカウントを伝えて、許可リストに入れてもらってください。
@@ -48,12 +49,12 @@ export function LoginPage({ error }: LoginPageProps) {
           <p className="mt-2 text-sm leading-relaxed text-backstage-muted">
             別のアカウントでログインするときは、先に GitHub でそのアカウントに切り替えてください。
           </p>
-        </div>
+        </Card>
       ) : error !== undefined || startFailed ? (
-        <div className="mt-8 rounded-panel border-2 border-alert-strong bg-backstage-surface p-5" role="alert">
+        <Card variant="destructive" role="alert" className="mt-8">
           <p className="font-bold text-alert-strong">ログインできませんでした</p>
           <p className="mt-2 leading-relaxed">少し待ってから、もう一度ログインしてください。</p>
-        </div>
+        </Card>
       ) : (
         <p className="mt-6 leading-relaxed text-backstage-muted">
           問題セットを作り、部屋を作って進行します。ホストとして登録された GitHub アカウントでログインしてください。

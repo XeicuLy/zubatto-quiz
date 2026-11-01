@@ -91,6 +91,13 @@
 - 入力欄の枠は `border-muted-foreground`、誤りのときは `aria-invalid:border-destructive`。`border-input` は、どちらの面でも背景に 3:1 に届かない（明るい面で 1.35:1、暗い面で 1.64:1）。`test/contrast.test.ts` が、枠と隣の色の 3:1（WCAG 2.2 の 1.4.11）を確かめる
 - 色は役割の名前で選ぶので、暗い面に置くときは、外側に `.stage` が要る。回答者の画面は `routes/r/$roomId.tsx` の外枠が付ける
 
+`Card`（`card.tsx`）:
+
+- ひとまとまりの知らせや内容を囲む面。`rounded-panel border-2 bg-card p-5 text-card-foreground` で、枠の色を `variant` で選ぶ。`default`（`border-border`）と `destructive`（誤りの知らせ。`border-destructive`）
+- shadcn/ui の `card` のひな形から、`Card` 本体だけを写した。`CardHeader`・`CardTitle` などは写していない。中身の見出しは画面ごとに要素（`<p>`・`<h1>`）も大きさも違うので、画面が書く
+- `role` は画面が渡す。誤りの知らせなら `role="alert"`。外側の余白（`mt-8` など）も `className` で渡す
+- 置き換えたのは、class がそろっていた誤りの知らせ（ログイン画面、問題セットの一覧と編集画面の読み込みの失敗）だけ。一覧の `<ul>`（1px の枠と `divide-y` で行を区切る）、空のときの点線の枠、問題の編集のカード（誤りで枠の太さが変わる）は形が違うので、まだ `Card` にしていない
+
 ## 部屋の WebSocket
 
 - 部屋の WebSocket に触れるのは `src/realtime/` だけ。`connectRoom`（`client.ts`）は、どのメッセージも protocol の `serverMessageSchema` で decode し、読めないものは捨てる。知らないフィールドは取り除く
