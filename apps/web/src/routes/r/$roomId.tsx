@@ -36,7 +36,8 @@ export const Route = createFileRoute('/r/$roomId')({
 function PlayerRoute() {
   const { sound } = Route.useRouteContext();
   return (
-    <div className="min-h-dvh bg-stage font-sans text-on-stage antialiased">
+    // .stage は役割の色（bg-card・border-input など）を暗い面の値に入れ替える。components/ui の部品はこれで暗い面に合う
+    <div className="stage min-h-dvh bg-stage font-sans text-on-stage antialiased">
       <PlayerPage player={Route.useLoaderData()} sound={sound} />
     </div>
   );
