@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useRouter, type ErrorComponentProps } from '@tanstack/react-router';
 
+import { Card } from '@/components/ui/card';
+
 import { ApiError, questionSetQueryOptions } from '../../../features/admin/api';
 import { QuestionSetEditor } from '../../../features/admin/QuestionSetEditor';
 import { pageTitle } from '../../../lib/page-title';
@@ -27,7 +29,7 @@ function QuestionSetLoadError({ error }: ErrorComponentProps) {
 
   return (
     <main className="mx-auto max-w-4xl px-5 py-10">
-      <div role="alert" className="rounded-panel border-2 border-alert-strong bg-backstage-surface p-5">
+      <Card variant="destructive" role="alert">
         {status === 401 ? (
           <>
             <h1 className="font-bold text-alert-strong">ログインが切れました</h1>
@@ -52,7 +54,7 @@ function QuestionSetLoadError({ error }: ErrorComponentProps) {
             </button>
           </>
         )}
-      </div>
+      </Card>
     </main>
   );
 }

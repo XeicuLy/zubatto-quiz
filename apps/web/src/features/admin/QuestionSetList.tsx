@@ -4,6 +4,7 @@ import type { QuestionSetSummary } from '@zubatto-quiz/protocol';
 import { useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 import { CreateRoomButton } from '../host/CreateRoomButton';
 import { ApiError, createDraftQuestionSet, deleteQuestionSet, questionSetsQueryOptions } from './api';
@@ -138,20 +139,20 @@ function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
 function LoadError({ error, retry }: { error: Error; retry: () => void }) {
   if (error instanceof ApiError && error.status === 401) {
     return (
-      <div role="alert" className="mt-8 rounded-panel border-2 border-alert-strong bg-backstage-surface p-5">
+      <Card variant="destructive" role="alert" className="mt-8">
         <p className="font-bold text-alert-strong">ログインが切れました</p>
         <Link to="/login" className="mt-3 inline-block font-bold underline">
           ログインし直す
         </Link>
-      </div>
+      </Card>
     );
   }
   return (
-    <div role="alert" className="mt-8 rounded-panel border-2 border-alert-strong bg-backstage-surface p-5">
+    <Card variant="destructive" role="alert" className="mt-8">
       <p className="font-bold text-alert-strong">問題セットを読めませんでした</p>
       <button type="button" onClick={retry} className="mt-3 font-bold underline">
         もう一度読む
       </button>
-    </div>
+    </Card>
   );
 }
