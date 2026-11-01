@@ -120,6 +120,20 @@ describe('問題セットの編集（F4・F7・F9）', () => {
     expect(await screen.findByText('保存しました')).toBeInTheDocument();
   });
 
+  it('名前を空にして保存すると、名前の欄に誤りを出して読み上げる（F4）', async () => {
+    stubFakeApi({ questionSetDetails: [SET] });
+    await openEditor();
+    await screen.findByLabelText('問題セットの名前');
+
+    fireEvent.change(screen.getByLabelText('問題セットの名前'), { target: { value: '' } });
+    fireEvent.click(saveButton());
+
+    expect(screen.getByLabelText('問題セットの名前')).toHaveAccessibleDescription('問題セットの名前を入れてください');
+    expect(screen.getAllByRole('alert').map((alert) => alert.textContent)).toContain(
+      '問題セットの名前を入れてください',
+    );
+  });
+
   it('選択肢は4つより増やせず、2つより減らせない（F4）', async () => {
     stubFakeApi({ questionSetDetails: [SET] });
     await openEditor();

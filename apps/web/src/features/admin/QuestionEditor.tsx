@@ -2,6 +2,7 @@ import { MAX_CHOICES, MAX_LIMIT_MS, MIN_CHOICES, MIN_LIMIT_MS } from '@zubatto-q
 import { useId, type Dispatch } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Field, Input, Textarea } from '@/components/ui/field';
 
 import type { DraftErrors, EditorAction, QuestionDraft } from './question-set-draft';
 
@@ -23,9 +24,6 @@ const choiceBadge = [
   'bg-choice-3 text-on-choice',
   'bg-choice-4 text-on-choice-4',
 ] as const;
-
-const field =
-  'rounded-chip border-2 border-backstage-line bg-backstage-surface px-3 py-2 focus-visible:border-stage focus-visible:outline-none aria-invalid:border-alert-strong';
 
 /** 1問の編集（F4・F9）。問題文・2〜4個の選択肢・正解・制限時間を入れ、並べ替えと消すもここから行う */
 export function QuestionEditor({ question, index, count, errors, dispatch }: QuestionEditorProps) {
@@ -79,22 +77,20 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
         </div>
       </div>
 
-      <label htmlFor={`${id}-text`} className="mt-4 block text-sm font-bold">
-        問題文
-      </label>
-      <textarea
-        id={`${id}-text`}
-        rows={2}
-        value={question.text}
-        onChange={(event) => dispatch({ type: 'setText', index, text: event.target.value })}
-        aria-invalid={textError !== undefined}
-        aria-describedby={textError === undefined ? undefined : `${id}-text-error`}
-        className={`mt-2 w-full leading-relaxed ${field}`}
-      />
-      {textError !== undefined && <FieldError id={`${id}-text-error`} message={textError} />}
+      <Field label="問題文" error={textError} className="mt-item">
+        <Textarea
+          rows={2}
+          value={question.text}
+          onChange={(event) => dispatch({ type: 'setText', index, text: event.target.value })}
+        />
+      </Field>
 
-      <fieldset className="mt-5" aria-describedby={correctError === undefined ? undefined : `${id}-correct-error`}>
-        <legend className="text-sm font-bold">
+      <fieldset
+        className="mt-cluster"
+        aria-describedby={correctError === undefined ? undefined : `${id}-correct-error`}
+      >
+        {/* 大きさと太さは Field のラベルにそろえる。text-label は1行用（行の高さ 1）で、390 px で折り返すと行が詰まるので text-body にする */}
+        <legend className="text-body font-bold">
           選択肢と正解{' '}
           <span className="font-normal text-backstage-muted">
             （{MIN_CHOICES}〜{MAX_CHOICES}個。正解を1つ選ぶ）
@@ -116,13 +112,14 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
                   >
                     {choiceNumber}
                   </span>
-                  <input
+                  {/* 見えるラベルは番号の丸なので、Field の外に置いて aria-label で名付け、誤りも自分でつなぐ */}
+                  <Input
                     aria-label={`選択肢${choiceNumber}`}
                     value={choice}
                     onChange={(event) => dispatch({ type: 'setChoice', index, choiceIndex, text: event.target.value })}
                     aria-invalid={choiceError !== undefined}
                     aria-describedby={choiceError === undefined ? undefined : `${id}-choice-${choiceIndex}-error`}
-                    className={`min-w-0 flex-1 ${field}`}
+                    className="flex-1"
                   />
                   <label
                     className={`flex shrink-0 items-center gap-1.5 text-sm ${question.correctIndex === choiceIndex ? 'font-bold' : ''}`}
@@ -169,35 +166,33 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
         )}
       </fieldset>
 
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        <label htmlFor={`${id}-limit`} className="text-sm font-bold">
-          制限時間
-        </label>
-        <input
-          id={`${id}-limit`}
-          type="number"
-          inputMode="numeric"
-          min={MIN_LIMIT_MS / 1000}
-          max={MAX_LIMIT_MS / 1000}
-          step={1}
-          value={question.limitSeconds}
-          onChange={(event) => dispatch({ type: 'setLimit', index, limitSeconds: event.target.value })}
-          aria-invalid={limitError !== undefined}
-          aria-describedby={limitError === undefined ? undefined : `${id}-limit-error`}
-          className={`w-20 text-right tabular-nums ${field}`}
-        />
-        <span className="text-sm">秒</span>
-        <span className="text-sm text-backstage-muted">受付を始めてからの時間</span>
-      </div>
-      {limitError !== undefined && <FieldError id={`${id}-limit-error`} message={limitError} />}
+      <Field label="制限時間" hint="受付を始めてからの時間" error={limitError} className="mt-cluster">
+        {/* Input は context からつなぎを受け取るので、単位と並べるために包んでもよい */}
+        <div className="flex items-center gap-related">
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={MIN_LIMIT_MS / 1000}
+            max={MAX_LIMIT_MS / 1000}
+            step={1}
+            value={question.limitSeconds}
+            onChange={(event) => dispatch({ type: 'setLimit', index, limitSeconds: event.target.value })}
+            className="w-24 text-right tabular-nums"
+          />
+          <span>秒</span>
+        </div>
+      </Field>
     </li>
   );
 }
 
-/** 入力欄の誤り。入力欄の aria-describedby から id で指す */
+/**
+ * Field の外の誤り（選択肢と、選択肢と正解のまとまり）。aria-describedby から id で指す。見た目は Field の誤りにそろえる。
+ * role="alert" は付けない。保存を押したときは帯の「直すところがあります」が知らせ、選択肢ごとに読み上げると多すぎる
+ */
 function FieldError({ id, message, indent = false }: { id: string; message: string; indent?: boolean }) {
   return (
-    <p id={id} className={`mt-2 text-sm font-bold text-alert-strong ${indent ? 'pl-12' : ''}`}>
+    <p id={id} className={`mt-related font-bold text-destructive ${indent ? 'pl-12' : ''}`}>
       {message}
     </p>
   );

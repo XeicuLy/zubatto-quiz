@@ -19,7 +19,7 @@ interface FieldProps {
   /** 入れたものの誤り。null か undefined なら誤りなし。文字として描く（ADR 0004: 入れた名前が含まれることがある） */
   error?: string | null;
   className?: string;
-  /** 入力欄（Input）。Field の中に置くと、id と aria-* が自動でつながる */
+  /** 入力欄（Input か Textarea）。Field の中に置くと、id と aria-* が自動でつながる */
   children: ReactNode;
 }
 
@@ -87,4 +87,25 @@ function Input({ className, ...props }: ComponentProps<'input'>) {
   );
 }
 
-export { Field, Input };
+/**
+ * 複数行の入力欄（shadcn/ui の Textarea、CLI 4.22.1 の base-nova をもとにした。ADR 0007）。Input と同じく、Field の中に置くと、つなぎを受け取る。
+ * 枠と色は Input とそろえ、ひな形から外したものも Input と同じ。class は定数にまとめず書き下す。oxfmt が並べ替えるのは
+ * className と cn・cva の引数の文字だけで、定数の文字は並べ替えないため。
+ * field-sizing-content は残し、打った行の分だけ高くする（効かないブラウザでは rows の高さになる）
+ */
+function Textarea({ className, ...props }: ComponentProps<'textarea'>) {
+  const control = use(FieldControlContext);
+  return (
+    <textarea
+      data-slot="textarea"
+      className={cn(
+        'field-sizing-content min-h-16 w-full rounded-chip border-2 border-muted-foreground bg-card px-4 py-3 text-body text-card-foreground placeholder:text-muted-foreground aria-invalid:border-destructive',
+        className,
+      )}
+      {...props}
+      {...control}
+    />
+  );
+}
+
+export { Field, Input, Textarea };

@@ -108,6 +108,30 @@ describe('1問の編集（F4・F9）', () => {
     expect(screen.getByLabelText('制限時間')).toHaveAccessibleDescription('制限時間は5〜60秒の整数で入れてください');
   });
 
+  // 問題文と制限時間は Field で出す。誤りが出たら、帯の「直すところがあります」とは別に、その場で知らせる
+  it('問題文と制限時間の誤りは、出たときに読み上げる', () => {
+    render(
+      <Harness
+        question={question()}
+        errors={{
+          'questions.0.text': '問題文を入れてください',
+          'questions.0.limitMs': '制限時間は5〜60秒の整数で入れてください',
+        }}
+      />,
+    );
+
+    expect(screen.getAllByRole('alert').map((alert) => alert.textContent)).toEqual([
+      '問題文を入れてください',
+      '制限時間は5〜60秒の整数で入れてください',
+    ]);
+  });
+
+  it('誤りがなければ、制限時間の欄は受付を始めてからの時間だと説明する', () => {
+    render(<Harness question={question()} />);
+
+    expect(screen.getByLabelText('制限時間')).toHaveAccessibleDescription('受付を始めてからの時間');
+  });
+
   it('ほかの問題の誤りは出さない', () => {
     render(
       <Harness question={question()} index={0} count={2} errors={{ 'questions.1.text': '問題文を入れてください' }} />,

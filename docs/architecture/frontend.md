@@ -46,13 +46,14 @@
 - 余白は、ものどうしの関係で名前を付ける。`related`/`item`/`cluster`/`section`（8/16/24/64 px）。`--spacing-md` のような大きさの名前は足さない。足すと `max-w-md` がそれを読んでしまう
 - `@layer base` の `:focus-visible` が、`--ring` の 4 px の outline を 2 px 離して描き、その間を `--color-focus`（Yellow-300）の `ring-2` で埋める。この ring は Tailwind の影の変数を通るので、`shadow-panel` と重ねられる
 - スクリプトだけでフォーカスを当てる要素（ホストの操作のあとの、映している見出し）には `focus-target` を使う。`outline-none` では黄色の ring が残るため
-- 要素ごとの `focus-visible:outline-*` のクラスは、これを上書きしてしまう。`components/ui` の部品は持たないので、部品に置き換えると消える。まだ部品になっていないところ（問題の編集画面の入力欄など）は、#131 などで置き換えるまで残る
+- 要素ごとの `focus-visible:outline-*` のクラスは、これを上書きしてしまう。`components/ui` の部品は持たないので、部品に置き換えると消える。まだ部品になっていないところ（下線のリンク、回答者の早押しのパネルなど）は、置き換えるまで残る
 
 ## shadcn と cn
 
 - `shadcn init`（CLI 4.22.1、`base-nova`）は1回だけ動かした。見た目を変えるものは取り除いた。Geist と `--font-sans` の上書き、`--radius-*`、`tw-animate-css`、`*` への `@layer base` のルール（`border-border outline-ring/50` はブラウザの既定のフォーカスリングの色を変えてしまう）、`body` と `html` のルール、チャートとサイドバーの色。`lucide-react` も外した。`@base-ui/react` と `class-variance-authority` は、`components/ui` の部品が使う（[UI の部品](#ui-の部品)）。Geist、radius の上書き、役割の色を全体に当てるルールが戻ると、テストが落ちる
 - `shadcn` を devDependency に入れているのは、`@import 'shadcn/tailwind.css'`（`data-open:` のようなバリアント）のためだけ。その中の8つの `@property` のルールと、`.shimmer` の動きを減らすルールはいつも出力に入り、残りは使ったときだけ入る
 - `cn` は `src/lib/tailwind.ts` にある（`cn/config` の `createCn`。`components.json` の `utils` の別名もここを指す）。色とフォントでない `@theme` の名前は、すべて `createCn` に教える。教えないと、`cn('text-stage-label', 'text-on-stage')` が文字の大きさを落としてしまう。`test/cn-theme.test.ts` が styles.css から名前を読むので、新しい `@theme` の名前は、`tailwind.ts` に並べるまでテストが落ちる
+- oxfmt が Tailwind の class を並べ替えるのは、`className` の文字と、`cn`・`cva` の引数の文字（`.oxfmtrc.json` の `sortTailwindcss.functions`）だけ。定数に入れた文字は並べ替えないので、部品の class は定数にまとめず、呼び出しの中に書く（`Input` と `Textarea` は同じ枠の class を別々に持つ）
 - 試しに作ったプロジェクトでは、`init` が書いた `button.tsx` が `cn` を `cn` から直接 import していた。そういう import は `@/lib/tailwind` に向け直す
 - `@source not` で `test/` と `*.test.*` を Tailwind の読み取りから外している。こうすると、テストの表に書いたクラス名が出力に入らない（`animate-spotlight-in` は、`styles.test.ts` に名前があったせいで出力に入っていた）
 - vitest は、CSS の import をすべて（`?raw` も）`''` に変える。styles.css は、`test/` の node のテストで `node:fs` を使って読む
@@ -80,12 +81,13 @@
 - ブランドのロゴは `src/components/icons/` に、ライセンスのはっきりした配布元の SVG の path をそのまま JSX で置く。`lucide-react` は 1.0 でブランドのロゴを消した（2026-10-31 に確かめた）。GitHub のロゴ（`github-mark.tsx`）は Simple Icons の `github.svg`（CC0-1.0）で、著作権表示が要らない。MIT のもの（Primer Octicons など）を写すときは、著作権表示と許諾文もファイルに入れる。`fill="currentColor"` で文字の色に合わせる。simpleicons.org などから実行時に読み込むと CSP で止まるので、path を写す。インラインの SVG は `<style>` でも `style` 属性でもないので、CSP は変えなくてよい
 - `<Link>` をボタンの見た目にするときは、`className={buttonVariants({ ... })}` で class だけを渡す。`Button` の `render` で `<a>` を描かせると `role="button"` が付き、リンクとして読まれなくなる
 
-`Field` と `Input`（`field.tsx`）:
+`Field`・`Input`・`Textarea`（`field.tsx`）:
 
-- `Field` は `label`・`hint`・`error` を受け取り、`useId` で作った id で、ラベル・入力欄・ヒント・誤りをつなぐ。画面は `id` も `aria-invalid` も `aria-describedby` も書かない。つなぎは context で渡し、`Field` の中の `Input` が受け取る。`Input` はつなぎを props のあとに広げるので、画面から `id` を渡してもラベルとのつなぎは崩れない
+- `Field` は `label`・`hint`・`error` を受け取り、`useId` で作った id で、ラベル・入力欄・ヒント・誤りをつなぐ。画面は `id` も `aria-invalid` も `aria-describedby` も書かない。つなぎは context で渡し、`Field` の中の `Input` と `Textarea` が受け取る。`<div>` で包んでも届くので、単位（「秒」）と横に並べてよい。どちらもつなぎを props のあとに広げるので、画面から `id` を渡してもラベルとのつなぎは崩れない
 - 誤り（`error`）があれば `aria-invalid` にし、ヒントのかわりに誤りを `role="alert"` で出して `aria-describedby` で指す。なければヒントを指す。`error` は文字だけを受け取り、文字として描く（入れた名前が入ることがある。ADR 0004）
 - shadcn/ui の `field` のひな形は、組み合わせる部品を並べるだけで id をつながないので、写していない。Base UI の `Field` も使わない。外から決めた誤りを出すには `Field.Error` に `match` を渡す必要があり、検証と出し入れの状態も持ち込むため。このアプリは protocol のスキーマで確かめて、誤りの文字を渡すだけ
-- `Input` は `Field` の外でも、ふつうの `<input>` として使える（ラベルを見せず `aria-label` で名付ける欄）。そのときは id も aria-* も付けない
+- `Input` と `Textarea` は `Field` の外でも、ふつうの `<input>`・`<textarea>` として使える（ラベルを見せず `aria-label` で名付ける欄。問題の編集画面の選択肢）。そのときは id も aria-* も付けないので、誤りをつなぐなら画面が `aria-invalid` と `aria-describedby` を書く
+- `Textarea` は `Input` と同じ枠と色で、shadcn のひな形の `field-sizing-content` を残し、打った行の分だけ高くなる（効かないブラウザでは `rows` の高さ）
 - 入力欄の枠は `border-muted-foreground`、誤りのときは `aria-invalid:border-destructive`。`border-input` は、どちらの面でも背景に 3:1 に届かない（明るい面で 1.35:1、暗い面で 1.64:1）。`test/contrast.test.ts` が、枠と隣の色の 3:1（WCAG 2.2 の 1.4.11）を確かめる
 - 色は役割の名前で選ぶので、暗い面に置くときは、外側に `.stage` が要る。回答者の画面は `routes/r/$roomId.tsx` の外枠が付ける
 
