@@ -70,12 +70,13 @@ function InRoom({
       <ConnectionNotice connection={state.connection} closeReason={state.closeReason} roomEnd={roomEndOf(state)}>
         <RoomScreen entry={entry} onAnswer={onAnswer} />
       </ConnectionNotice>
-      {/* 回答者の画面にはまだ .stage がなく、役割の色が明るい面の値になる。それまでは色とフォーカスを className で上書きする */}
+      {/* 回答者の画面にはまだ .stage がなく、役割の色が明るい面の値になる。それまでは色とフォーカスを className で上書きする。
+          枠は outline の決まりどおり隣の色に 3:1 以上にする（stage-line は stage-raised に 1.6:1 で届かない） */}
       <SoundToggle
         sound={sound}
         variant="outline"
         size="sm"
-        className="fixed right-4 bottom-4 z-10 border border-stage-line bg-stage-raised shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage"
+        className="fixed right-4 bottom-4 z-10 border border-on-stage bg-stage-raised shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage"
       />
     </>
   );
