@@ -30,7 +30,7 @@
 
 ## 色の役割
 
-- 色の役割は shadcn の名前（`background`/`foreground`、`card`、`primary`/`primary-foreground`、`muted`、`destructive`/`destructive-foreground`、`border`、`input`、`ring`…）にそろえる（#124、ADR 0007）。どれも `@theme inline` の項目で、中身は `:root`（明るい管理画面）と `.stage`（暗いステージ）に置いた素の変数。そのため `bg-primary` は `var(--primary)` をそのまま読み、`.stage` の中では値が入れ替わる。`@custom-variant dark` も `.stage` を指す。今は `.stage` を付けた画面はまだない
+- 色の役割は shadcn の名前（`background`/`foreground`、`card`、`primary`/`primary-foreground`、`muted`、`destructive`/`destructive-foreground`、`border`、`input`、`ring`…）にそろえる（#124、ADR 0007）。どれも `@theme inline` の項目で、中身は `:root`（明るい管理画面）と `.stage`（暗いステージ）に置いた素の変数。そのため `bg-primary` は `var(--primary)` をそのまま読み、`.stage` の中では値が入れ替わる。`@custom-variant dark` も `.stage` を指す。`.stage` は画面の route の外枠に付ける。ホストの画面（`routes/rooms/$roomId/host.tsx`、`host.test.tsx` が確かめる）と回答者の画面（`routes/r/$roomId.tsx`）に付いている
 - アプリだけの色は `<name>` と `<name>-foreground` の組にする（`choice-1`…`4`、`spotlight`、`correct`、`alert`）。`alert` はステージのお知らせの帯で、エラーと危ない操作には `destructive` を使う
 - 前の名前（`stage*`、`backstage*`、`on-*`、`alert-strong`）は、#134 まで値を残す。`styles.test.ts` が、面ごとに各役割をそれが表す前の名前と比べるので、色を変えても（#126）対応が黙って崩れることはない
 - 文字と背景の組は、投影でもスマホでも 4.5:1 以上にする（ADR 0007）。`test/contrast.test.ts` が、組の表（`<name>-foreground` と `<name>`、面ごとの `foreground` と `background` など）のコントラストを、コンパイルした CSS の値から計算する。計算は oklch → OKLab → 線形 sRGB → 相対輝度で、依存は増やさない。sRGB の外の色は、sRGB の画面では切り詰められ、P3 の画面ではそのまま出て明るさが変わるので、2通りに測って低いほうを見る。新しい組を作ったら表に足す
@@ -46,7 +46,7 @@
 - 余白は、ものどうしの関係で名前を付ける。`related`/`item`/`cluster`/`section`（8/16/24/64 px）。`--spacing-md` のような大きさの名前は足さない。足すと `max-w-md` がそれを読んでしまう
 - `@layer base` の `:focus-visible` が、`--ring` の 4 px の outline を 2 px 離して描き、その間を `--color-focus`（Yellow-300）の `ring-2` で埋める。この ring は Tailwind の影の変数を通るので、`shadow-panel` と重ねられる
 - スクリプトだけでフォーカスを当てる要素（ホストの操作のあとの、映している見出し）には `focus-target` を使う。`outline-none` では黄色の ring が残るため
-- 要素ごとの `focus-visible:outline-*` のクラスは、これを上書きしてしまう。`components/ui` の部品は持たないので、部品に置き換えると消える。まだ部品になっていないところ（ホストの操作バー、問題の編集画面の入力欄など）は、#129・#131 などで置き換えるまで残る
+- 要素ごとの `focus-visible:outline-*` のクラスは、これを上書きしてしまう。`components/ui` の部品は持たないので、部品に置き換えると消える。まだ部品になっていないところ（問題の編集画面の入力欄など）は、#131 などで置き換えるまで残る
 
 ## shadcn と cn
 
@@ -70,6 +70,9 @@
 
 - `variant` は shadcn の名前にそろえ、使うものだけを残した。`default`（画面でいちばん押してほしい操作）、`outline`（それと並ぶ別の操作）、`destructive`（消すなど戻せない操作）、`link`（目立たせない操作。危ない操作には `className="text-destructive"` を足す）
 - `size` は `sm`（一覧の行の中など、いくつも並ぶ場所）、`default`、`lg`（画面に1つの大きな操作）。高さを決め、文字は1行の `text-label`（`sm` は `text-note`）にする
+- `stage` の size は、プロジェクターに映す画面（ホストの待機画面の「URL をコピー」）だけで使う。文字は vw で伸びる `text-stage-label` で、高さと余白は `default` の比を em で写した `h-[2.75em] px-[1.25em]`。rem で決めると、投影では文字だけが大きくなって詰まる
+- `link` の `sm` は左右に余白（`px-4`）を持つ。並べるときは `gap` を足さず、その余白で間をとり、並びの箱に `-mx-4` を付けて文字の端を見出しや帯の余白にそろえる（ホストの操作バーのやり直し・終了・音、問題の上へ・下へ・消す）
+- 置く場所で見た目を変える部品（`SoundToggle`）は、`Button` の `variant`・`size`・`className` をそのまま受け取って渡す
 - 角はすべて `rounded-full`。早押しパネルの厚み（`shadow-panel` と、押すと沈む `active:translate-y-1.5`）は、cva の `compoundVariants` で `default` × `lg` だけに付ける。目立たせるのは、その画面の大きな主の操作1つにする
 - `outline` の枠は `border-foreground`。文字でない枠も、隣の色に 3:1 以上にする（ADR 0007 のデジタル庁デザインシステムの値）。`border` の色では、どちらの面でも届かない
 - `type` は Base UI が既定で `"button"` を付ける。フォームを送るボタンだけ `type="submit"` を渡す

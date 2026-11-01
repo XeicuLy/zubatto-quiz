@@ -70,9 +70,13 @@ function InRoom({
       <ConnectionNotice connection={state.connection} closeReason={state.closeReason} roomEnd={roomEndOf(state)}>
         <RoomScreen entry={entry} onAnswer={onAnswer} />
       </ConnectionNotice>
+      {/* 画面の右下に浮かせる。面から浮いて見えるよう、カードの色と厚みを足し、枠は 1px に細くする。
+          枠の色は outline の border-foreground のままで、カードの色に 3:1 以上になる */}
       <SoundToggle
         sound={sound}
-        className="fixed right-4 bottom-4 z-10 rounded-full border border-stage-line bg-stage-raised px-4 py-2 text-sm font-bold shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage"
+        variant="outline"
+        size="sm"
+        className="fixed right-4 bottom-4 z-10 border bg-card shadow-panel"
       />
     </>
   );

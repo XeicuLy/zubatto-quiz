@@ -1,12 +1,14 @@
+import type { ComponentProps } from 'react';
 import { useStore } from 'zustand';
+
+import { Button } from '@/components/ui/button';
 
 import type { SoundPlayer } from './sound-player';
 
-export interface SoundToggleProps {
+/** 見た目は置く場所（進行の操作の帯と、回答者の画面の右下）で変えるので、Button の variant・size・className をそのまま受け取る */
+export type SoundToggleProps = Pick<ComponentProps<typeof Button>, 'variant' | 'size' | 'className'> & {
   sound: SoundPlayer;
-  /** 置く場所に合わせた見た目。進行の操作の帯と、回答者の画面の右下で変える */
-  className?: string;
-}
+};
 
 /**
  * 効果音の切り替え（F18）。押すと何が起きるかを、ボタンの文字にする。
@@ -16,15 +18,15 @@ export interface SoundToggleProps {
  * 押したこと自体が操作なので、そのハンドラの中で鳴らせるようにする。画面のどこでも有効にする仕掛け（unlockOnGestures）には、
  * 印を付けてこのボタンを任せない。Web Audio のないブラウザでは出さない
  */
-export function SoundToggle({ sound, className }: SoundToggleProps) {
+export function SoundToggle({ sound, ...look }: SoundToggleProps) {
   const { muted, ready, available } = useStore(sound.state);
 
   if (!available) {
     return null;
   }
   return (
-    <button
-      type="button"
+    <Button
+      {...look}
       // SOUND_TOGGLE_ATTRIBUTE。テストで同じ名前かを確かめる
       data-sound-toggle=""
       onClick={() => {
@@ -34,9 +36,8 @@ export function SoundToggle({ sound, className }: SoundToggleProps) {
           sound.unlock();
         }
       }}
-      className={className}
     >
       {muted ? '音を出す' : ready ? '音を消す' : '音を有効にする'}
-    </button>
+    </Button>
   );
 }

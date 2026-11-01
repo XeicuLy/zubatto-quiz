@@ -41,7 +41,8 @@ function HostRoute() {
   const { host, joinUrl } = Route.useLoaderData();
   const { sound } = Route.useRouteContext();
   return (
-    <div className="min-h-dvh bg-stage font-sans text-on-stage antialiased">
+    // stage: components/ui の部品の役割の色（bg-primary など）と、フォーカスリングの色を、暗い面の値にする
+    <div className="stage min-h-dvh bg-stage font-sans text-on-stage antialiased">
       <HostPage host={host} joinUrl={joinUrl} sound={sound} />
     </div>
   );

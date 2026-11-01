@@ -1,6 +1,8 @@
 import { canSend, type HostCommand, type RoomPhase, type RoomSnapshot } from '@zubatto-quiz/protocol';
 import { type KeyboardEvent, useId, useLayoutEffect, useRef, useState } from 'react';
 
+import { Button } from '@/components/ui/button';
+
 import type { SoundPlayer } from '../sound/sound-player';
 import { SoundToggle } from '../sound/SoundToggle';
 import { forwardCommandsOf } from './host-commands';
@@ -74,34 +76,36 @@ export function HostControls({ room, onSend, sound }: HostControlsProps) {
         />
       ) : (
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          <div className="flex gap-4 text-sm">
-            <button
+          {/* 間はボタンの左右の余白（px-4）でとり、-mx-4 で文字の端を帯の余白にそろえる */}
+          <div className="-mx-4 flex flex-wrap">
+            <Button
               ref={retryButton}
-              type="button"
+              variant="link"
+              size="sm"
               disabled={retry === null || !canSend(room, retry)}
               onClick={() => openConfirm('retry')}
-              className={subtleButton}
             >
               この問題をやり直す
-            </button>
-            <button ref={endButton} type="button" onClick={() => openConfirm('end')} className={subtleButton}>
+            </Button>
+            <Button ref={endButton} variant="link" size="sm" onClick={() => openConfirm('end')}>
               部屋を終える
-            </button>
-            <SoundToggle sound={sound} className={subtleButton} />
+            </Button>
+            <SoundToggle sound={sound} variant="link" size="sm" />
           </div>
           {hint !== null && <p className="text-sm text-on-stage-muted lg:ml-auto">{hint}</p>}
           {forward.length > 0 && (
             <div className={`flex w-full flex-wrap gap-3 lg:w-auto ${hint === null ? 'lg:ml-auto' : ''}`}>
               {forward.map((command, index) => (
-                <button
+                <Button
                   key={command.type}
-                  type="button"
-                  onClick={() => onSend(command)}
                   // 最後のものが、いちばん押してほしい操作
-                  className={index === forward.length - 1 ? primaryButton : secondaryButton}
+                  variant={index === forward.length - 1 ? 'default' : 'outline'}
+                  size="lg"
+                  onClick={() => onSend(command)}
+                  className={stretch}
                 >
                   {labelOf(command)}
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -111,10 +115,8 @@ export function HostControls({ room, onSend, sound }: HostControlsProps) {
   );
 }
 
-const focusRing = 'focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage';
-const primaryButton = `flex-1 rounded-full bg-on-stage px-6 py-3 font-bold text-stage shadow-panel active:translate-y-1.5 active:shadow-none lg:flex-none ${focusRing}`;
-const secondaryButton = `flex-1 rounded-full border-2 border-on-stage px-6 py-3 font-bold lg:flex-none ${focusRing}`;
-const subtleButton = `text-on-stage-muted underline underline-offset-4 disabled:no-underline disabled:opacity-40 ${focusRing}`;
+/** スマホでは帯の幅を分け合って親指で押しやすくし、広い画面では文字の幅に戻す */
+const stretch = 'flex-1 lg:flex-none';
 
 interface ConfirmBarProps {
   title: string;
@@ -163,16 +165,12 @@ function ConfirmBar({ title, detail, confirmLabel, onConfirm, onCancel }: Confir
         </p>
       </div>
       <div className="flex w-full flex-wrap gap-3 lg:ml-auto lg:w-auto">
-        <button ref={cancelButton} type="button" onClick={onCancel} className={secondaryButton}>
+        <Button ref={cancelButton} variant="outline" size="lg" onClick={onCancel} className={stretch}>
           やめる
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          className={`flex-1 rounded-full bg-alert px-6 py-3 font-bold text-stage shadow-panel active:translate-y-1.5 active:shadow-none lg:flex-none ${focusRing}`}
-        >
+        </Button>
+        <Button variant="destructive" size="lg" onClick={onConfirm} className={stretch}>
           {confirmLabel}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -3,6 +3,8 @@ import { Link, useBlocker } from '@tanstack/react-router';
 import { MAX_QUESTIONS, type QuestionSet, type QuestionSetDetail } from '@zubatto-quiz/protocol';
 import { useId, useLayoutEffect, useReducer, useRef, useState } from 'react';
 
+import { Button } from '@/components/ui/button';
+
 import { ApiError, questionSetsQueryOptions, saveQuestionSet } from './api';
 import { draftOf, editorReducer, errorSummaryOf, newQuestionKey, validateDraft } from './question-set-draft';
 import { QuestionEditor } from './QuestionEditor';
@@ -12,8 +14,6 @@ interface QuestionSetEditorProps {
   /** 開いたときに読んだ問題セット。下書きは、これから1回だけ作る */
   initial: QuestionSetDetail;
 }
-
-const focusRing = 'focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-stage';
 
 /** 離れるのを止めるかどうかは disabled で切り替える。関数は描くたびに作り直さない（作り直すと登録し直しになる） */
 const blockNavigation = () => true;
@@ -96,13 +96,14 @@ export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
         </ol>
 
         {draft.questions.length < MAX_QUESTIONS ? (
-          <button
-            type="button"
+          // 破線: まだない問題の置き場所に見せる
+          <Button
+            variant="outline"
             onClick={() => dispatch({ type: 'addQuestion', key: newQuestionKey() })}
-            className={`mt-6 w-full rounded-panel border-2 border-dashed border-backstage-line py-4 font-bold ${focusRing}`}
+            className="mt-6 w-full border-dashed"
           >
             問題を足す
-          </button>
+          </Button>
         ) : (
           <p className="mt-6 text-center text-sm text-backstage-muted">問題は{MAX_QUESTIONS}問までです</p>
         )}
@@ -112,14 +113,9 @@ export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
       <div className="fixed inset-x-0 bottom-0 border-t border-backstage-line bg-backstage-surface/95 backdrop-blur">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-end gap-x-4 gap-y-2 px-5 py-3">
           <SaveStatus errorSummary={errorSummary} save={save} dirty={dirty} />
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={save.isPending}
-            className={`rounded-full bg-stage px-6 py-2.5 font-bold text-on-stage disabled:opacity-60 ${focusRing}`}
-          >
+          <Button onClick={handleSave} disabled={save.isPending}>
             保存する
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -222,21 +218,12 @@ function LeaveDialog({ onStay, onLeave }: { onStay: () => void; onLeave: () => v
           このまま離れると、書いた内容は消えます。
         </p>
         <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <button
-            type="button"
-            onClick={onLeave}
-            className="rounded-full px-4 py-2 text-sm font-bold text-alert-strong underline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage"
-          >
+          <Button variant="link" size="sm" onClick={onLeave} className="text-destructive">
             保存せずに離れる
-          </button>
-          <button
-            ref={stayButton}
-            type="button"
-            onClick={onStay}
-            className="rounded-full bg-stage px-5 py-2 text-sm font-bold text-on-stage focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage"
-          >
+          </Button>
+          <Button ref={stayButton} size="sm" onClick={onStay}>
             編集に戻る
-          </button>
+          </Button>
         </div>
       </div>
     </div>

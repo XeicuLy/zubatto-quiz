@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { Button } from '@/components/ui/button';
+
 import { JoinQrCode } from './JoinQrCode';
 
 type CopyStatus = 'idle' | 'copied' | 'failed';
@@ -48,13 +50,9 @@ export function JoinUrlCard({ joinUrl }: { joinUrl: string }) {
             <p className="mt-1 text-stage-title font-bold wrap-anywhere">{joinUrl}</p>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <button
-              type="button"
-              onClick={() => void copy()}
-              className="rounded-full border-2 border-on-stage-muted px-5 py-2 text-stage-label font-bold focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage"
-            >
+            <Button variant="outline" size="stage" onClick={() => void copy()}>
               URL をコピー
-            </button>
+            </Button>
             {/* 知らせる場所は先に置いておき、文だけを替える。あとから足した role="status" は読み上げられないことがある */}
             <p role="status" className="text-stage-label">
               {copyMessages[status]}
