@@ -97,6 +97,21 @@ const surfacePairs = [
   ['muted-foreground', 'card'],
   ['accent-foreground', 'accent'],
   ['destructive-foreground', 'destructive'],
+  // 入力欄の誤り（components/ui/field.tsx）は、面の背景に置く
+  ['destructive', 'background'],
+] as const;
+
+/** 文字でない部品（WCAG 2.2 の 1.4.11）は、隣の色に 3:1 以上にする（ADR 0007） */
+const nonTextMinimumRatio = 3;
+
+/** 面ごとに入れ替わる役割の色で描く枠。[枠, 隣の色] */
+const borderPairs = [
+  // 入力欄（components/ui/field.tsx）の枠は、内側のカードの色と外側の面の背景の両方に接する
+  ['muted-foreground', 'card'],
+  ['muted-foreground', 'background'],
+  // 誤りのときの入力欄の枠
+  ['destructive', 'card'],
+  ['destructive', 'background'],
 ] as const;
 
 describe(`文字と背景のコントラストは ${minimumRatio}:1 以上（ADR 0007）`, () => {
@@ -119,5 +134,20 @@ describe(`文字と背景のコントラストは ${minimumRatio}:1 以上（ADR
     expect(
       contrastRatio(valueOf(variables, `--${text}`), valueOf(variables, `--${background}`)),
     ).toBeGreaterThanOrEqual(minimumRatio);
+  });
+});
+
+describe(`枠は隣の色に ${nonTextMinimumRatio}:1 以上（ADR 0007）`, () => {
+  it.each(
+    borderPairs.flatMap(([border, background]) => [
+      ['明るい面', ':root', border, background],
+      ['暗い面', '.stage', border, background],
+    ]),
+  )('%s（%s）で、%s の枠を %s に接して置ける', async (_surface, selector, border, background) => {
+    const variables = variablesOf(await buildCss([]), selector);
+
+    expect(
+      contrastRatio(valueOf(variables, `--${border}`), valueOf(variables, `--${background}`)),
+    ).toBeGreaterThanOrEqual(nonTextMinimumRatio);
   });
 });

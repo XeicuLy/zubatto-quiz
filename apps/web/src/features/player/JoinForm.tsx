@@ -1,6 +1,9 @@
 import { NAME_MAX_LENGTH, playerNameSchema } from '@zubatto-quiz/protocol';
 import { useState, type SubmitEvent } from 'react';
 
+import { Button } from '@/components/ui/button';
+import { Field, Input } from '@/components/ui/field';
+
 import type { JoinNotice } from './player-room';
 
 interface JoinFormProps {
@@ -49,36 +52,20 @@ export function JoinForm({ notice, defaultName, onJoin }: JoinFormProps) {
         </h1>
       )}
 
-      <form className="mt-12 flex flex-col gap-3" noValidate onSubmit={handleSubmit}>
-        <label htmlFor="join-name" className="font-bold">
-          名前
-        </label>
-        <input
-          id="join-name"
-          name="name"
-          // nickname は HTML の仕様にある値（MDN で確かめた、2026-10-28）。oxlint 1.87.0 の一覧に抜けている
-          // oxlint-disable-next-line jsx-a11y/autocomplete-valid
-          autoComplete="nickname"
-          defaultValue={defaultName}
-          aria-invalid={error !== null}
-          aria-describedby={error === null ? 'join-name-hint' : 'join-name-error'}
-          className={`rounded-chip border-2 bg-stage-raised px-4 py-3 text-lg text-on-stage placeholder:text-on-stage-muted/70 focus-visible:outline-none ${
-            error === null ? 'border-stage-line focus-visible:border-on-stage' : 'border-alert'
-          }`}
-          placeholder="例: たろう"
-        />
-        {error === null ? (
-          <p id="join-name-hint" className="text-sm text-on-stage-muted">
-            ランキングに出る名前です。同じ部屋の人とかぶらない名前にしてください。
-          </p>
-        ) : (
-          <p id="join-name-error" className="font-bold text-alert" role="alert">
-            {error}
-          </p>
-        )}
-        <button className="mt-6 rounded-panel bg-on-stage py-4 text-lg font-bold text-stage shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none">
+      <form className="mt-12 flex flex-col gap-cluster" noValidate onSubmit={handleSubmit}>
+        <Field label="名前" hint="ランキングに出る名前です。同じ部屋の人とかぶらない名前にしてください。" error={error}>
+          <Input
+            name="name"
+            // nickname は HTML の仕様にある値（MDN で確かめた、2026-10-28）。oxlint 1.87.0 の一覧に抜けている
+            // oxlint-disable-next-line jsx-a11y/autocomplete-valid
+            autoComplete="nickname"
+            defaultValue={defaultName}
+            placeholder="例: たろう"
+          />
+        </Field>
+        <Button type="submit" size="lg">
           参加する
-        </button>
+        </Button>
       </form>
     </main>
   );

@@ -30,7 +30,7 @@
 
 ## 色の役割
 
-- 色の役割は shadcn の名前（`background`/`foreground`、`card`、`primary`/`primary-foreground`、`muted`、`destructive`/`destructive-foreground`、`border`、`input`、`ring`…）にそろえる（#124、ADR 0007）。どれも `@theme inline` の項目で、中身は `:root`（明るい管理画面）と `.stage`（暗いステージ）に置いた素の変数。そのため `bg-primary` は `var(--primary)` をそのまま読み、`.stage` の中では値が入れ替わる。`@custom-variant dark` も `.stage` を指す。`.stage` は画面の route の外枠に付ける。今はホストの画面（`routes/rooms/$roomId/host.tsx`）だけで、`host.test.tsx` が確かめる。回答者の画面にはまだないので、そこで部品を使うときは、色とフォーカスを `className` で上書きする（`PlayerPage` の `SoundToggle`）
+- 色の役割は shadcn の名前（`background`/`foreground`、`card`、`primary`/`primary-foreground`、`muted`、`destructive`/`destructive-foreground`、`border`、`input`、`ring`…）にそろえる（#124、ADR 0007）。どれも `@theme inline` の項目で、中身は `:root`（明るい管理画面）と `.stage`（暗いステージ）に置いた素の変数。そのため `bg-primary` は `var(--primary)` をそのまま読み、`.stage` の中では値が入れ替わる。`@custom-variant dark` も `.stage` を指す。`.stage` は画面の route の外枠に付ける。ホストの画面（`routes/rooms/$roomId/host.tsx`、`host.test.tsx` が確かめる）と回答者の画面（`routes/r/$roomId.tsx`）に付いている
 - アプリだけの色は `<name>` と `<name>-foreground` の組にする（`choice-1`…`4`、`spotlight`、`correct`、`alert`）。`alert` はステージのお知らせの帯で、エラーと危ない操作には `destructive` を使う
 - 前の名前（`stage*`、`backstage*`、`on-*`、`alert-strong`）は、#134 まで値を残す。`styles.test.ts` が、面ごとに各役割をそれが表す前の名前と比べるので、色を変えても（#126）対応が黙って崩れることはない
 - 文字と背景の組は、投影でもスマホでも 4.5:1 以上にする（ADR 0007）。`test/contrast.test.ts` が、組の表（`<name>-foreground` と `<name>`、面ごとの `foreground` と `background` など）のコントラストを、コンパイルした CSS の値から計算する。計算は oklch → OKLab → 線形 sRGB → 相対輝度で、依存は増やさない。sRGB の外の色は、sRGB の画面では切り詰められ、P3 の画面ではそのまま出て明るさが変わるので、2通りに測って低いほうを見る。新しい組を作ったら表に足す
@@ -46,7 +46,7 @@
 - 余白は、ものどうしの関係で名前を付ける。`related`/`item`/`cluster`/`section`（8/16/24/64 px）。`--spacing-md` のような大きさの名前は足さない。足すと `max-w-md` がそれを読んでしまう
 - `@layer base` の `:focus-visible` が、`--ring` の 4 px の outline を 2 px 離して描き、その間を `--color-focus`（Yellow-300）の `ring-2` で埋める。この ring は Tailwind の影の変数を通るので、`shadow-panel` と重ねられる
 - スクリプトだけでフォーカスを当てる要素（ホストの操作のあとの、映している見出し）には `focus-target` を使う。`outline-none` では黄色の ring が残るため
-- 要素ごとの `focus-visible:outline-*` のクラスは、これを上書きしてしまう。`components/ui` の部品は持たないので、部品に置き換えると消える。まだ部品になっていないところ（入力欄など）は、#130・#131 などで置き換えるまで残る
+- 要素ごとの `focus-visible:outline-*` のクラスは、これを上書きしてしまう。`components/ui` の部品は持たないので、部品に置き換えると消える。まだ部品になっていないところ（問題の編集画面の入力欄など）は、#131 などで置き換えるまで残る
 
 ## shadcn と cn
 
@@ -79,6 +79,15 @@
 - アイコンは文字と並べて子に置く。`svg` は文字の 1.25 倍の大きさになり（`size-*` を付けたものはそのまま）、文字との間は `gap-related` でとる。アイコンは `aria-hidden` にし、ボタンの名前は文字だけにする
 - ブランドのロゴは `src/components/icons/` に、ライセンスのはっきりした配布元の SVG の path をそのまま JSX で置く。`lucide-react` は 1.0 でブランドのロゴを消した（2026-10-31 に確かめた）。GitHub のロゴ（`github-mark.tsx`）は Simple Icons の `github.svg`（CC0-1.0）で、著作権表示が要らない。MIT のもの（Primer Octicons など）を写すときは、著作権表示と許諾文もファイルに入れる。`fill="currentColor"` で文字の色に合わせる。simpleicons.org などから実行時に読み込むと CSP で止まるので、path を写す。インラインの SVG は `<style>` でも `style` 属性でもないので、CSP は変えなくてよい
 - `<Link>` をボタンの見た目にするときは、`className={buttonVariants({ ... })}` で class だけを渡す。`Button` の `render` で `<a>` を描かせると `role="button"` が付き、リンクとして読まれなくなる
+
+`Field` と `Input`（`field.tsx`）:
+
+- `Field` は `label`・`hint`・`error` を受け取り、`useId` で作った id で、ラベル・入力欄・ヒント・誤りをつなぐ。画面は `id` も `aria-invalid` も `aria-describedby` も書かない。つなぎは context で渡し、`Field` の中の `Input` が受け取る。`Input` はつなぎを props のあとに広げるので、画面から `id` を渡してもラベルとのつなぎは崩れない
+- 誤り（`error`）があれば `aria-invalid` にし、ヒントのかわりに誤りを `role="alert"` で出して `aria-describedby` で指す。なければヒントを指す。`error` は文字だけを受け取り、文字として描く（入れた名前が入ることがある。ADR 0004）
+- shadcn/ui の `field` のひな形は、組み合わせる部品を並べるだけで id をつながないので、写していない。Base UI の `Field` も使わない。外から決めた誤りを出すには `Field.Error` に `match` を渡す必要があり、検証と出し入れの状態も持ち込むため。このアプリは protocol のスキーマで確かめて、誤りの文字を渡すだけ
+- `Input` は `Field` の外でも、ふつうの `<input>` として使える（ラベルを見せず `aria-label` で名付ける欄）。そのときは id も aria-* も付けない
+- 入力欄の枠は `border-muted-foreground`、誤りのときは `aria-invalid:border-destructive`。`border-input` は、どちらの面でも背景に 3:1 に届かない（明るい面で 1.35:1、暗い面で 1.64:1）。`test/contrast.test.ts` が、枠と隣の色の 3:1（WCAG 2.2 の 1.4.11）を確かめる
+- 色は役割の名前で選ぶので、暗い面に置くときは、外側に `.stage` が要る。回答者の画面は `routes/r/$roomId.tsx` の外枠が付ける
 
 ## 部屋の WebSocket
 
