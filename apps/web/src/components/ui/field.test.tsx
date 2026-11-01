@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { Field, Input } from './field';
+import { Field, Input, Textarea } from './field';
 
 describe('Field', () => {
   it('ラベルの文字で入力欄が見つかる', () => {
@@ -112,6 +112,49 @@ describe('Input', () => {
   // フォーカスリングは styles.css の :focus-visible が全体に出す（#125）。部品が上書きすると、面ごとの二重の枠が崩れる
   it('フォーカスの見た目を自分で決めない', () => {
     render(<Input aria-label="名前" />);
+
+    expect(screen.getByRole('textbox').className).not.toMatch(/focus-visible:|focus:|outline-none|ring-/);
+  });
+});
+
+describe('Textarea', () => {
+  it('Field の中では、ラベルの文字で見つかり、誤りを説明として読む', () => {
+    render(
+      <Field label="問題文" error="問題文を入れてください">
+        <Textarea />
+      </Field>,
+    );
+
+    const textarea = screen.getByLabelText('問題文');
+    expect(textarea).toBe(screen.getByRole('textbox'));
+    expect(textarea.tagName).toBe('TEXTAREA');
+    expect(textarea).toHaveAttribute('aria-invalid', 'true');
+    expect(textarea).toHaveAccessibleDescription('問題文を入れてください');
+  });
+
+  it('Field の外では、渡した aria-label で読まれ、つなぎの属性を持たない', () => {
+    render(<Textarea aria-label="問題文" />);
+
+    const textarea = screen.getByRole('textbox', { name: '問題文' });
+    expect(textarea).not.toHaveAttribute('id');
+    expect(textarea).not.toHaveAttribute('aria-invalid');
+    expect(textarea).not.toHaveAttribute('aria-describedby');
+  });
+
+  // Input と同じ枠と色にし、問題文の入力欄だけ見た目がずれないようにする
+  it('Input と同じ役割の色で出て、誤りのときは枠を destructive にする', () => {
+    render(<Textarea aria-label="問題文" />);
+
+    expect(screen.getByRole('textbox')).toHaveClass(
+      'border-muted-foreground',
+      'bg-card',
+      'text-card-foreground',
+      'aria-invalid:border-destructive',
+    );
+  });
+
+  it('フォーカスの見た目を自分で決めない', () => {
+    render(<Textarea aria-label="問題文" />);
 
     expect(screen.getByRole('textbox').className).not.toMatch(/focus-visible:|focus:|outline-none|ring-/);
   });

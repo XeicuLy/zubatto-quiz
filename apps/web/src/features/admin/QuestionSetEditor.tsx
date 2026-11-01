@@ -4,6 +4,7 @@ import { MAX_QUESTIONS, type QuestionSet, type QuestionSetDetail } from '@zubatt
 import { useId, useLayoutEffect, useReducer, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Field, Input } from '@/components/ui/field';
 
 import { ApiError, questionSetsQueryOptions, saveQuestionSet } from './api';
 import { draftOf, editorReducer, errorSummaryOf, newQuestionKey, validateDraft } from './question-set-draft';
@@ -25,7 +26,6 @@ const blockNavigation = () => true;
  * 保存していない変更があるうちは、画面を離れる前に確かめる（経路の移動とタブを閉じる操作の両方）
  */
 export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
-  const id = useId();
   const queryClient = useQueryClient();
   const [draft, dispatch] = useReducer(editorReducer, initial, draftOf);
   // 最後に保存できた下書き。reducer は変えるたびに新しい下書きを返すので、同じものかどうかで変更の有無が分かる
@@ -55,8 +55,6 @@ export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
     save.mutate(validation.input, { onSuccess: () => setSavedDraft(sent) });
   }
 
-  const titleError = errors.title;
-
   return (
     <>
       <main className="mx-auto max-w-4xl px-5 pt-6 pb-32">
@@ -65,22 +63,14 @@ export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
         </Link>
         <h1 className="mt-6 text-3xl font-bold">問題セットの編集</h1>
 
-        <label htmlFor={`${id}-title`} className="mt-8 block text-sm font-bold text-backstage-muted">
-          問題セットの名前
-        </label>
-        <input
-          id={`${id}-title`}
-          value={draft.title}
-          onChange={(event) => dispatch({ type: 'setTitle', title: event.target.value })}
-          aria-invalid={titleError !== undefined}
-          aria-describedby={titleError === undefined ? undefined : `${id}-title-error`}
-          className="mt-2 w-full rounded-chip border-2 border-backstage-line bg-backstage-surface px-4 py-3 text-2xl font-bold focus-visible:border-stage focus-visible:outline-none aria-invalid:border-alert-strong"
-        />
-        {titleError !== undefined && (
-          <p id={`${id}-title-error`} className="mt-2 text-sm font-bold text-alert-strong">
-            {titleError}
-          </p>
-        )}
+        <Field label="問題セットの名前" error={errors.title} className="mt-cluster">
+          {/* 一覧やホストの画面に出る名前なので、問題の入力欄より大きく太く出す */}
+          <Input
+            value={draft.title}
+            onChange={(event) => dispatch({ type: 'setTitle', title: event.target.value })}
+            className="text-heading font-bold"
+          />
+        </Field>
 
         <ol className="mt-10 grid grid-cols-1 gap-6">
           {draft.questions.map((question, index) => (
