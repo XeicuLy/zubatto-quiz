@@ -48,6 +48,17 @@ describe('ホストの待機画面の入口（F1・F3・ADR 0003）', () => {
     expect(screen.getByRole('list', { name: /参加者/ })).toHaveTextContent('たろう');
   });
 
+  // components/ui の部品は役割の色（bg-primary など）で塗り、.stage の中でだけ暗い面の値になる。
+  // .stage がないと、操作バーの主のボタンが暗い帯の上に濃い青で出て見えなくなる
+  it('画面全体を暗い面（.stage）に置き、部品の役割の色を暗い面の値にする', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+    acceptHost(server);
+
+    expect(screen.getByRole('heading', { level: 1 }).closest('.stage')).not.toBeNull();
+    expect(screen.getByRole('button', { name: '第1問を出す' }).closest('.stage')).not.toBeNull();
+  });
+
   it('タブのタイトルは画面の名前だけで、部屋の名前や ID は入れない（S3）', async () => {
     stubFakeApi();
     const { server } = await openHostPage();

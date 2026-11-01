@@ -1,6 +1,8 @@
 import { MAX_CHOICES, MAX_LIMIT_MS, MIN_CHOICES, MIN_LIMIT_MS } from '@zubatto-quiz/protocol';
 import { useId, type Dispatch } from 'react';
 
+import { Button } from '@/components/ui/button';
+
 import type { DraftErrors, EditorAction, QuestionDraft } from './question-set-draft';
 
 interface QuestionEditorProps {
@@ -25,9 +27,6 @@ const choiceBadge = [
 const field =
   'rounded-chip border-2 border-backstage-line bg-backstage-surface px-3 py-2 focus-visible:border-stage focus-visible:outline-none aria-invalid:border-alert-strong';
 
-const smallButton =
-  'shrink-0 text-sm underline focus-visible:outline-2 focus-visible:outline-stage disabled:no-underline disabled:opacity-50';
-
 /** 1問の編集（F4・F9）。問題文・2〜4個の選択肢・正解・制限時間を入れ、並べ替えと消すもここから行う */
 export function QuestionEditor({ question, index, count, errors, dispatch }: QuestionEditorProps) {
   const id = useId();
@@ -47,33 +46,36 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
         <h2 id={`${id}-heading`} className="text-xl font-bold">
           第{number}問
         </h2>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
+        {/* 間はボタンの左右の余白（px-4）でとる。gap を足すと、下線の文字どうしが離れすぎる。
+            -mx-4 で両端の余白を外へ出し、文字の端を見出しとカードの内側にそろえる */}
+        <div className="-mx-4 flex items-center">
+          <Button
+            variant="link"
+            size="sm"
             aria-label={`第${number}問を上へ`}
             disabled={index === 0}
             onClick={() => dispatch({ type: 'moveQuestion', index, offset: -1 })}
-            className={smallButton}
           >
             上へ
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="link"
+            size="sm"
             aria-label={`第${number}問を下へ`}
             disabled={index === count - 1}
             onClick={() => dispatch({ type: 'moveQuestion', index, offset: 1 })}
-            className={smallButton}
           >
             下へ
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="link"
+            size="sm"
             disabled={count <= 1}
             onClick={() => dispatch({ type: 'removeQuestion', index })}
-            className={`${smallButton} text-alert-strong`}
+            className="text-destructive"
           >
             この問題を消す
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -135,15 +137,15 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
                     />
                     正解
                   </label>
-                  <button
-                    type="button"
+                  <Button
+                    variant="link"
+                    size="sm"
                     aria-label={`選択肢${choiceNumber}を消す`}
                     disabled={question.choices.length <= MIN_CHOICES}
                     onClick={() => dispatch({ type: 'removeChoice', index, choiceIndex })}
-                    className={`${smallButton} text-backstage-muted`}
                   >
                     消す
-                  </button>
+                  </Button>
                 </div>
                 {choiceError !== undefined && (
                   <FieldError id={`${id}-choice-${choiceIndex}-error`} message={choiceError} indent />
@@ -153,13 +155,15 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
           })}
         </div>
         {question.choices.length < MAX_CHOICES ? (
-          <button
-            type="button"
+          // 破線: まだない選択肢の置き場所に見せる（「問題を足す」と同じ）
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => dispatch({ type: 'addChoice', index })}
-            className="mt-3 rounded-full border-2 border-dashed border-backstage-line px-4 py-1.5 text-sm font-bold focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-stage"
+            className="mt-3 border-dashed"
           >
             選択肢を足す
-          </button>
+          </Button>
         ) : (
           <p className="mt-3 text-sm text-backstage-muted">選択肢は{MAX_CHOICES}つまでです</p>
         )}

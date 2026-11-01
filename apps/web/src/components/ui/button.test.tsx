@@ -69,6 +69,18 @@ describe('Button', () => {
     expect(buttonVariants({ variant: 'outline', size: 'lg' })).not.toContain('shadow-panel');
   });
 
+  // 投影の文字（text-stage-label）は画面の幅で伸びる。高さと余白を rem で決めると、投影では文字だけが大きくなって詰まる
+  it('size が stage のときは、投影の文字で出て、高さと余白も文字に合わせて伸びる', () => {
+    const classes = buttonVariants({ variant: 'outline', size: 'stage' }).split(' ');
+
+    expect(classes).toContain('text-stage-label');
+    const box = classes.filter((name) => /^(h|px)-/.test(name));
+    expect(box).toHaveLength(2);
+    for (const name of box) {
+      expect(name).toMatch(/em\]$/);
+    }
+  });
+
   it('className は足され、同じ性質の class はあとから渡したほうが勝つ', () => {
     render(
       <Button variant="link" className="mt-8 text-destructive">
@@ -91,7 +103,7 @@ describe('Button', () => {
   it.each(['default', 'outline', 'destructive', 'link'] as const)(
     'variant が %s でも、フォーカスの見た目を自分で決めない',
     (variant) => {
-      for (const size of ['sm', 'default', 'lg'] as const) {
+      for (const size of ['sm', 'default', 'lg', 'stage'] as const) {
         expect(buttonVariants({ variant, size })).not.toMatch(/focus-visible:|outline-none|ring-/);
       }
     },

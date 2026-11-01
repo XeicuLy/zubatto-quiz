@@ -34,6 +34,11 @@ const buttonVariants = cva(
         default: 'h-11 px-5 text-label',
         /** 画面に1つの大きな操作（ログイン、ホストの進行） */
         lg: 'h-14 px-6 text-label',
+        /**
+         * プロジェクターに映す画面（ホストの待機画面など）だけで使う。文字は画面の幅で伸びる text-stage-label にし、
+         * 高さと余白は default の比（16px の文字に h-11・px-5）を em で写して、文字と一緒に伸ばす
+         */
+        stage: 'h-[2.75em] px-[1.25em] text-stage-label',
       },
     },
     compoundVariants: [
