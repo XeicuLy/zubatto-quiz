@@ -55,14 +55,14 @@
 
 | 番号                                                        | 決めたこと                                                                                                    | 状態                                                           |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| [0001](adr/0001-backend-runtime-and-realtime-transport.md)  | バックエンドは Hono と Cloudflare Workers・Durable Objects で WebSocket を使い、あとで Go と Cloud Run へ移す | accepted                                                       |
+| [0001](adr/0001-backend-runtime-and-realtime-transport.md)  | バックエンドは Hono と Cloudflare Workers・Durable Objects で WebSocket を使い、あとで Go と Cloud Run へ移す | accepted（置き換えの計画を ADR 0008 で見直している）           |
 | [0002](adr/0002-question-set-storage-and-room-handoff.md)   | 問題セットは D1 に持ち主ごとに置き、部屋を作るときに部屋の DO へ写す                                          | accepted                                                       |
 | [0003](adr/0003-host-identification-and-host-connection.md) | ホストは GitHub ログインと許可リストで見分け、進行操作はホスト用の入口の接続からだけ受け付ける                | accepted                                                       |
 | [0004](adr/0004-player-identification-and-reconnection.md)  | 回答者は participantId と端末が作る秘密で見分け、秘密は localStorage に置いて最初のメッセージで送る           | accepted                                                       |
 | [0005](adr/0005-infrastructure-management.md)               | インフラは wrangler の設定ファイルで管理し、Terraform は Go へ移すときに入れる                                | accepted（デプロイを動かすきっかけを ADR 0010 で変えた）       |
 | [0006](adr/0006-spa-and-api-worker-layout.md)               | 画面の Worker と API の Worker に分け、`/api/*` を Service binding で転送して同じオリジンにする               | accepted                                                       |
 | [0007](adr/0007-ui-components-approach.md)                  | UI 部品は shadcn/ui の Base UI 版で作り、役割トークンは shadcn の名前にそろえる                               | accepted                                                       |
-| 0008                                                        | Go を Cloud Run に移すか、Cloudflare に残すか。#146 で書く                                                    | 予約                                                           |
+| [0008](adr/0008-go-migration-hosting.md)                    | 本番の API は Cloudflare に残し、Go 版は Cloud Run の練習用の環境で作って確かめる                             | proposed                                                       |
 | [0009](adr/0009-release-versioning-and-tagging.md)          | 版と CHANGELOG は release-please のリリース PR で決め、本番には承認してからデプロイする                       | accepted（タグのルールセットと承認の回数を ADR 0010 で変えた） |
 | [0010](adr/0010-deploy-on-release.md)                       | 本番のデプロイは Release をきっかけに動かし、タグのコミットを1回の承認で出す                                  | accepted                                                       |
 
