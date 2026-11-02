@@ -166,6 +166,29 @@ describe('問題セットの編集（F4・F7・F9）', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin'));
   });
 
+  it('離れる確かめは保存の帯に出し、Esc でも編集に戻って、押したリンクへフォーカスを戻す', async () => {
+    stubFakeApi({ questionSetDetails: [SET] });
+    const { router } = await openEditor();
+    await screen.findByLabelText('問題セットの名前');
+    fireEvent.change(screen.getByLabelText('問題セットの名前'), { target: { value: 'まだ保存していない' } });
+
+    const back = screen.getByRole('link', { name: '問題セットの一覧に戻る' });
+    back.focus();
+    fireEvent.click(back);
+    const dialog = await screen.findByRole('alertdialog', { name: '保存していない変更があります' });
+    expect(dialog).toHaveAccessibleDescription('このまま離れると、書いた内容は消えます。');
+    // 画面を覆わず、保存の帯の中身と入れ替わる
+    expect(dialog).not.toHaveAttribute('aria-modal');
+    expect(screen.queryByRole('button', { name: '保存する' })).not.toBeInTheDocument();
+
+    fireEvent.keyDown(within(dialog).getByRole('button', { name: '編集に戻る' }), { key: 'Escape' });
+
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe(EDIT_PATH);
+    expect(back).toHaveFocus();
+    expect(saveButton()).toBeInTheDocument();
+  });
+
   it('保存したあとや、何も変えていなければ、確かめずに離れる', async () => {
     stubFakeApi({ questionSetDetails: [SET] });
     const { router } = await openEditor();

@@ -98,6 +98,16 @@
 - `role` は画面が渡す。誤りの知らせなら `role="alert"`。外側の余白（`mt-8` など）も `className` で渡す
 - 置き換えたのは、class がそろっていた誤りの知らせ（ログイン画面、問題セットの一覧と編集画面の読み込みの失敗）だけ。一覧の `<ul>`（1px の枠と `divide-y` で行を区切る）、空のときの点線の枠、問題の編集のカード（誤りで枠の太さが変わる）は形が違うので、まだ `Card` にしていない
 
+`ConfirmDialog`・`useConfirm`（`confirm-dialog.tsx`）:
+
+- 戻せない操作の前の確かめ。ホストのやり直しと終了、問題セットを消す、保存せずに編集画面を離れる、の3つがこれを使う（#133）
+- shadcn/ui の `AlertDialog` は使わない。モーダルで画面を覆うので、ホストの確認のあいだ残り時間が見えなくなる（ADR 0007）。開いたボタンや帯の場所に、その場で出す。`window.confirm` も、残り時間と接続を止めるので使わない
+- 画面が渡すのは `title`（`alertdialog` の名前）・`detail`（説明）・`confirmLabel`・`onConfirm`・`onCancel`。やめる側の名前は `cancelLabel`（既定は「やめる」）、ボタンの大きさは `size`（置く場所に合わせて、ホストは `lg`、一覧の行は `sm`）で変える。確定はいつも `destructive`
+- 開いたら、やめる側のボタンにフォーカスを当てる（ref を使い、`autoFocus` は使わない）。Esc で `onCancel` を呼ぶ（`alertdialog` の `onKeyDown` が、中のボタンから上がってくるものを受ける）
+- `pending`（一覧で消しているあいだ）は、両方のボタンを押せなくし、Esc も受けない。`disabled` 属性ではなく Base UI の `focusableWhenDisabled` で `aria-disabled` にする。`disabled` 属性だと、押したボタンからフォーカスが `body` へ落ち、失敗したときに居場所がなくなるため。薄く見せるのは `aria-disabled:opacity-50`（Tailwind の `disabled:` は `:disabled` を見るので効かない）
+- 閉じたときのフォーカスの戻し方は2つある。開いたボタンと置き換えて出すとき（ホストの帯、一覧の行）は、`useConfirm` を使う。`open(which, ref)` で開いたボタンの ref を覚え、閉じて描き直したあとに、その ref が指す新しいボタンへ戻す。開いたボタンが残るとき（編集画面の「問題セットの一覧に戻る」）は、`ConfirmDialog` が開く前の `document.activeElement` を覚えていて、閉じたときにまだ画面にあれば戻す。置き換えるときは、開いたボタンがクリックと同じ描画で外されるので、覚えた要素は `body` になり、2つがぶつかることはない
+- `useConfirm` は、作り直した直後には何も開いていないので、作っただけではフォーカスを動かさない。ホストの帯は段階ごとに key で作り直し、フォーカスは `HostPage` が見出しへ移す
+
 ## 部屋の WebSocket
 
 - 部屋の WebSocket に触れるのは `src/realtime/` だけ。`connectRoom`（`client.ts`）は、どのメッセージも protocol の `serverMessageSchema` で decode し、読めないものは捨てる。知らないフィールドは取り除く
@@ -183,7 +193,7 @@
 - 主ボタンにはフォーカスを当てない。Enter をもう1回押すと、① を飛ばして ② へ進んでしまう
 - alarm での締切、ホストの部屋の予備のタイマー、ほかのタブの操作では、フォーカスを動かさない
 - `reconnecting`/`closed` になったら印を消す。つなぎ直したあとの送り直しでは、ホスト自身の操作とほかのタブの操作を見分けられないため。今は `HostConnectionNotice` の木が変わることで、たまたま `HostScreen` が作り直されるが、それに頼らない
-- 確認の帯は、開いたときに「やめる」にフォーカスを当て（ref を使い、`autoFocus` は使わない）、Esc で閉じ（`alertdialog` の `onKeyDown`）、作り直さずに閉じたときは開いたボタンへフォーカスを戻す
+- 確認は帯の中に `ConfirmDialog` で出す。開いたときに「やめる」にフォーカスを当て、Esc で閉じ、作り直さずに閉じたときは開いたボタンへフォーカスを戻す（`useConfirm`。[UI の部品](#ui-の部品)）
 - `HostStage` は、① を `AnswerDistribution` で描く（映す画面だけなので `variant` はない。棒は回答した人のうちの割合で、回答が0なら `NaN%` にせず棒を描かない。ブラウザは `NaN%` を捨てるため）。②③ と最終順位は T28 の `projector` の部品で描く
 - 選択肢の色（省かずに書く）と `ChoiceNumber` は `features/results/choice-style.tsx` にあり、受け付け中のステージと ① で共有する
 
@@ -225,6 +235,7 @@
 - `validateDraft` は protocol の `questionSetSchema` を動かし、問題の場所（`'questions.1.correctIndex'`）ごとに日本語のメッセージを1つ当てる。自分では決まりを持たない
 - エラーは最初の「保存する」から出し、そのあとはホストが打つたびに直す
 - 「保存していない」は `draft !== savedDraft`（reducer はいつも新しいオブジェクトを返す）。`useBlocker`（`shouldBlockFn` の形で、`disabled` で切り替える）と `beforeunload` が、離れる前に確かめる
+- 管理画面の中を移るときの確かめは、保存の帯の中身を `ConfirmDialog` に入れ替えて出す（モーダルにしない）。開いたら「編集に戻る」にフォーカスし、戻ったら開く前にフォーカスのあった要素へ戻す。キーボードやスクリーンリーダーでリンクを押したときは、そのリンクへ戻る。macOS の Safari は、マウスで押したリンクにフォーカスを移さないので、直前まで打っていた入力欄へ戻る。押したリンクを別に覚えることはしない。フォーカスの位置に頼る人はどのブラウザでもリンクへ戻り、マウスの人には打っていた欄へ戻るのも「編集に戻る」として自然なため。ブラウザの「戻る」で止めたときは、押したリンクがそもそもない
 - 問題の React の key は `newQuestionKey()` で作り、`addQuestion` のアクションで渡す。こうして reducer を純粋なままにする
 
 ## 読み上げ
