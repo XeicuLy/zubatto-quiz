@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { QuestionSetSummary } from '@zubatto-quiz/protocol';
-import { useState } from 'react';
+import { useRef } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ConfirmDialog, useConfirm } from '@/components/ui/confirm-dialog';
 
 import { CreateRoomButton } from '../host/CreateRoomButton';
 import { ApiError, createDraftQuestionSet, deleteQuestionSet, questionSetsQueryOptions } from './api';
@@ -86,7 +87,8 @@ function CreateButton({ align }: { align: keyof typeof createButtonAlign }) {
 
 function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
   const queryClient = useQueryClient();
-  const [confirming, setConfirming] = useState(false);
+  const confirm = useConfirm<'delete'>();
+  const deleteButton = useRef<HTMLButtonElement>(null);
   const remove = useMutation({
     mutationFn: () => deleteQuestionSet(set.id),
     // 失敗しても読み直す。別のタブで先に消していた（404）なら、一覧から消える
@@ -101,16 +103,18 @@ function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
           {set.questionCount}問 / {updatedDate.format(new Date(set.updatedAt))}に更新
         </p>
       </div>
-      {confirming ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-bold text-alert-strong">本当に消しますか？</p>
-          <Button variant="destructive" size="sm" onClick={() => remove.mutate()} disabled={remove.isPending}>
-            本当に消す
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setConfirming(false)} disabled={remove.isPending}>
-            やめる
-          </Button>
-        </div>
+      {confirm.confirming === 'delete' ? (
+        // 消すと部屋も止まるかと迷わないよう、作った部屋は問題セットを写して持つので残ることを添える
+        <ConfirmDialog
+          title="本当に消しますか？"
+          detail="消した問題セットは戻せません。作ってある部屋は、そのまま使えます。"
+          confirmLabel="本当に消す"
+          onConfirm={() => remove.mutate()}
+          onCancel={confirm.close}
+          size="sm"
+          pending={remove.isPending}
+          className="w-full"
+        />
       ) : (
         // min-w-0: 「部屋を作る」の失敗の知らせ（w-full）が出たら、行の幅まで縮んで文を折り返す。shrink-0 だと文が1行に伸びてはみ出す
         <div className="flex min-w-0 flex-wrap gap-2">
@@ -122,7 +126,13 @@ function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
           >
             編集
           </Link>
-          <Button variant="link" size="sm" onClick={() => setConfirming(true)} className="text-destructive">
+          <Button
+            ref={deleteButton}
+            variant="link"
+            size="sm"
+            onClick={() => confirm.open('delete', deleteButton)}
+            className="text-destructive"
+          >
             消す
           </Button>
         </div>

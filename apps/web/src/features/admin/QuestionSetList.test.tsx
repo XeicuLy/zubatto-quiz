@@ -81,6 +81,34 @@ describe('問題セットの一覧（F7）', () => {
     expect(api.received.filter((r) => r.method === 'DELETE')).toEqual([]);
   });
 
+  it('消す確かめは、戻せないことを伝える alertdialog で、開くと「やめる」にフォーカスし、閉じたら「消す」へ戻す', async () => {
+    stubFakeApi({ questionSets: [QUIZ] });
+    await openAdmin();
+    const row = await rowOf(QUIZ.title);
+
+    fireEvent.click(within(row).getByRole('button', { name: '消す' }));
+    const dialog = within(row).getByRole('alertdialog', { name: '本当に消しますか？' });
+    expect(dialog).toHaveAccessibleDescription('消した問題セットは戻せません。作ってある部屋は、そのまま使えます。');
+    expect(within(dialog).getByRole('button', { name: 'やめる' })).toHaveFocus();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'やめる' }));
+
+    expect(within(row).getByRole('button', { name: '消す' })).toHaveFocus();
+  });
+
+  it('Esc でも、何も消さずに閉じて「消す」へ戻す', async () => {
+    const api = stubFakeApi({ questionSets: [QUIZ] });
+    await openAdmin();
+    const row = await rowOf(QUIZ.title);
+
+    fireEvent.click(within(row).getByRole('button', { name: '消す' }));
+    fireEvent.keyDown(within(row).getByRole('button', { name: '本当に消す' }), { key: 'Escape' });
+
+    expect(within(row).queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(within(row).getByRole('button', { name: '消す' })).toHaveFocus();
+    expect(api.received.filter((r) => r.method === 'DELETE')).toEqual([]);
+  });
+
   it('確かめてから消すと、一覧からなくなる', async () => {
     const api = stubFakeApi({ questionSets: [QUIZ, WELCOME] });
     await openAdmin();
