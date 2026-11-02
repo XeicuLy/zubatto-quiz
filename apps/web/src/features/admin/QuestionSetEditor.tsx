@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useBlocker } from '@tanstack/react-router';
 import { MAX_QUESTIONS, type QuestionSet, type QuestionSetDetail } from '@zubatto-quiz/protocol';
-import { useId, useLayoutEffect, useReducer, useRef, useState } from 'react';
+import { useReducer, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Field, Input } from '@/components/ui/field';
 
 import { ApiError, questionSetsQueryOptions, saveQuestionSet } from './api';
@@ -23,7 +24,8 @@ const blockNavigation = () => true;
  * 問題セットの編集（F4・F7・F9）。下書きは画面の中だけで持ち、「保存する」で丸ごと PUT する。
  *
  * 誤りは、初めて「保存する」を押したときに出し、以後は直すたびに出し直す。打ち始めから赤くしないため。
- * 保存していない変更があるうちは、画面を離れる前に確かめる（経路の移動とタブを閉じる操作の両方）
+ * 保存していない変更があるうちは、画面を離れる前に確かめる（経路の移動とタブを閉じる操作の両方）。
+ * 管理画面の中の移動は、保存の帯の中身を ConfirmDialog に入れ替えて確かめる。画面を覆わないので、書いた内容を見ながら選べる
  */
 export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
   const queryClient = useQueryClient();
@@ -102,14 +104,27 @@ export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
       {/* 保存の帯。長い問題セットでも、どこからでも押せるよう画面の下に固定する */}
       <div className="fixed inset-x-0 bottom-0 border-t border-backstage-line bg-backstage-surface/95 backdrop-blur">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-end gap-x-4 gap-y-2 px-5 py-3">
-          <SaveStatus errorSummary={errorSummary} save={save} dirty={dirty} />
-          <Button onClick={handleSave} disabled={save.isPending}>
-            保存する
-          </Button>
+          {blocker.status === 'blocked' ? (
+            // 押し間違えても書いた内容が消えない「編集に戻る」に、初めからフォーカスする
+            <ConfirmDialog
+              title="保存していない変更があります"
+              detail="このまま離れると、書いた内容は消えます。"
+              confirmLabel="保存せずに離れる"
+              cancelLabel="編集に戻る"
+              onConfirm={blocker.proceed}
+              onCancel={blocker.reset}
+              className="w-full"
+            />
+          ) : (
+            <>
+              <SaveStatus errorSummary={errorSummary} save={save} dirty={dirty} />
+              <Button onClick={handleSave} disabled={save.isPending}>
+                保存する
+              </Button>
+            </>
+          )}
         </div>
       </div>
-
-      {blocker.status === 'blocked' && <LeaveDialog onStay={blocker.reset} onLeave={blocker.proceed} />}
     </>
   );
 }
@@ -176,46 +191,5 @@ function SaveError({ error }: { error: Error }) {
     <p role="alert" className="text-sm font-bold text-alert-strong">
       保存できませんでした。もう一度押してください。
     </p>
-  );
-}
-
-/**
- * 保存していない変更があるまま、管理画面の中を移ろうとしたときの確かめ。
- * 開いたら「編集に戻る」にフォーカスし、押し間違えても書いた内容が消えない方に合わせる。
- * autoFocus は jsx-a11y の no-autofocus に当たるので、ref で動かす
- */
-function LeaveDialog({ onStay, onLeave }: { onStay: () => void; onLeave: () => void }) {
-  const id = useId();
-  const stayButton = useRef<HTMLButtonElement>(null);
-
-  useLayoutEffect(() => {
-    stayButton.current?.focus();
-  }, []);
-
-  return (
-    <div className="fixed inset-0 z-10 grid place-items-center bg-backstage-ink/40 px-5">
-      <div
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby={`${id}-heading`}
-        aria-describedby={`${id}-body`}
-        className="w-full max-w-md rounded-panel bg-backstage-surface p-6 shadow-lg"
-      >
-        <h2 id={`${id}-heading`} className="text-lg font-bold">
-          保存していない変更があります
-        </h2>
-        <p id={`${id}-body`} className="mt-2 text-sm leading-relaxed text-backstage-muted">
-          このまま離れると、書いた内容は消えます。
-        </p>
-        <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <Button variant="link" size="sm" onClick={onLeave} className="text-destructive">
-            保存せずに離れる
-          </Button>
-          <Button ref={stayButton} size="sm" onClick={onStay}>
-            編集に戻る
-          </Button>
-        </div>
-      </div>
-    </div>
   );
 }
