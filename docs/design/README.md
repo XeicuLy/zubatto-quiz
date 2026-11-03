@@ -146,15 +146,21 @@ pnpm run mock:watch
 
 ### 面で変わらない色
 
-`<name>` が背景、`<name>-foreground` がその上の文字で、組にして使う。
+`choice-1`〜`choice-4`・`spotlight`・`alert` は、`<name>` が背景、`<name>-foreground` がその上の文字で、組にして使う。組の2色を入れ替えて使ってもよい（優勝者の帯の中の「あなた」は、`bg-spotlight-foreground text-spotlight`）。組の外で使う色は、次の3つだけ。
+
+- `correct` は、暗い面の上にそのまま置く文字の色。`correct-foreground` はあるが、今の画面では `bg-correct` を使っていない
+- `alert` は、帯の背景のほかに、暗い面の上の枠（回答者の待機画面の「参加の情報を保存できない」）にも使う
+- `focus` は、フォーカスリングの内側の色。文字を載せないので、`focus-foreground` はない
+
+組の外で使う色は、置く面の色との組を `contrast.test.ts` の表に足す（[コントラストの基準](#コントラストの基準)）。
 
 | 名前                   | 使う場所                                                                                                   |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `choice-1`〜`choice-4` | 早押しパネルの赤・青・緑・黄と、その色を引き継ぐ回答の分布や正解の印。色だけに頼らず、必ず番号と一緒に出す |
 | `spotlight`            | ② 最速正解者と優勝者（1位）だけ。ほかの場所では使わない                                                    |
-| `correct`              | 暗い面の正解の文字（① の「○ 正解」など）                                                                   |
-| `alert`                | 暗い面の「再接続中」などのお知らせの帯。誤りと危ない操作には `destructive` を使う                          |
-| `focus`                | フォーカスリングの内側の黄（デジタル庁デザインシステムの Yellow-300）。面で変わらない                      |
+| `correct`              | 暗い面の正解の文字（① の「○ 正解」、あなたの位置の「▲ 順位が上がりました」）                               |
+| `alert`                | 暗い面の「再接続中」などのお知らせの帯と、注意の枠。誤りと危ない操作には `destructive` を使う              |
+| `focus`                | フォーカスリングの内側の黄（デジタル庁デザインシステムの Yellow-300）                                      |
 
 ### 文字
 
@@ -218,10 +224,10 @@ pnpm run mock:watch
 
 2段で確かめている。
 
-| 確かめるもの                                  | 何を見るか                                                                                                                             |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web/test/contrast.test.ts`              | トークンの組の表（`<name>-foreground` と `<name>`、面ごとの `foreground` と `background` など）を、コンパイルした CSS の値から計算する |
-| `e2e/a11y.spec.ts`（axe の `color-contrast`） | 実際の画面の、文字とその後ろの色。透明度や重なりで、表にない組み合わせができていても見つかる                                           |
+| 確かめるもの                                  | 何を見るか                                                                                                                                                                |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/test/contrast.test.ts`              | トークンの組の表（`<name>-foreground` と `<name>`、面ごとの `foreground` と `background`、暗い面の上の `correct` と `alert` など）を、コンパイルした CSS の値から計算する |
+| `e2e/a11y.spec.ts`（axe の `color-contrast`） | 実際の画面の、文字とその後ろの色。透明度や重なりで、表にない組み合わせができていても見つかる                                                                              |
 
 新しい色の組を作ったら、`contrast.test.ts` の表に足す。E2E の axe で違反が出たら、まず表に足りない組がないかを見る。
 
@@ -229,19 +235,20 @@ pnpm run mock:watch
 
 モック（`mock/theme.css` と `mock/*.html`）は前の名前のまま残している。今の画面に前の名前を書くと、Tailwind が知らない class として黙って捨て、色が抜ける（`apps/web/test/color-roles.test.ts` が止める）。
 
-| モックの名前                 | 今の名前                                            |
-| ---------------------------- | --------------------------------------------------- |
-| `stage`・`on-stage`          | 暗い面（`.stage`）の `background`・`foreground`     |
-| `stage-raised`               | 暗い面の `card`・`secondary`・`muted`（役割で選ぶ） |
-| `stage-line`                 | 暗い面の `border`                                   |
-| `on-stage-muted`             | 暗い面の `muted-foreground`                         |
-| `backstage`・`backstage-ink` | 明るい面（`:root`）の `background`・`foreground`    |
-| `backstage-surface`          | 明るい面の `card`                                   |
-| `backstage-line`             | 明るい面の `border`                                 |
-| `backstage-muted`            | 明るい面の `muted-foreground`                       |
-| `on-choice`・`on-choice-4`   | `choice-1-foreground`〜`choice-4-foreground`        |
-| `on-spotlight`               | `spotlight-foreground`                              |
-| `alert-strong`               | 明るい面の `destructive`                            |
+| モックの名前                 | 今の名前                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| `stage`・`on-stage`          | 暗い面（`.stage`）の `background`・`foreground`                                       |
+| `stage-raised`               | 暗い面の `card`・`secondary`・`muted`（役割で選ぶ）                                   |
+| `stage-line`                 | 暗い面の `border`                                                                     |
+| `on-stage-muted`             | 暗い面の `muted-foreground`                                                           |
+| `backstage`・`backstage-ink` | 明るい面（`:root`）の `background`・`foreground`                                      |
+| `backstage-surface`          | 明るい面の `card`                                                                     |
+| `backstage-line`             | 明るい面の `border`                                                                   |
+| `backstage-muted`            | 明るい面の `muted-foreground`                                                         |
+| `on-choice`                  | `choice-1-foreground`〜`choice-3-foreground`（モックでは白い文字の3色で共有していた） |
+| `on-choice-4`                | `choice-4-foreground`                                                                 |
+| `on-spotlight`               | `spotlight-foreground`                                                                |
+| `alert-strong`               | 明るい面の `destructive`                                                              |
 
 投影の大きさの `text-stage-*` と `p-stage` は、前の名前ではなく今も使う名前。
 
