@@ -1,0 +1,281 @@
+{
+  "configs": {
+    "default": {
+      "basePoints": 500,
+      "maxSpeedPoints": 500,
+      "quickBonus": {
+        "withinMs": 1000,
+        "points": 200
+      }
+    },
+    "withoutQuickBonus": {
+      "basePoints": 500,
+      "maxSpeedPoints": 500
+    }
+  },
+  "scoreAnswer": [
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 500,
+        "limitMs": 10000
+      },
+      "expected": {
+        "withoutQuickBonus": 975,
+        "default": 1175
+      }
+    },
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 1000,
+        "limitMs": 10000
+      },
+      "expected": {
+        "withoutQuickBonus": 950,
+        "default": 1150
+      }
+    },
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 1009,
+        "limitMs": 10000
+      },
+      "expected": {
+        "withoutQuickBonus": 950,
+        "default": 1150
+      }
+    },
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 1010,
+        "limitMs": 10000
+      },
+      "expected": {
+        "withoutQuickBonus": 949,
+        "default": 949
+      }
+    },
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 3520,
+        "limitMs": 10000
+      },
+      "expected": {
+        "withoutQuickBonus": 824,
+        "default": 824
+      }
+    },
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 9990,
+        "limitMs": 10000
+      },
+      "expected": {
+        "withoutQuickBonus": 500,
+        "default": 500
+      }
+    },
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 10050,
+        "limitMs": 10000
+      },
+      "expected": {
+        "withoutQuickBonus": 500,
+        "default": 500
+      }
+    },
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 350,
+        "limitMs": 5000
+      },
+      "expected": {
+        "withoutQuickBonus": 965,
+        "default": 1165
+      }
+    },
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 4000,
+        "limitMs": 20000
+      },
+      "expected": {
+        "withoutQuickBonus": 900,
+        "default": 900
+      }
+    }
+  ],
+  "quickBonusPoints": [
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 0,
+        "limitMs": 10000
+      },
+      "expected": 200
+    },
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 1000,
+        "limitMs": 10000
+      },
+      "expected": 200
+    },
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 1009,
+        "limitMs": 10000
+      },
+      "expected": 200
+    },
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 1010,
+        "limitMs": 10000
+      },
+      "expected": 0
+    },
+    {
+      "input": {
+        "correct": true,
+        "elapsedMs": 3520,
+        "limitMs": 10000
+      },
+      "expected": 0
+    },
+    {
+      "input": {
+        "correct": false,
+        "elapsedMs": 500,
+        "limitMs": 10000
+      },
+      "expected": 0
+    }
+  ],
+  "normalizeElapsedMs": [
+    {
+      "input": {
+        "measuredMs": 0,
+        "limitMs": 10000
+      },
+      "expected": 0
+    },
+    {
+      "input": {
+        "measuredMs": 9,
+        "limitMs": 10000
+      },
+      "expected": 0
+    },
+    {
+      "input": {
+        "measuredMs": 1009,
+        "limitMs": 10000
+      },
+      "expected": 1000
+    },
+    {
+      "input": {
+        "measuredMs": 1010,
+        "limitMs": 10000
+      },
+      "expected": 1010
+    },
+    {
+      "input": {
+        "measuredMs": 9999,
+        "limitMs": 10000
+      },
+      "expected": 9990
+    },
+    {
+      "input": {
+        "measuredMs": 10000,
+        "limitMs": 10000
+      },
+      "expected": 10000
+    },
+    {
+      "input": {
+        "measuredMs": 10050,
+        "limitMs": 10000
+      },
+      "expected": 10000
+    },
+    {
+      "input": {
+        "measuredMs": -30,
+        "limitMs": 10000
+      },
+      "expected": 0
+    }
+  ],
+  "formatSeconds": [
+    {
+      "input": {
+        "elapsedMs": 0
+      },
+      "expected": "0.00"
+    },
+    {
+      "input": {
+        "elapsedMs": 10
+      },
+      "expected": "0.01"
+    },
+    {
+      "input": {
+        "elapsedMs": 290
+      },
+      "expected": "0.29"
+    },
+    {
+      "input": {
+        "elapsedMs": 500
+      },
+      "expected": "0.50"
+    },
+    {
+      "input": {
+        "elapsedMs": 1000
+      },
+      "expected": "1.00"
+    },
+    {
+      "input": {
+        "elapsedMs": 1010
+      },
+      "expected": "1.01"
+    },
+    {
+      "input": {
+        "elapsedMs": 3520
+      },
+      "expected": "3.52"
+    },
+    {
+      "input": {
+        "elapsedMs": 10000
+      },
+      "expected": "10.00"
+    },
+    {
+      "input": {
+        "elapsedMs": 60000
+      },
+      "expected": "60.00"
+    }
+  ]
+}
