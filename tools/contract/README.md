@@ -18,7 +18,7 @@
 - `src/client.ts`: サーバーにつなぐ部品。受け取ったものはすべて `validate.ts` で調べる
   - `loginAsHost(origin)`: テスト用のログイン（`POST /api/e2e/login`）で新しいホストになり、Cookie ヘッダーの値を返す
   - `request(session, 'PUT /api/question-sets/{id}', { params, body })`: openapi.json のキーをそのまま URL のひな形にして送り、応答を `validateResponse` で調べて `{ status, body }` を返す
-  - `ContractSocket`: 部屋の WebSocket。届いたメッセージをすべて `validateServerMessage` で調べてためる。合わないものが1つでも届いたら、`waitFor` はすぐその理由で失敗する（数えて捨てると、最初のずれがほかの待ちの時間切れに埋もれる）
+  - `ContractSocket`: 部屋の WebSocket。届いたメッセージをすべて `validateServerMessage` で調べてためる。合わないものが1つでも届いたら、`waitFor` はすぐその理由で失敗する（数えて捨てると、最初のずれがほかの待ちの時間切れに埋もれる）。閉じたときの code を返す `closed` も、それまでに合わないものが届いていれば失敗するので、最後の `waitFor` のあとに届いたものも見逃さない
 
 ## シナリオ
 
@@ -48,8 +48,11 @@ pnpm exec vitest run --project contract
 シナリオは、本番に近いビルド（E2E と同じ）を立ち上げてから、`CONTRACT_ORIGIN` を付けて走らせる。
 
 ```sh
+# ターミナル1: 立ち上げたままにする（止めるまで戻ってこない）
 pnpm --filter @zubatto-quiz/web run e2e:serve
+
+# ターミナル2: 1の /api/health が返るようになってから走らせる
 CONTRACT_ORIGIN=http://localhost:4173 pnpm exec vitest run --project contract
 ```
 
-`e2e:serve` は立ち上がるたびに D1 と部屋を空にする。シナリオは毎回新しいホストでログインするので、続けて何度走らせてもよい。
+`e2e:serve` は立ち上がるたびに D1 と部屋を空にする。前のサーバーを止めずに2つ目を立ち上げると、2つ目はポートが使われていて止まるが、その前に動いている1つ目の D1 を消すので、ログインが 500 を返すようになる。立ち上げ直すときは、先に止める。シナリオは毎回新しいホストでログインするので、続けて何度走らせてもよい。
