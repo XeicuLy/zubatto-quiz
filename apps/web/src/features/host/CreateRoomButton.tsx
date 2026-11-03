@@ -30,7 +30,7 @@ export function CreateRoomButton({ questionSetId }: { questionSetId: string }) {
         部屋を作る
       </Button>
       {create.isError && status !== 404 && (
-        <p role="alert" className="order-last w-full text-sm font-bold text-alert-strong">
+        <p role="alert" className="order-last w-full text-sm font-bold text-destructive">
           {status === 401 ? (
             <>
               ログインが切れました。

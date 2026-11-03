@@ -29,16 +29,6 @@
 
 @theme {
   /*
-   * 進行画面・回答者画面の面。クイズ番組のスタジオのセットの青。
-   * stage・backstage の名前は古い名前で、役割の名前（このファイルの最後の :root・.stage）に移し終えたら消す（#134）
-   */
-  --color-stage: oklch(0.26 0.1 274);
-  --color-stage-raised: oklch(0.32 0.12 274);
-  --color-stage-line: oklch(0.44 0.12 274);
-  --color-on-stage: oklch(0.97 0.012 95);
-  --color-on-stage-muted: oklch(0.8 0.045 274);
-
-  /*
    * 選択肢の早押しパネル。色だけに頼らず、必ず番号と一緒に出す。
    * 白い文字に 4.5:1 以上になるよう、1〜3 は背景を暗くした（contrast.test.ts が測る）。
    * どの画面でも同じ明るさで出るよう、sRGB の中に収まる値にしている
@@ -61,22 +51,6 @@
   --color-correct-foreground: oklch(0.26 0.1 274);
   --color-alert: oklch(0.76 0.16 45);
   --color-alert-foreground: oklch(0.26 0.1 274);
-
-  /*
-   * 古い名前。画面を <名前>-foreground と destructive に移し終えたら消す（#134）。
-   * 値は新しい名前と同じにしておく（styles.test.ts が確かめる）
-   */
-  --color-on-choice: oklch(0.99 0 0);
-  --color-on-choice-4: oklch(0.26 0.1 274);
-  --color-on-spotlight: oklch(0.2 0.08 352);
-  --color-alert-strong: oklch(0.55 0.2 30);
-
-  /* 管理画面の面（楽屋）。明るく落ち着いた道具の面 */
-  --color-backstage: oklch(0.975 0.006 274);
-  --color-backstage-surface: oklch(1 0 0);
-  --color-backstage-line: oklch(0.9 0.015 274);
-  --color-backstage-ink: oklch(0.24 0.06 274);
-  --color-backstage-muted: oklch(0.5 0.035 274);
 
   /*
    * フォーカスリングの内側の黄。デジタル庁デザインシステムの Yellow-300（#ffd43d）で、面で変わらない。
@@ -218,9 +192,11 @@
 
 /*
  * 役割で名前を付けた色（ADR 0007）。名前は shadcn/ui の部品が使う名前（bg-primary text-primary-foreground など）にそろえる。
- * 値は、:root が明るい面（管理画面）、.stage が暗い面（進行画面・回答者画面）。部品は同じ class のまま、どちらの面でも使える。
+ * 値は、:root が明るい面（管理画面。本番の前に落ち着いて問題を作る、明るい道具の面）、
+ * .stage が暗い面（進行画面・回答者画面。クイズ番組のスタジオのセットの青）。部品は同じ class のまま、どちらの面でも使える。
  * @theme inline にすると、bg-primary が var(--primary) を直接読むので、.stage の中で入れ替えた値が効く。
- * 今の値は、上の古い名前（stage・backstage など）と同じ（styles.test.ts が対応を確かめる）
+ * 暗い面の一段明るい紺（card・secondary・muted・accent）は今は同じ値だが、囲みは card、名前のチップは secondary、
+ * 押せなくなったものや時間のバーの溝は muted と、役割で選ぶ
  */
 @theme inline {
   --font-heading: var(--font-sans);

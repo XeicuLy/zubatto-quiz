@@ -4,7 +4,7 @@
   "singleQuote": true,
   "sortImports": true,
   "sortTailwindcss": {
-    // Tailwind CSS v4 は設定を CSS の @theme に書くので、エントリの CSS を渡す。@theme のトークン（bg-stage など）も並べ替えの対象になる
+    // Tailwind CSS v4 は設定を CSS の @theme に書くので、エントリの CSS を渡す。@theme のトークン（bg-primary・text-title など）も並べ替えの対象になる
     "stylesheet": "./apps/web/src/styles.css",
     // 既定では className の文字だけを並べ替える。部品は class を cn と cva に渡すので、その引数の文字も並べ替える
     // 定数に入れた文字は並べ替えないので、部品の class は定数にまとめず、呼び出しの中に書く
@@ -15,11 +15,14 @@
   // routeTree.gen.ts は TanStack Router のプラグインが作り直すので、整形しても戻される
   // migrations/meta は drizzle-kit がスキーマの差分をとるための写し。手で触らないので、出力のまま置く
   // CHANGELOG.md と .release-please-manifest.json は release-please がリリース PR で丸ごと書き直す（ADR 0009）。整えても次の更新で戻される
+  // デザインのモックの HTML は、T24 までの記録として直さずに残す（docs/design/README.md）。今の styles.css にない前の名前（bg-stage など）を
+  // 使うので、styles.css で並べるとその class を知らない名前とみなして並べ替えてしまう
   "ignorePatterns": [
     "**/worker-configuration.d.ts",
     "**/routeTree.gen.ts",
     "apps/api/migrations/meta/**",
     "CHANGELOG.md",
-    ".release-please-manifest.json"
+    ".release-please-manifest.json",
+    "docs/design/mock/*.html"
   ]
 }

@@ -43,9 +43,9 @@ export function ConnectionNotice({ connection, closeReason, roomEnd, children }:
         {children}
       </div>
       <div className="absolute inset-x-0 top-0 mx-auto max-w-md px-3 pt-3">
-        <div className="flex items-center gap-3 rounded-panel bg-alert px-4 py-3 font-bold text-stage shadow-panel">
+        <div className="flex items-center gap-3 rounded-panel bg-alert px-4 py-3 font-bold text-alert-foreground shadow-panel">
           <span
-            className="size-5 shrink-0 rounded-full border-3 border-stage border-t-transparent motion-safe:animate-spin"
+            className="size-5 shrink-0 rounded-full border-3 border-alert-foreground border-t-transparent motion-safe:animate-spin"
             aria-hidden="true"
           />
           <p>{reconnectingMessage}</p>
@@ -74,9 +74,9 @@ function RoomEndedBanner() {
   const message = roomEndedMessages.after_final;
   return (
     <div className="mx-auto max-w-md px-5 pt-4">
-      <div className="rounded-panel border-2 border-stage-line bg-stage-raised px-4 py-3">
+      <div className="rounded-panel border-2 border-border bg-card px-4 py-3">
         <p className="font-bold">{message.title}</p>
-        <p className="mt-1 text-sm leading-relaxed text-on-stage-muted">{message.body}</p>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{message.body}</p>
       </div>
     </div>
   );
@@ -115,7 +115,7 @@ function ClosedScreen({ message }: { message: Message }) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
       <h1 className="text-3xl leading-snug font-bold">{message.title}</h1>
-      <p className="mt-4 leading-relaxed text-on-stage-muted">{message.body}</p>
+      <p className="mt-4 leading-relaxed text-muted-foreground">{message.body}</p>
     </main>
   );
 }

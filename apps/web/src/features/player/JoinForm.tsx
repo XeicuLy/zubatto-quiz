@@ -40,7 +40,7 @@ export function JoinForm({ notice, defaultName, onJoin }: JoinFormProps) {
       {notice === 'resume_failed' ? (
         <>
           <h1 className="text-3xl leading-snug font-bold">前回の参加には戻れませんでした</h1>
-          <p className="mt-4 leading-relaxed text-on-stage-muted">
+          <p className="mt-4 leading-relaxed text-muted-foreground">
             参加してから時間がたったか、参加の手続きが途中で切れたため、前回の名前と得点では戻れません。新しく名前を入れて参加してください。
           </p>
         </>

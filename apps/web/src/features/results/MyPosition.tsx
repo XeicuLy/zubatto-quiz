@@ -54,7 +54,7 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
   if (position.kind === 'hidden') {
     return (
       <section
-        className="mt-8 rounded-panel border-2 border-dashed border-stage-line p-5 text-center"
+        className="mt-8 rounded-panel border-2 border-dashed border-border p-5 text-center"
         aria-label="あなたの位置"
       >
         <p className="text-lg font-bold">ここからの順位は、最終発表まで伏せています</p>
@@ -67,12 +67,12 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
   const rank = position.kind === 'leader' ? 1 : position.kind === 'podium' ? position.rank : null;
   const total = (
     <>
-      <span className="text-base font-bold text-on-stage tabular-nums">{formatPoints(totalScore)}</span>点
+      <span className="text-base font-bold text-foreground tabular-nums">{formatPoints(totalScore)}</span>点
     </>
   );
 
   return (
-    <section className="mt-8 rounded-panel bg-stage-raised p-5" aria-label="あなたの位置">
+    <section className="mt-8 rounded-panel bg-card p-5" aria-label="あなたの位置">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         {rank !== null && (
           <p className="text-4xl font-bold tabular-nums">
@@ -95,7 +95,7 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
       )}
       {position.kind === 'chasing' ? (
         <>
-          <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-stage-line pt-3 text-sm text-on-stage-muted">
+          <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm text-muted-foreground">
             <div>
               <dt>合計</dt>
               <dd>{total}</dd>
@@ -103,7 +103,7 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
             <div>
               <dt>トップとの差</dt>
               <dd>
-                <span className="text-base font-bold text-on-stage tabular-nums">
+                <span className="text-base font-bold text-foreground tabular-nums">
                   {formatPoints(position.gapToTop)}
                 </span>
                 点
@@ -113,7 +113,7 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
           {remaining}
         </>
       ) : (
-        <p className="mt-3 border-t border-stage-line pt-3 text-sm text-on-stage-muted">合計 {total}</p>
+        <p className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">合計 {total}</p>
       )}
     </section>
   );

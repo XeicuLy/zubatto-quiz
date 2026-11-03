@@ -60,7 +60,7 @@ export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
   return (
     <>
       <main className="mx-auto max-w-4xl px-5 pt-6 pb-32">
-        <Link to="/admin" className="font-bold underline focus-visible:outline-2 focus-visible:outline-stage">
+        <Link to="/admin" className="font-bold underline focus-visible:outline-2 focus-visible:outline-ring">
           問題セットの一覧に戻る
         </Link>
         <h1 className="mt-6 text-3xl font-bold">問題セットの編集</h1>
@@ -97,12 +97,12 @@ export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
             問題を足す
           </Button>
         ) : (
-          <p className="mt-6 text-center text-sm text-backstage-muted">問題は{MAX_QUESTIONS}問までです</p>
+          <p className="mt-6 text-center text-sm text-muted-foreground">問題は{MAX_QUESTIONS}問までです</p>
         )}
       </main>
 
       {/* 保存の帯。長い問題セットでも、どこからでも押せるよう画面の下に固定する */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-backstage-line bg-backstage-surface/95 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 border-t border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-end gap-x-4 gap-y-2 px-5 py-3">
           {blocker.status === 'blocked' ? (
             // 押し間違えても書いた内容が消えない「編集に戻る」に、初めからフォーカスする
@@ -139,14 +139,14 @@ interface SaveStatusProps {
 function SaveStatus({ errorSummary, save, dirty }: SaveStatusProps) {
   if (errorSummary !== null) {
     return (
-      <p role="alert" className="text-sm font-bold text-alert-strong">
+      <p role="alert" className="text-sm font-bold text-destructive">
         {errorSummary}
       </p>
     );
   }
   if (save.isPending) {
     return (
-      <p role="status" className="text-sm text-backstage-muted">
+      <p role="status" className="text-sm text-muted-foreground">
         保存しています…
       </p>
     );
@@ -155,7 +155,7 @@ function SaveStatus({ errorSummary, save, dirty }: SaveStatusProps) {
     return <SaveError error={save.error} />;
   }
   if (dirty) {
-    return <p className="text-sm text-backstage-muted">保存していない変更があります</p>;
+    return <p className="text-sm text-muted-foreground">保存していない変更があります</p>;
   }
   if (save.isSuccess) {
     return (
@@ -171,7 +171,7 @@ function SaveError({ error }: { error: Error }) {
   if (error instanceof ApiError && error.status === 401) {
     // この画面でログインし直すと、GitHub へ移るあいだに下書きが消える。別のタブでログインすれば Cookie が共有される
     return (
-      <p role="alert" className="text-sm font-bold text-alert-strong">
+      <p role="alert" className="text-sm font-bold text-destructive">
         ログインが切れました。
         <a href="/login" target="_blank" rel="noopener" className="underline">
           別のタブでログインし直して
@@ -182,13 +182,13 @@ function SaveError({ error }: { error: Error }) {
   }
   if (error instanceof ApiError && error.status === 404) {
     return (
-      <p role="alert" className="text-sm font-bold text-alert-strong">
+      <p role="alert" className="text-sm font-bold text-destructive">
         この問題セットは消されているため、保存できません。
       </p>
     );
   }
   return (
-    <p role="alert" className="text-sm font-bold text-alert-strong">
+    <p role="alert" className="text-sm font-bold text-destructive">
       保存できませんでした。もう一度押してください。
     </p>
   );

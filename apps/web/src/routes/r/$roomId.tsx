@@ -37,7 +37,7 @@ function PlayerRoute() {
   const { sound } = Route.useRouteContext();
   return (
     // .stage は役割の色（bg-card・border-input など）を暗い面の値に入れ替える。components/ui の部品はこれで暗い面に合う
-    <div className="stage min-h-dvh bg-stage font-sans text-on-stage antialiased">
+    <div className="stage min-h-dvh bg-background font-sans text-foreground antialiased">
       <PlayerPage player={Route.useLoaderData()} sound={sound} />
     </div>
   );

@@ -4,58 +4,38 @@ import { describe, expect, it } from 'vitest';
 import { buildCss, themeVariablesOf, valueOf, variablesOf } from './compiled-css';
 
 /**
- * 役割の名前（shadcn/ui の名前、ADR 0007）と、同じ値を持つ今の名前。
- * 明るい面（管理画面）は :root、暗い面（進行画面・回答者画面）は .stage の中で値が入れ替わる
+ * 役割の名前（shadcn/ui の名前、ADR 0007）。
+ * 明るい面（管理画面）は :root、暗い面（進行画面・回答者画面）は .stage の中で値が入れ替わる。
+ * 文字が背景から読めるかは contrast.test.ts が測る
  */
 const surfaceRoles = [
-  // [役割, 明るい面, 暗い面]
-  ['background', 'backstage', 'stage'],
-  ['foreground', 'backstage-ink', 'on-stage'],
-  ['card', 'backstage-surface', 'stage-raised'],
-  ['card-foreground', 'backstage-ink', 'on-stage'],
-  ['popover', 'backstage-surface', 'stage-raised'],
-  ['popover-foreground', 'backstage-ink', 'on-stage'],
-  ['primary', 'stage', 'on-stage'],
-  ['primary-foreground', 'on-stage', 'stage'],
-  ['secondary', 'backstage', 'stage-raised'],
-  ['secondary-foreground', 'backstage-ink', 'on-stage'],
-  ['muted', 'backstage', 'stage-raised'],
-  ['muted-foreground', 'backstage-muted', 'on-stage-muted'],
-  ['accent', 'backstage', 'stage-raised'],
-  ['accent-foreground', 'backstage-ink', 'on-stage'],
-  ['destructive', 'alert-strong', 'alert'],
-  ['destructive-foreground', 'on-choice', 'stage'],
-  ['border', 'backstage-line', 'stage-line'],
-  ['input', 'backstage-line', 'stage-line'],
-  ['ring', 'stage', 'on-stage'],
+  'background',
+  'foreground',
+  'card',
+  'card-foreground',
+  'popover',
+  'popover-foreground',
+  'primary',
+  'primary-foreground',
+  'secondary',
+  'secondary-foreground',
+  'muted',
+  'muted-foreground',
+  'accent',
+  'accent-foreground',
+  'destructive',
+  'destructive-foreground',
+  'border',
+  'input',
+  'ring',
 ] as const;
-
-/** 面で変わらない、このアプリだけの色の文字の色。<名前>-foreground の組にそろえる */
-const fixedRoles = [
-  // [役割, 今の名前]
-  ['choice-1-foreground', 'on-choice'],
-  ['choice-2-foreground', 'on-choice'],
-  ['choice-3-foreground', 'on-choice'],
-  ['choice-4-foreground', 'on-choice-4'],
-  ['spotlight-foreground', 'on-spotlight'],
-  ['correct-foreground', 'stage'],
-  ['alert-foreground', 'stage'],
-] as const;
-
-/** 今の名前の色を全部使い、その値を CSS に出させる */
-const currentColors = [
-  ...new Set([
-    ...surfaceRoles.flatMap(([, light, dark]) => [light, dark]),
-    ...fixedRoles.map(([, current]) => current),
-  ]),
-];
 
 describe('styles.css の @theme（T1 のトークン）', () => {
   it.each([
-    ['bg-stage', 'background-color: var(--color-stage)'],
-    ['text-on-choice-4', 'color: var(--color-on-choice-4)'],
+    ['bg-choice-1', 'background-color: var(--color-choice-1)'],
+    ['text-choice-4-foreground', 'color: var(--color-choice-4-foreground)'],
     ['bg-spotlight', 'background-color: var(--color-spotlight)'],
-    ['text-backstage-ink', 'color: var(--color-backstage-ink)'],
+    ['text-alert-foreground', 'color: var(--color-alert-foreground)'],
     ['font-numeral', 'font-family: var(--font-numeral)'],
     ['font-logo', 'font-family: var(--font-logo)'],
     ['text-question', 'font-size: var(--text-question)'],
@@ -109,17 +89,9 @@ describe('字体の役割（飾り文字は投影の数字・順位とロゴだ�
 });
 
 describe('役割で名前を付けた色（ADR 0007）', () => {
-  it.each(surfaceRoles)('%s は、明るい面で %s、暗い面で %s と同じ値', async (role, light, dark) => {
-    const css = await buildCss(currentColors.map((name) => `bg-${name}`));
-    const current = themeVariablesOf(css);
-
-    expect(valueOf(variablesOf(css, ':root'), `--${role}`)).toBe(valueOf(current, `--color-${light}`));
-    expect(valueOf(variablesOf(css, '.stage'), `--${role}`)).toBe(valueOf(current, `--color-${dark}`));
-  });
-
   it('面ごとの値は上の表の役割だけで、明るい面と暗い面で同じ名前がそろう', async () => {
     const css = await buildCss([]);
-    const roles = surfaceRoles.map(([role]) => `--${role}`).sort();
+    const roles = surfaceRoles.map((role) => `--${role}`).sort();
 
     expect([...variablesOf(css, ':root').keys()].sort()).toEqual(roles);
     expect([...variablesOf(css, '.stage').keys()].sort()).toEqual(roles);
@@ -131,12 +103,6 @@ describe('役割で名前を付けた色（ADR 0007）', () => {
 
   it('部品の dark: は、暗い面（.stage とその中）で効く', async () => {
     expect(await buildCss(['dark:bg-input'])).toContain(':where(.stage, .stage *)');
-  });
-
-  it.each(fixedRoles)('%s は %s と同じ値', async (role, current) => {
-    const variables = themeVariablesOf(await buildCss([`bg-${role}`, `bg-${current}`]));
-
-    expect(valueOf(variables, `--color-${role}`)).toBe(valueOf(variables, `--color-${current}`));
   });
 
   it('shadcn の init が足す、今の見た目を変える指定を入れない', async () => {

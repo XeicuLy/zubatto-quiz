@@ -4,28 +4,28 @@
  */
 export const choiceColors = [
   {
-    panel: 'bg-choice-1 text-on-choice',
-    badge: 'bg-stage/25',
-    badgeMuted: 'bg-choice-1 text-on-choice',
+    panel: 'bg-choice-1 text-choice-1-foreground',
+    badge: 'bg-background/25',
+    badgeMuted: 'bg-choice-1 text-choice-1-foreground',
     bar: 'bg-choice-1/35',
   },
   {
-    panel: 'bg-choice-2 text-on-choice',
-    badge: 'bg-stage/25',
-    badgeMuted: 'bg-choice-2 text-on-choice',
+    panel: 'bg-choice-2 text-choice-2-foreground',
+    badge: 'bg-background/25',
+    badgeMuted: 'bg-choice-2 text-choice-2-foreground',
     bar: 'bg-choice-2/35',
   },
   {
-    panel: 'bg-choice-3 text-on-choice',
-    badge: 'bg-stage/25',
-    badgeMuted: 'bg-choice-3 text-on-choice',
+    panel: 'bg-choice-3 text-choice-3-foreground',
+    badge: 'bg-background/25',
+    badgeMuted: 'bg-choice-3 text-choice-3-foreground',
     bar: 'bg-choice-3/35',
   },
   // 黄色の上は白い字が読めないので、濃い字にする
   {
-    panel: 'bg-choice-4 text-on-choice-4',
-    badge: 'bg-stage/15',
-    badgeMuted: 'bg-choice-4 text-on-choice-4',
+    panel: 'bg-choice-4 text-choice-4-foreground',
+    badge: 'bg-background/15',
+    badgeMuted: 'bg-choice-4 text-choice-4-foreground',
     bar: 'bg-choice-4/35',
   },
 ] as const;

@@ -32,7 +32,9 @@
 
 - 色の役割は shadcn の名前（`background`/`foreground`、`card`、`primary`/`primary-foreground`、`muted`、`destructive`/`destructive-foreground`、`border`、`input`、`ring`…）にそろえる（#124、ADR 0007）。どれも `@theme inline` の項目で、中身は `:root`（明るい管理画面）と `.stage`（暗いステージ）に置いた素の変数。そのため `bg-primary` は `var(--primary)` をそのまま読み、`.stage` の中では値が入れ替わる。`@custom-variant dark` も `.stage` を指す。`.stage` は画面の route の外枠に付ける。ホストの画面（`routes/rooms/$roomId/host.tsx`、`host.test.tsx` が確かめる）と回答者の画面（`routes/r/$roomId.tsx`）に付いている
 - アプリだけの色は `<name>` と `<name>-foreground` の組にする（`choice-1`…`4`、`spotlight`、`correct`、`alert`）。`alert` はステージのお知らせの帯で、エラーと危ない操作には `destructive` を使う
-- 前の名前（`stage*`、`backstage*`、`on-*`、`alert-strong`）は、#134 まで値を残す。`styles.test.ts` が、面ごとに各役割をそれが表す前の名前と比べるので、色を変えても（#126）対応が黙って崩れることはない
+- 前の名前（`stage*`、`backstage*`、`on-*`、`alert-strong`）は #134 で消した。Tailwind は知らない class を黙って捨てるので、画面に書き戻しても色が抜けるだけで、型もほかのテストも落ちない。`test/color-roles.test.ts` が、src の画面のファイルにその名前があると落ちる。暗い面の印の `.stage` と、投影の大きさの `text-stage-*`・`p-stage` は残る名前で、数えない
+- 暗い面の一段明るい紺は、`card`・`secondary`・`muted`・`accent` が今は同じ値。値でなく役割で選ぶ。囲み（参加用 URL の箱、あなたの位置、ランキングの行）は `card`、名前のチップは `secondary`、押せなくなった選択肢や時間のバーの溝は `muted` と `muted-foreground`
+- 色を反転させて目立たせるもの（ランキングの自分の行、QR の白い板、時間のバー）は `bg-primary text-primary-foreground`、その中の「あなた」は `bg-primary-foreground text-primary`。選択肢のパネルの上の番号の丸の影は `bg-background/25`（パネルは暗い面にしか出ない）
 - 文字と背景の組は、投影でもスマホでも 4.5:1 以上にする（ADR 0007）。`test/contrast.test.ts` が、組の表（`<name>-foreground` と `<name>`、面ごとの `foreground` と `background` など）のコントラストを、コンパイルした CSS の値から計算する。計算は oklch → OKLab → 線形 sRGB → 相対輝度で、依存は増やさない。sRGB の外の色は、sRGB の画面では切り詰められ、P3 の画面ではそのまま出て明るさが変わるので、2通りに測って低いほうを見る。新しい組を作ったら表に足す
 - 選択肢の白い文字が 4.5:1 に届くよう、`choice-1`〜`3` は文字ではなく背景を暗くした（#126）。番号がいつも出ているので、4色の見分けは番号でもできる。どれも sRGB の中に収まる値にしてある
 
@@ -52,8 +54,8 @@
 
 - `shadcn init`（CLI 4.22.1、`base-nova`）は1回だけ動かした。見た目を変えるものは取り除いた。Geist と `--font-sans` の上書き、`--radius-*`、`tw-animate-css`、`*` への `@layer base` のルール（`border-border outline-ring/50` はブラウザの既定のフォーカスリングの色を変えてしまう）、`body` と `html` のルール、チャートとサイドバーの色。`lucide-react` も外した。`@base-ui/react` と `class-variance-authority` は、`components/ui` の部品が使う（[UI の部品](#ui-の部品)）。Geist、radius の上書き、役割の色を全体に当てるルールが戻ると、テストが落ちる
 - `shadcn` を devDependency に入れているのは、`@import 'shadcn/tailwind.css'`（`data-open:` のようなバリアント）のためだけ。その中の8つの `@property` のルールと、`.shimmer` の動きを減らすルールはいつも出力に入り、残りは使ったときだけ入る
-- `cn` は `src/lib/tailwind.ts` にある（`cn/config` の `createCn`。`components.json` の `utils` の別名もここを指す）。色とフォントでない `@theme` の名前は、すべて `createCn` に教える。教えないと、`cn('text-stage-label', 'text-on-stage')` が文字の大きさを落としてしまう。`test/cn-theme.test.ts` が styles.css から名前を読むので、新しい `@theme` の名前は、`tailwind.ts` に並べるまでテストが落ちる
-- oxfmt が Tailwind の class を並べ替えるのは、`className` の文字と、`cn`・`cva` の引数の文字（`.oxfmtrc.json` の `sortTailwindcss.functions`）だけ。定数に入れた文字は並べ替えないので、部品の class は定数にまとめず、呼び出しの中に書く（`Input` と `Textarea` は同じ枠の class を別々に持つ）
+- `cn` は `src/lib/tailwind.ts` にある（`cn/config` の `createCn`。`components.json` の `utils` の別名もここを指す）。色とフォントでない `@theme` の名前は、すべて `createCn` に教える。教えないと、`cn('text-stage-label', 'text-foreground')` が文字の大きさを落としてしまう。`test/cn-theme.test.ts` が styles.css から名前を読むので、新しい `@theme` の名前は、`tailwind.ts` に並べるまでテストが落ちる
+- oxfmt が Tailwind の class を並べ替えるのは、`className` の文字と、`cn`・`cva` の引数の文字（`.oxfmtrc.json` の `sortTailwindcss.functions`）だけ。定数に入れた文字は並べ替えないので、部品の class は定数にまとめず、呼び出しの中に書く（`Input` と `Textarea` は同じ枠の class を別々に持つ）。並べ替えの基準は `apps/web/src/styles.css` なので、前の名前のまま残すデザインのモック（`docs/design/mock/*.html`）は、`ignorePatterns` で整形から外している
 - 試しに作ったプロジェクトでは、`init` が書いた `button.tsx` が `cn` を `cn` から直接 import していた。そういう import は `@/lib/tailwind` に向け直す
 - `@source not` で `test/` と `*.test.*` を Tailwind の読み取りから外している。こうすると、テストの表に書いたクラス名が出力に入らない（`animate-spotlight-in` は、`styles.test.ts` に名前があったせいで出力に入っていた）
 - vitest は、CSS の import をすべて（`?raw` も）`''` に変える。styles.css は、`test/` の node のテストで `node:fs` を使って読む

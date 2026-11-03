@@ -42,7 +42,7 @@ export function HostControls({ room, onSend, sound }: HostControlsProps) {
   }
 
   return (
-    <footer className="sticky bottom-0 z-10 border-t border-stage-line bg-stage px-stage py-4">
+    <footer className="sticky bottom-0 z-10 border-t border-border bg-background px-stage py-4">
       {confirm.confirming === 'retry' && retry !== null ? (
         <ConfirmDialog
           title={`第${retry.questionIndex + 1}問をやり直します`}
@@ -79,7 +79,7 @@ export function HostControls({ room, onSend, sound }: HostControlsProps) {
             </Button>
             <SoundToggle sound={sound} variant="link" size="sm" />
           </div>
-          {hint !== null && <p className="text-sm text-on-stage-muted lg:ml-auto">{hint}</p>}
+          {hint !== null && <p className="text-sm text-muted-foreground lg:ml-auto">{hint}</p>}
           {forward.length > 0 && (
             <div className={`flex w-full flex-wrap gap-3 lg:w-auto ${hint === null ? 'lg:ml-auto' : ''}`}>
               {forward.map((command, index) => (

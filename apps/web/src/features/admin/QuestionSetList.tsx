@@ -25,24 +25,24 @@ export function QuestionSetList() {
         <h1 className="text-3xl font-bold">問題セット</h1>
         {sets.data !== undefined && sets.data.length > 0 && <CreateButton align="end" />}
       </div>
-      <p className="mt-3 text-sm leading-relaxed text-backstage-muted">
+      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
         部屋は、作った時点の問題セットを使います。部屋を作ったあとに編集しても、その部屋には反映されません。
       </p>
 
       {sets.isPending ? (
-        <p className="mt-8 text-backstage-muted">読み込んでいます…</p>
+        <p className="mt-8 text-muted-foreground">読み込んでいます…</p>
       ) : sets.isError ? (
         <LoadError error={sets.error} retry={() => void sets.refetch()} />
       ) : sets.data.length === 0 ? (
-        <div className="mt-8 rounded-panel border-2 border-dashed border-backstage-line p-10 text-center">
+        <div className="mt-8 rounded-panel border-2 border-dashed border-border p-10 text-center">
           <p className="text-lg font-bold">まだ問題セットがありません</p>
-          <p className="mt-2 text-backstage-muted">問題セットを作ると、そこから部屋を作れます。</p>
+          <p className="mt-2 text-muted-foreground">問題セットを作ると、そこから部屋を作れます。</p>
           <div className="mt-6">
             <CreateButton align="center" />
           </div>
         </div>
       ) : (
-        <ul className="mt-8 divide-y divide-backstage-line rounded-panel border border-backstage-line bg-backstage-surface">
+        <ul className="mt-8 divide-y divide-border rounded-panel border border-border bg-card">
           {sets.data.map((set) => (
             <QuestionSetRow key={set.id} set={set} />
           ))}
@@ -77,7 +77,7 @@ function CreateButton({ align }: { align: keyof typeof createButtonAlign }) {
         問題セットを作る
       </Button>
       {create.isError && (
-        <p role="alert" className="text-sm font-bold text-alert-strong">
+        <p role="alert" className="text-sm font-bold text-destructive">
           問題セットを作れませんでした。もう一度押してください。
         </p>
       )}
@@ -99,7 +99,7 @@ function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
     <li className="flex flex-wrap items-center gap-x-6 gap-y-3 p-5">
       <div className="min-w-0 flex-1 basis-56">
         <h2 className="text-lg font-bold wrap-anywhere">{set.title}</h2>
-        <p className="mt-1 text-sm text-backstage-muted">
+        <p className="mt-1 text-sm text-muted-foreground">
           {set.questionCount}問 / {updatedDate.format(new Date(set.updatedAt))}に更新
         </p>
       </div>
@@ -138,7 +138,7 @@ function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
         </div>
       )}
       {remove.isError && !(remove.error instanceof ApiError && remove.error.status === 404) && (
-        <p role="alert" className="w-full text-sm font-bold text-alert-strong">
+        <p role="alert" className="w-full text-sm font-bold text-destructive">
           消せませんでした。もう一度押してください。
         </p>
       )}
@@ -150,7 +150,7 @@ function LoadError({ error, retry }: { error: Error; retry: () => void }) {
   if (error instanceof ApiError && error.status === 401) {
     return (
       <Card variant="destructive" role="alert" className="mt-8">
-        <p className="font-bold text-alert-strong">ログインが切れました</p>
+        <p className="font-bold text-destructive">ログインが切れました</p>
         <Link to="/login" className="mt-3 inline-block font-bold underline">
           ログインし直す
         </Link>
@@ -159,7 +159,7 @@ function LoadError({ error, retry }: { error: Error; retry: () => void }) {
   }
   return (
     <Card variant="destructive" role="alert" className="mt-8">
-      <p className="font-bold text-alert-strong">問題セットを読めませんでした</p>
+      <p className="font-bold text-destructive">問題セットを読めませんでした</p>
       <button type="button" onClick={retry} className="mt-3 font-bold underline">
         もう一度読む
       </button>

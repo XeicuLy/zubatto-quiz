@@ -20,7 +20,7 @@ export function QuestionResult({ result, choices }: QuestionResultProps) {
     <section className="mt-8 text-center" aria-label="この問題の結果">
       {result.answer === null ? (
         <>
-          <h2 className="text-6xl font-bold text-on-stage-muted">時間切れ</h2>
+          <h2 className="text-6xl font-bold text-muted-foreground">時間切れ</h2>
           <p className="mt-4 text-lg">正解は {correctChoice}</p>
         </>
       ) : result.correct ? (
@@ -30,9 +30,9 @@ export function QuestionResult({ result, choices }: QuestionResultProps) {
         </>
       ) : (
         <>
-          <h2 className="text-7xl font-bold text-on-stage-muted">× 不正解</h2>
+          <h2 className="text-7xl font-bold text-muted-foreground">× 不正解</h2>
           <p className="mt-3 text-lg wrap-anywhere">正解は {correctChoice}</p>
-          <p className="mt-1 wrap-anywhere text-on-stage-muted">
+          <p className="mt-1 wrap-anywhere text-muted-foreground">
             あなたの回答: {choiceLabel(result.answer.choiceIndex, choices)}
           </p>
         </>
@@ -42,12 +42,12 @@ export function QuestionResult({ result, choices }: QuestionResultProps) {
         <span className="ml-1 text-xl">点</span>
       </p>
       {result.bonusPoints > 0 && (
-        <p className="mt-2 inline-block rounded-full bg-choice-4 px-4 py-1 font-bold text-on-choice-4">
+        <p className="mt-2 inline-block rounded-full bg-choice-4 px-4 py-1 font-bold text-choice-4-foreground">
           <span>早押しボーナス</span> <span className="tabular-nums">+{formatPoints(result.bonusPoints)}点</span>
         </p>
       )}
       {result.correct && result.answer !== null && (
-        <p className="mt-1 text-on-stage-muted">{formatSeconds(result.answer.elapsedMs)}秒で正解</p>
+        <p className="mt-1 text-muted-foreground">{formatSeconds(result.answer.elapsedMs)}秒で正解</p>
       )}
     </section>
   );

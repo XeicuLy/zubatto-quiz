@@ -49,7 +49,7 @@ function FastestStage({ fastest, questionIndex, choices, headingRef }: Omit<Fast
       <h2 ref={headingRef} tabIndex={headingRef ? -1 : undefined} className="text-stage-title font-bold focus-target">
         第{questionIndex + 1}問の最速正解
       </h2>
-      <p className={first === undefined ? 'text-stage-label text-on-stage-muted' : 'text-stage-label'}>
+      <p className={first === undefined ? 'text-stage-label text-muted-foreground' : 'text-stage-label'}>
         正解は {choiceLabel(fastest.correctIndex, choices)}（{countsOf(fastest)}）
       </p>
     </header>
@@ -61,7 +61,7 @@ function FastestStage({ fastest, questionIndex, choices, headingRef }: Omit<Fast
         {header}
         <div className="my-auto">
           <p className="text-timer font-bold">正解者なし</p>
-          <p className="mt-4 text-stage-title text-on-stage-muted">この問題に正解した人はいませんでした</p>
+          <p className="mt-4 text-stage-title text-muted-foreground">この問題に正解した人はいませんでした</p>
         </div>
       </section>
     );
@@ -70,7 +70,7 @@ function FastestStage({ fastest, questionIndex, choices, headingRef }: Omit<Fast
   return (
     <section
       aria-label="最速正解の発表"
-      className="flex flex-1 flex-col gap-stage bg-spotlight p-stage text-on-spotlight"
+      className="flex flex-1 flex-col gap-stage bg-spotlight p-stage text-spotlight-foreground"
     >
       {header}
       <ol
@@ -88,19 +88,19 @@ function FastestStage({ fastest, questionIndex, choices, headingRef }: Omit<Fast
           </p>
         </li>
         {rest.map((answer, index) => (
-          <li key={answer.participantId} className="min-w-0 border-t-2 border-on-spotlight/25 pt-4">
+          <li key={answer.participantId} className="min-w-0 border-t-2 border-spotlight-foreground/25 pt-4">
             <p className="font-bold">{index + 2}番目に速い正解</p>
             <FastAnswerRow answer={answer} nameClassName="text-stage-title font-bold" numeralClassName="font-numeral" />
           </li>
         ))}
       </ol>
       {fastest.ranksHidden ? (
-        <p className="border-t-2 border-on-spotlight/25 pt-4 text-stage-label font-bold">
+        <p className="border-t-2 border-spotlight-foreground/25 pt-4 text-stage-label font-bold">
           ここからの順位は、最終発表まで伏せています
         </p>
       ) : (
         climber !== null && (
-          <div className="border-t-2 border-on-spotlight/25 pt-4 text-stage-label">
+          <div className="border-t-2 border-spotlight-foreground/25 pt-4 text-stage-label">
             <p className="font-bold">この問題で一番順位を上げた人</p>
             <ClimberRow climber={climber} nameClassName="text-stage-title font-bold" numeralClassName="font-numeral" />
           </div>
@@ -118,11 +118,11 @@ function FastestCard({ fastest }: { fastest: FastestRevealed }) {
   return (
     <section
       aria-label="最速正解"
-      className={`mt-6 rounded-panel border-2 px-4 py-3 ${none ? 'border-stage-line' : 'border-spotlight'}`}
+      className={`mt-6 rounded-panel border-2 px-4 py-3 ${none ? 'border-border' : 'border-spotlight'}`}
     >
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className={`shrink-0 text-sm font-bold ${none ? 'text-on-stage-muted' : 'text-spotlight'}`}>最速正解</h2>
-        <p className="text-xs text-on-stage-muted">{countsOf(fastest)}</p>
+        <h2 className={`shrink-0 text-sm font-bold ${none ? 'text-muted-foreground' : 'text-spotlight'}`}>最速正解</h2>
+        <p className="text-xs text-muted-foreground">{countsOf(fastest)}</p>
       </header>
       {none ? (
         <p className="mt-2 font-bold">正解者なし</p>
@@ -130,15 +130,15 @@ function FastestCard({ fastest }: { fastest: FastestRevealed }) {
         <ol aria-label="最速の3人" className="mt-2 grid grid-cols-1 gap-1">
           {fastest.fastest.map((answer, index) => (
             <li key={answer.participantId} className={`flex items-baseline gap-3 ${index === 0 ? 'text-xl' : ''}`}>
-              <span className="w-[1.2em] shrink-0 text-sm font-bold text-on-stage-muted">{index + 1}</span>
+              <span className="w-[1.2em] shrink-0 text-sm font-bold text-muted-foreground">{index + 1}</span>
               <FastAnswerRow answer={answer} nameClassName="font-bold" numeralClassName="font-bold" />
             </li>
           ))}
         </ol>
       )}
       {climber !== null && (
-        <div className="mt-3 border-t border-stage-line pt-2 text-sm">
-          <p className="text-on-stage-muted">この問題で一番順位を上げた人</p>
+        <div className="mt-3 border-t border-border pt-2 text-sm">
+          <p className="text-muted-foreground">この問題で一番順位を上げた人</p>
           <ClimberRow climber={climber} nameClassName="font-bold" numeralClassName="font-bold" />
         </div>
       )}

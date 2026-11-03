@@ -25,13 +25,13 @@ export function AnswerDistribution({ revealed, choices }: AnswerDistributionProp
             key={index}
             className={`relative min-w-0 overflow-hidden rounded-panel ${
               isCorrect
-                ? `${colors.panel} ring-4 ring-on-stage ring-offset-4 ring-offset-stage`
-                : 'bg-stage-raised text-on-stage-muted'
+                ? `${colors.panel} ring-4 ring-foreground ring-offset-4 ring-offset-background`
+                : 'bg-muted text-muted-foreground'
             }`}
           >
             {/* 幅は人数で変わるので、クラスではなく style で渡す。React は CSSOM で書くので、CSP の style-src に触れない */}
             <div
-              className={`absolute inset-y-0 left-0 ${isCorrect ? 'bg-stage/20' : colors.bar}`}
+              className={`absolute inset-y-0 left-0 ${isCorrect ? 'bg-background/20' : colors.bar}`}
               style={{ width: `${barRatioOf(count, revealed.answeredCount) * 100}%` }}
               aria-hidden="true"
             />

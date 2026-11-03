@@ -33,7 +33,7 @@ export function JoinUrlCard({ joinUrl }: { joinUrl: string }) {
   return (
     <section
       aria-labelledby="join-url-heading"
-      className="flex flex-col gap-4 self-start rounded-panel bg-stage-raised p-stage"
+      className="flex flex-col gap-4 self-start rounded-panel bg-card p-stage"
     >
       <h2 id="join-url-heading" className="text-stage-title font-bold">
         スマホで参加
@@ -44,7 +44,7 @@ export function JoinUrlCard({ joinUrl }: { joinUrl: string }) {
         <JoinQrCode url={joinUrl} />
         <div className="flex min-w-0 grow basis-56 flex-col gap-4">
           <div>
-            <p className="text-stage-label text-on-stage-muted">
+            <p className="text-stage-label text-muted-foreground">
               カメラで読み取るか、この URL を開いて、名前を入れてください
             </p>
             <p className="mt-1 text-stage-title font-bold wrap-anywhere">{joinUrl}</p>

@@ -27,7 +27,7 @@ export const Route = createFileRoute('/login')({
 function LoginRoute() {
   const { error } = Route.useSearch();
   return (
-    <div className="min-h-dvh bg-backstage font-sans text-backstage-ink antialiased">
+    <div className="min-h-dvh bg-background font-sans text-foreground antialiased">
       <LoginPage error={error} />
     </div>
   );
