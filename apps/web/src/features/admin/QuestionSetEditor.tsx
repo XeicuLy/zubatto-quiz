@@ -3,11 +3,12 @@ import { Link, useBlocker } from '@tanstack/react-router';
 import { MAX_QUESTIONS, type QuestionSet, type QuestionSetDetail } from '@zubatto-quiz/protocol';
 import { useReducer, useState } from 'react';
 
+import { ApiError } from '@/api/errors';
+import { questionSetsQueryOptions, saveQuestionSet } from '@/api/question-sets';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Field, Input } from '@/components/ui/field';
 
-import { ApiError, questionSetsQueryOptions, saveQuestionSet } from './api';
 import { draftOf, editorReducer, errorSummaryOf, newQuestionKey, validateDraft } from './question-set-draft';
 import { QuestionEditor } from './QuestionEditor';
 

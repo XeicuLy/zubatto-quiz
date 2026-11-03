@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 
+import { ApiError } from '@/api/errors';
+import { questionSetsQueryOptions } from '@/api/question-sets';
+import { createRoom } from '@/api/rooms';
 import { Button } from '@/components/ui/button';
-import { ApiError, createRoom, questionSetsQueryOptions } from '@/features/admin/api';
 
 /**
  * 問題セットの一覧の行の「部屋を作る」（F1）。作ったら、その部屋の進行画面へ移る。

@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
-import { hostSessionQueryOptions } from '@/features/admin/host-session';
+import { hostSessionQueryOptions } from '@/api/host-session';
 import { LoginPage } from '@/features/admin/LoginPage';
 import { pageTitle } from '@/lib/page-title';
 

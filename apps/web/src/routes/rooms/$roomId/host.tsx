@@ -1,11 +1,11 @@
 import { createFileRoute, notFound } from '@tanstack/react-router';
 import { roomIdSchema } from '@zubatto-quiz/protocol';
 
-import { requireHost } from '@/features/admin/host-session';
 import { createHostRoom } from '@/features/host/host-room';
 import { HostPage } from '@/features/host/HostPage';
 import { pageTitle } from '@/lib/page-title';
 import { roomJoinUrl, roomSocketUrl } from '@/realtime/room-url';
+import { requireHost } from '@/shared/auth/require-host';
 
 /**
  * ホストの待機と進行（T31・T32）。一覧の「部屋を作る」が、作った部屋のここへ移る。
