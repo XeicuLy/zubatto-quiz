@@ -1,16 +1,8 @@
-import { queryOptions, type QueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 import { redirect } from '@tanstack/react-router';
 
-import { fetchHostSession, type HostSession } from '@/api/auth-client';
-
-/**
- * ログインしているホスト。上の帯の名前に使う。
- * ログアウトでは queryClient.clear() で捨てる。GitHub から戻るときはページを読み直すので、覚えた値は残らない
- */
-export const hostSessionQueryOptions = queryOptions({
-  queryKey: ['host-session'],
-  queryFn: fetchHostSession,
-});
+import type { HostSession } from '@/api/auth-client';
+import { hostSessionQueryOptions } from '@/api/host-session';
 
 /**
  * ホストだけが開ける経路の beforeLoad（S1）。ログインしていなければログイン画面へ移す。
