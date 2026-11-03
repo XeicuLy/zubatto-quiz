@@ -11,50 +11,59 @@ import { roomPhaseSchema, roomSnapshotSchema } from './ws/server-messages.ts';
 // 進行の順番は ws.schema.json に入らないので、この表が仕様になる。どの行も questionCount をはっきり持ち、
 // expected は関数の戻り値をまるごと書く。
 // JSON を import すると 'lobby' や 'showQuestion' が string に広がるので、protocol のスキーマで parse して型を付ける。
-// 打ち間違えた段階や操作は、ここで落ちる。テスト名は行の name を使い、for とテンプレート文字列で書く（ranking.test.ts と同じ理由）
+// 打ち間違えた段階や操作は、ここで落ちる。余計なキーは parse が黙って捨てるので、下の「スキーマにないキー」のテストが見つける。
+// テスト名は行の name を使い、for とテンプレート文字列で書く（ranking.test.ts と同じ理由）
 
-const flowStateSchema = z.strictObject({
+const flowStateSchema = z.object({
   phase: roomPhaseSchema,
   questionIndex: questionIndexSchema.nullable(),
   ended: z.boolean(),
 });
-const transitionInputSchema = z.strictObject({
+const transitionInputSchema = z.object({
   state: flowStateSchema,
   command: hostCommandSchema,
   questionCount: z.int().min(1),
 });
 
 const fixture = z
-  .strictObject({
+  .object({
     transitionAccepted: z.array(
-      z.strictObject({
+      z.object({
         name: z.string(),
         input: transitionInputSchema,
-        expected: z.strictObject({ ok: z.literal(true), next: flowStateSchema }),
+        expected: z.object({ ok: z.literal(true), next: flowStateSchema }),
       }),
     ),
     transitionRejected: z.array(
-      z.strictObject({
+      z.object({
         name: z.string(),
         input: transitionInputSchema,
-        expected: z.strictObject({ ok: z.literal(false) }),
+        expected: z.object({ ok: z.literal(false) }),
       }),
     ),
     canShowStandings: z.array(
-      z.strictObject({
-        input: z.strictObject({ questionIndex: questionIndexSchema, questionCount: z.int().min(1) }),
+      z.object({
+        input: z.object({ questionIndex: questionIndexSchema, questionCount: z.int().min(1) }),
         expected: z.boolean(),
       }),
     ),
     canSend: z.array(
-      z.strictObject({
+      z.object({
         name: z.string(),
-        input: z.strictObject({ room: roomSnapshotSchema, command: hostCommandSchema }),
+        input: z.object({ room: roomSnapshotSchema, command: hostCommandSchema }),
         expected: z.boolean(),
       }),
     ),
   })
   .parse(json);
+
+describe('fixtures/room-flow.json', () => {
+  it('スキーマにないキーがない', () => {
+    // protocol のスキーマは前方互換のために知らないキーを捨てる（入れ子の command・room も）。
+    // 捨てたキーがあれば parse の前後でずれるので、どの深さの打ち間違いもここで落ちる
+    expect(fixture).toStrictEqual(json);
+  });
+});
 
 describe('transition: 進行の状態の移り変わり（F8・F14・F15）', () => {
   for (const { name, input, expected } of fixture.transitionAccepted) {
