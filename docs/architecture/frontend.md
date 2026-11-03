@@ -57,7 +57,7 @@
 
 値は、デジタル庁デザインシステムを 2026-10-30 に確かめたもの（#125、ADR 0007）。
 
-- 字体は2つ。飾り文字の Dela Gothic One は、投影の数字・順位の `font-numeral` とロゴの `font-logo` だけに使う。ほかは本文の M PLUS 1 で、見出しは `font-bold` で太くする。入力欄は親の字体を受け継ぐので、ラベルに飾り文字を付けると入力と字体がずれる。`font-numeral` は数字だけを包み、「第」「問」「秒」「位」「点」「人」などの単位と記号は外の `font-bold`（M PLUS 1）で出す。results の部品は、variant の対応表で投影のときだけ `font-numeral` を渡す。`test/font-roles.test.ts` が、使ってよいファイルを確かめる
+- 字体は2つ。飾り文字の Dela Gothic One は、投影の数字・順位の `font-numeral` とロゴの `font-logo` だけに使う。ほかは本文の M PLUS 1 で、見出しは `font-bold` で太くする。入力欄は親の字体を受け継ぐので、ラベルに飾り文字を付けると入力と字体がずれる。`font-numeral` は数字だけを包み、「第」「問」「秒」「位」「点」「人」などの単位と記号は外の `font-bold`（M PLUS 1）で出す。`shared/results/` の部品は、variant の対応表で投影のときだけ `font-numeral` を渡す。`test/font-roles.test.ts` が、使ってよいファイルを確かめる
 - Dela Gothic One は太さ 400 しかなく、`font-bold` の中ではブラウザが字を太らせて潰す。`@layer base` の `html { font-synthesis-weight: none }` がこれを止める。M PLUS 1 は可変フォントで本物の太さを持つので、影響しない
 - 文字の大きさは役割で選ぶ。`text-title`/`heading`/`body`/`note`/`label`（どれも大きさ・行の高さ・字間をまとめて決める）を使い、`text-lg` は使わない。vw の `text-stage-*`/`p-stage` のトークンは、プロジェクターに映す画面だけで使う
 - 余白は、ものどうしの関係で名前を付ける。`related`/`item`/`cluster`/`section`（8/16/24/64 px）。`--spacing-md` のような大きさの名前は足さない。足すと `max-w-md` がそれを読んでしまう
@@ -199,7 +199,7 @@
 
 ## ホストの進行とフォーカス
 
-`HostControls.tsx`、`host-commands.ts`、`HostStage.tsx` にある。
+`features/host/` の `HostControls.tsx`、`host-commands.ts`、`HostStage.tsx` にある。
 
 - `forwardCommandsOf(room)` は、先へ進む操作をボタンの順に並べ、`canSend` が通すものだけを残す。最後のものが主ボタンになる
 - やり直しと終了はいつも出す（やり直しは締切のあとは押せない）。送る前に、その場で確かめる（`role="alertdialog"`）。`window.confirm` は残り時間と接続を止めてしまうので使わない
@@ -211,7 +211,7 @@
 - alarm での締切、ホストの部屋の予備のタイマー、ほかのタブの操作では、フォーカスを動かさない
 - `reconnecting`/`closed` になったら印を消す。つなぎ直したあとの送り直しでは、ホスト自身の操作とほかのタブの操作を見分けられないため。今は `HostConnectionNotice` の木が変わることで、たまたま `HostScreen` が作り直されるが、それに頼らない
 - 確認は帯の中に `ConfirmDialog` で出す。開いたときに「やめる」にフォーカスを当て、Esc で閉じ、作り直さずに閉じたときは開いたボタンへフォーカスを戻す（`useConfirm`。[UI の部品](#ui-の部品)）
-- `HostStage` は、① を `AnswerDistribution` で描く（映す画面だけなので `variant` はない。棒は回答した人のうちの割合で、回答が0なら `NaN%` にせず棒を描かない。ブラウザは `NaN%` を捨てるため）。②③ と最終順位は T28 の `projector` の部品で描く
+- `HostStage` は、① を `AnswerDistribution`（`shared/results/`）で描く（映す画面だけなので `variant` はない。棒は回答した人のうちの割合で、回答が0なら `NaN%` にせず棒を描かない。ブラウザは `NaN%` を捨てるため）。②③ と最終順位は T28 の `projector` の部品で描く
 - 選択肢の色（省かずに書く）と `ChoiceNumber` は `shared/results/choice-style.tsx` にあり、受け付け中のステージと ① で共有する
 
 ## 締切の予備のタイマー
@@ -236,7 +236,7 @@
 - `src/api/auth-client.ts` が、Better Auth（`better-auth/client`）を import する唯一のファイル。Go へ作り直すときは、このファイルだけを置き換える。出すのは `fetchHostSession`、`githubSignInUrl`、`signOut`
 - `githubSignInUrl` は `errorCallbackURL: '/login'` を送る。そのため、許可リストで断られると `/login?error=host_not_allowed` へ戻る。jsdom は移動できないので `disableRedirect` を使い、呼ぶ側が `location.assign` する
 - クライアントは `customFetchImpl` で、呼ぶたびに全体の `fetch` を引く。そうしないと、テストで差し替えた `fetch` が使われない
-- `/admin/route.tsx` の `beforeLoad` は `requireHost`（`src/shared/auth/require-host.ts`）。`queryClient.query(hostSessionQueryOptions)`（`src/api/host-session.ts`）を呼び、セッションがなければ `redirect({ to: '/login' })`。ホストだけのルートでは、これを使い回す
+- `routes/admin/route.tsx` の `beforeLoad` は `requireHost`（`src/shared/auth/require-host.ts`）。`queryClient.query(hostSessionQueryOptions)`（`src/api/host-session.ts`）を呼び、セッションがなければ `redirect({ to: '/login' })`。ホストだけのルートでは、これを使い回す
 - キャッシュしたセッションは信じない（既定の `staleTime: 0` で毎回読み直す）。そのため、ほかのタブやサーバーで終わったセッションのまま `/admin` の中を移り、キャッシュした一覧を見ることはできない。`/login` の `beforeLoad` も同じことをし、ログイン済みのホストを `/admin` へ送る
 - ログアウトは `queryClient.clear()` を呼ぶので、セッションも一覧も残らない
 - この確かめは画面を隠すだけで、データを守るのは API の `requireHost`（S1）

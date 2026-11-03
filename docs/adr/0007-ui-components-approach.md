@@ -59,7 +59,7 @@ shadcn/ui は部品のソースを手元にコピーする仕組みで、2026年
 
 - U1. shadcn/ui（Radix 版）: `shadcn init -b radix`。`radix-ui` と、cva などの道具を入れ、部品のソースを `components/ui` にコピーする
 - U2. shadcn/ui（Base UI 版）: shadcn の今の既定。`@base-ui/react` と、cva などの道具を入れ、部品のソースを `components/ui` にコピーする
-- U3. 自作（依存なし）: `components/ui` に、書き下した class の対応表で作る（`features/results/` の variant と同じやり方）
+- U3. 自作（依存なし）: `components/ui` に、書き下した class の対応表で作る（`shared/results/` の variant と同じやり方）
 - U4. 自作に、要るときだけ Base UI: U3 を基本にし、Select のように自分で作ると ARIA が重い部品が要ったときだけ、その部品に限って `@base-ui/react` を入れる
 
 役割トークンの名前:
@@ -92,7 +92,7 @@ shadcn/ui は部品のソースを手元にコピーする仕組みで、2026年
 - 良い影響: CSP は今のまま（`style-src` を足さない）で動く
 - 悪い影響: 依存が増える（`@base-ui/react` とその依存 8、`class-variance-authority` とその依存の `clsx`、`cn`）。更新と脆弱性への対応が、その分増える
 - 悪い影響: 参加フォームの JS が gzip 後に約 10.5 KB 増える
-- 悪い影響: 部品の variant は、書き下した class の対応表ではなく cva で持つ。`features/results/` の対応表と、書き方が2通りになる。cva も class を文字列のまま書くので、Tailwind が class を見つけられないことはない
+- 悪い影響: 部品の variant は、書き下した class の対応表ではなく cva で持つ。`shared/results/` の対応表と、書き方が2通りになる。cva も class を文字列のまま書くので、Tailwind が class を見つけられないことはない
 - 対応事項: ルート（`__root`）を `<CSPProvider disableStyleElements>` で囲む。ScrollArea や Select を足したときに、`<style>` が出ないようにするため。部品を足す PR では、その部品を開く E2E が `collectCspViolations` で空になることを確かめる
 - 対応事項: 画面は `components/ui` の部品だけを使い、`@base-ui/react` を直接 import しない。oxlint の `no-restricted-imports` で、`components/ui` の外からの import を止める
 - 対応事項: import の別名は `@/*` にそろえる。アプリ（`apps/web`・`apps/api`）では、`@/*` をそのアプリの `src/*` に向ける（tsconfig の `paths`。Vite と vitest は、alias でなく `resolve.tsconfigPaths` でそれを読む（#180）。web の Vite は API の Worker も作るので、alias で `@` を web の `src` に向けると、API の `@/` まで web を指す。web の `vitest.config.ts` は `vite.config.ts` を読まないので、両方に書く）。`packages/*` と `tools/*` では使わず、相対パスのままにする。`protocol` と `scoring` は `exports` でソース（`./src/index.ts`）のまま読み込まれるので、中で `@/` を使うと、読み込む側のアプリの別名で解決されてしまう。`tools/loadtest` は Node の type stripping で動き、tsconfig の `paths` を読まない。今ある相対パスの import の書き換えは、別の Issue（#180）で行う
