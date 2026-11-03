@@ -176,7 +176,7 @@
 
 ## ホストの部屋
 
-- `/rooms/$roomId/host`（`features/host/`）: 問題セットの一覧の `CreateRoomButton` が `createRoom`（`src/api/rooms.ts`）を呼び、`roomId` を持ってそこへ移る
+- `/rooms/$roomId/host`（`features/host/`）: 問題セットの一覧の `CreateRoomButton`（`features/admin/`）が `createRoom`（`src/api/rooms.ts`）を呼び、`roomId` を持ってそこへ移る
 - `beforeLoad` は、`requireHost` より先に `roomIdSchema` を確かめる。そのため、形の悪い ID で `get-session` を呼ぶことはない
 - loader は1つの `createHostRoom`（`host-room.ts`）を作り、回答者と同じく `onEnter`/`onLeave` が `connect`/`leave` を呼ぶ。ホストは最初のメッセージを送らない
 - 参加の URL は `roomJoinUrl(roomId, location)` で、API の `joinUrl` と同じ値（同じオリジン、ADR 0006）。そのため、再読み込みしても出せる
