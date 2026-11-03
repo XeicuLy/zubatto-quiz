@@ -22,6 +22,8 @@ export const documents = [
   'docs/requirements/zubatto-quiz.md',
   // モックの作り方。mock:build などのスクリプト名を書いている
   'docs/design/README.md',
+  // 画面のコードの地図。データの流れの道のりを実在のファイルへのリンクでたどるので、移したり名前を変えたりすると切れる
+  'apps/web/src/README.md',
   // O2 のリハーサルの手順（README の手順書の表から開く）
   'tools/loadtest/README.md',
   // O2 のリハーサルの記録。本番の前に読み返し、手順書へのリンクから止め方や使用量の見方に戻る
