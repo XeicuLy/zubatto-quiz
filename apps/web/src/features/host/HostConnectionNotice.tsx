@@ -2,8 +2,8 @@ import { Link } from '@tanstack/react-router';
 import type { CloseReason } from '@zubatto-quiz/protocol';
 import type { ReactNode } from 'react';
 
-import { useConnectionAnnouncement } from '@/features/player/use-connection-announcement';
 import type { ConnectionStatus } from '@/realtime/client';
+import { useConnectionAnnouncement } from '@/shared/connection/use-connection-announcement';
 import type { RoomEnd } from '@/shared/results/room-end';
 
 interface HostConnectionNoticeProps {

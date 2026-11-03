@@ -2,8 +2,8 @@ import type { FinalRanking as FinalRankingMessage, Revealed, RoomSnapshot } from
 import type { ReactNode, Ref } from 'react';
 
 import { useAnnouncement } from '@/components/a11y/announce';
-import { useCountdown } from '@/features/player/use-countdown';
 import type { CurrentQuestion } from '@/realtime/room-store';
+import { useCountdown } from '@/shared/countdown/use-countdown';
 import { AnswerDistribution } from '@/shared/results/AnswerDistribution';
 import { ChoiceNumber, choiceColors } from '@/shared/results/choice-style';
 import { FastestCorrect } from '@/shared/results/FastestCorrect';

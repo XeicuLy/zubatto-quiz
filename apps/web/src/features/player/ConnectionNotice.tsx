@@ -2,9 +2,8 @@ import type { CloseReason } from '@zubatto-quiz/protocol';
 import type { ReactNode } from 'react';
 
 import type { ConnectionStatus } from '@/realtime/client';
+import { useConnectionAnnouncement } from '@/shared/connection/use-connection-announcement';
 import type { RoomEnd } from '@/shared/results/room-end';
-
-import { useConnectionAnnouncement } from './use-connection-announcement';
 
 interface ConnectionNoticeProps {
   connection: ConnectionStatus;

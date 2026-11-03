@@ -4,10 +4,10 @@ import { useRef, useState, type ReactNode } from 'react';
 
 import { useAnnouncement } from '@/components/a11y/announce';
 import type { CurrentQuestion } from '@/realtime/room-store';
+import { elapsedMsAt, remainingMsAt } from '@/shared/countdown/answer-timer';
+import { useCountdown } from '@/shared/countdown/use-countdown';
 
-import { elapsedMsAt, remainingMsAt } from './answer-timer';
 import { AnswerButtons } from './AnswerButtons';
-import { useCountdown } from './use-countdown';
 
 type MyAnswer = NonNullable<CurrentQuestion['answer']>;
 
