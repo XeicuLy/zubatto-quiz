@@ -1,7 +1,7 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
 import { redirect } from '@tanstack/react-router';
 
-import { fetchHostSession, type HostSession } from '../../lib/auth-client';
+import { fetchHostSession, type HostSession } from '@/lib/auth-client';
 
 /**
  * ログインしているホスト。上の帯の名前に使う。

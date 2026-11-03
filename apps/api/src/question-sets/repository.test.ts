@@ -3,8 +3,9 @@ import { env } from 'cloudflare:workers';
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { createDb } from '../db';
-import { questions, questionSets, user } from '../db/schema';
+import { createDb } from '@/db';
+import { questions, questionSets, user } from '@/db/schema';
+
 import {
   createQuestionSet,
   deleteQuestionSet,

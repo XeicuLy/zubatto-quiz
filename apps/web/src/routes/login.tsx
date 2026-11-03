@@ -1,8 +1,8 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
-import { hostSessionQueryOptions } from '../features/admin/host-session';
-import { LoginPage } from '../features/admin/LoginPage';
-import { pageTitle } from '../lib/page-title';
+import { hostSessionQueryOptions } from '@/features/admin/host-session';
+import { LoginPage } from '@/features/admin/LoginPage';
+import { pageTitle } from '@/lib/page-title';
 
 interface LoginSearch {
   /** GitHub のログインに失敗して戻ってきたときに、Better Auth が付ける理由 */

@@ -2,8 +2,9 @@ import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import { createAppRouter } from '@/router';
+
 import { stubFakeApi } from '../../test/fake-api';
-import { createAppRouter } from '../router';
 
 async function openAt(path: string) {
   const router = createAppRouter({ history: createMemoryHistory({ initialEntries: [path] }) });

@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 
-import { createDb } from '../src/db';
-import app from '../src/index';
+import { createDb } from '@/db';
+import app from '@/index';
+
 import { allowGithubUser, createTestAuth, insertGithubUser } from './auth/create-test-auth';
 import { E2E_LOGIN_PATH } from './e2e-login-path';
 
@@ -14,7 +15,7 @@ import { E2E_LOGIN_PATH } from './e2e-login-path';
  */
 
 // wrangler は main の export から DO のクラスを探す
-export { RoomDurableObject } from '../src/room/room-do';
+export { RoomDurableObject } from '@/room/room-do';
 
 const e2e = new Hono<{ Bindings: Env }>();
 

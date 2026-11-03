@@ -3,8 +3,9 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import type { QuestionSetDetail } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
+import { createAppRouter } from '@/router';
+
 import { stubFakeApi } from '../../../test/fake-api';
-import { createAppRouter } from '../../router';
 
 const SET: QuestionSetDetail = {
   id: '11111111-1111-4111-8111-111111111111',

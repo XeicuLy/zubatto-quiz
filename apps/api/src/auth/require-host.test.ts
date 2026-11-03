@@ -2,9 +2,10 @@ import { env } from 'cloudflare:workers';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { createDb } from '@/db';
+import { hostAllowlist, user } from '@/db/schema';
+
 import { allowGithubUser, createTestAuth, insertGithubUser } from '../../test/auth/create-test-auth';
-import { createDb } from '../db';
-import { hostAllowlist, user } from '../db/schema';
 import { requireHost, type HostEnv } from './require-host';
 
 const db = createDb(env.DB);

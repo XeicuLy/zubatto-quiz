@@ -1,7 +1,8 @@
 import { decodeClientMessage, isHostCommand } from '@zubatto-quiz/protocol';
 import { DurableObject } from 'cloudflare:workers';
 
-import type { StoredQuestion } from '../question-sets/repository';
+import type { StoredQuestion } from '@/question-sets/repository';
+
 import { scheduleAlarm } from './alarm';
 import { getAttachment } from './attachment';
 import { acceptConnection, readRoomEntry, refuseConnection } from './connections';

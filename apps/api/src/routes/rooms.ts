@@ -2,9 +2,10 @@ import { createRoomRequestSchema, type CreateRoomResponse } from '@zubatto-quiz/
 import { Hono } from 'hono';
 import { csrf } from 'hono/csrf';
 
-import { requireHost, type HostEnv } from '../auth/require-host';
-import { createDb } from '../db';
-import { getQuestionSet } from '../question-sets/repository';
+import { requireHost, type HostEnv } from '@/auth/require-host';
+import { createDb } from '@/db';
+import { getQuestionSet } from '@/question-sets/repository';
+
 import { jsonBody, notFound } from './common';
 
 /**

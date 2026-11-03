@@ -1,4 +1,4 @@
-import type { RoomState } from '../../realtime/room-store';
+import type { RoomState } from '@/realtime/room-store';
 
 /**
  * ホストが部屋を終えたとき、部屋がどこまで進んでいたか（#97）。

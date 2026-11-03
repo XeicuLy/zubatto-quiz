@@ -6,8 +6,8 @@ import { useRef } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog, useConfirm } from '@/components/ui/confirm-dialog';
+import { CreateRoomButton } from '@/features/host/CreateRoomButton';
 
-import { CreateRoomButton } from '../host/CreateRoomButton';
 import { ApiError, createDraftQuestionSet, deleteQuestionSet, questionSetsQueryOptions } from './api';
 
 /** 更新した日。ホストは日本にいるので、端末の時刻の設定によらず日本の時刻で出す */

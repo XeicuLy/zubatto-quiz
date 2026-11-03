@@ -1,8 +1,8 @@
 import { createRootRouteWithContext, HeadContent, Outlet } from '@tanstack/react-router';
 
-import { Announcer } from '../components/a11y/Announcer';
-import { APP_NAME } from '../lib/page-title';
-import type { RouterContext } from '../router';
+import { Announcer } from '@/components/a11y/Announcer';
+import { APP_NAME } from '@/lib/page-title';
+import type { RouterContext } from '@/router';
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   // 子のルートが head でタイトルを付ければ、そちらが勝つ。付けない画面（トップ・知らない URL）はこれを出す

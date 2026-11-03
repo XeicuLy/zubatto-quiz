@@ -2,8 +2,9 @@ import { CLOSE_CODES, type ClientMessage, type RoomPhase } from '@zubatto-quiz/p
 import { evictDurableObject, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { JOIN_TIMEOUT_MS } from '@/room/pending-timeout';
+
 import { closeOf, connect, connectHost, exchange, joinPlayer, newRoom, type RoomStub } from '../../../test/room-socket';
-import { JOIN_TIMEOUT_MS } from '../pending-timeout';
 
 const LIMIT_MS = 10_000;
 

@@ -1,7 +1,7 @@
 import { createStore } from 'zustand/vanilla';
 
-import type { SoundCue } from '../src/features/sound/sound-cues';
-import type { SoundContext, SoundPlayer, SoundState } from '../src/features/sound/sound-player';
+import type { SoundCue } from '@/features/sound/sound-cues';
+import type { SoundContext, SoundPlayer, SoundState } from '@/features/sound/sound-player';
 
 /** 偽の AudioContext が鳴らした音。発振器を start した時点で記録する */
 export interface PlayedTone {

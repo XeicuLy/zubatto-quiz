@@ -1,10 +1,11 @@
 import { MAX_PARTICIPANTS } from '@zubatto-quiz/protocol';
 import { useStore } from 'zustand';
 
-import { FinalRanking } from '../results/Ranking';
-import { roomEndOf } from '../results/room-end';
-import type { SoundPlayer } from '../sound/sound-player';
-import { SoundToggle } from '../sound/SoundToggle';
+import { FinalRanking } from '@/features/results/Ranking';
+import { roomEndOf } from '@/features/results/room-end';
+import type { SoundPlayer } from '@/features/sound/sound-player';
+import { SoundToggle } from '@/features/sound/SoundToggle';
+
 import { ConnectionNotice } from './ConnectionNotice';
 import { JoinForm } from './JoinForm';
 import type { PlayerEntry, PlayerRoom } from './player-room';

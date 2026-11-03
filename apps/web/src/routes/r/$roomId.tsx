@@ -1,10 +1,10 @@
 import { createFileRoute, notFound } from '@tanstack/react-router';
 import { roomIdSchema } from '@zubatto-quiz/protocol';
 
-import { createPlayerRoom } from '../../features/player/player-room';
-import { PlayerPage } from '../../features/player/PlayerPage';
-import { pageTitle } from '../../lib/page-title';
-import { roomSocketUrl } from '../../realtime/room-url';
+import { createPlayerRoom } from '@/features/player/player-room';
+import { PlayerPage } from '@/features/player/PlayerPage';
+import { pageTitle } from '@/lib/page-title';
+import { roomSocketUrl } from '@/realtime/room-url';
 
 /**
  * 回答者の入室・待機・回答（T26・T27）。

@@ -1,10 +1,9 @@
 import { createFileRoute, Link, useRouter, type ErrorComponentProps } from '@tanstack/react-router';
 
 import { Card } from '@/components/ui/card';
-
-import { ApiError, questionSetQueryOptions } from '../../../features/admin/api';
-import { QuestionSetEditor } from '../../../features/admin/QuestionSetEditor';
-import { pageTitle } from '../../../lib/page-title';
+import { ApiError, questionSetQueryOptions } from '@/features/admin/api';
+import { QuestionSetEditor } from '@/features/admin/QuestionSetEditor';
+import { pageTitle } from '@/lib/page-title';
 
 /**
  * 問題セットの編集（F4・F7）。一覧の「問題セットを作る」と「編集」が、ここへ移る。

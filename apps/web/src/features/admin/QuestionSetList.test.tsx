@@ -3,8 +3,9 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import type { QuestionSetSummary } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
+import { createAppRouter } from '@/router';
+
 import { stubFakeApi } from '../../../test/fake-api';
-import { createAppRouter } from '../../router';
 import { DRAFT_QUESTION_SET, questionSetsQueryOptions } from './api';
 
 const QUIZ: QuestionSetSummary = {

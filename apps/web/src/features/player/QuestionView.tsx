@@ -2,8 +2,9 @@ import type { Answer, RoomPhase } from '@zubatto-quiz/protocol';
 import { formatSeconds, normalizeElapsedMs } from '@zubatto-quiz/scoring';
 import { useRef, useState, type ReactNode } from 'react';
 
-import { useAnnouncement } from '../../components/a11y/announce';
-import type { CurrentQuestion } from '../../realtime/room-store';
+import { useAnnouncement } from '@/components/a11y/announce';
+import type { CurrentQuestion } from '@/realtime/room-store';
+
 import { elapsedMsAt, remainingMsAt } from './answer-timer';
 import { AnswerButtons } from './AnswerButtons';
 import { useCountdown } from './use-countdown';

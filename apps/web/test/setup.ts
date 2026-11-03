@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
-import { clearAnnouncements } from '../src/components/a11y/announce';
+import { clearAnnouncements } from '@/components/a11y/announce';
 
 // globals を使わないので、Testing Library は描いたものを自動では片付けない
 afterEach(() => {

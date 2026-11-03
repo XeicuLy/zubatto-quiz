@@ -1,7 +1,8 @@
 import type { FinalRanking, RoomSnapshot } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
-import type { ConnectionStatus } from '../../realtime/client';
+import type { ConnectionStatus } from '@/realtime/client';
+
 import { roomEndOf } from './room-end';
 
 const roomAt = (phase: RoomSnapshot['phase']): RoomSnapshot => ({

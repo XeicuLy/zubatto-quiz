@@ -1,9 +1,9 @@
 import type { HostCommand, ServerMessage } from '@zubatto-quiz/protocol';
 
-import { connectRoom, type ConnectionStatus, type RoomClient, type RoomSocket } from '../../realtime/client';
-import { createRoomStore, type RoomStore } from '../../realtime/room-store';
-import { createSoundCues } from '../sound/sound-cues';
-import type { SoundPlayer } from '../sound/sound-player';
+import { createSoundCues } from '@/features/sound/sound-cues';
+import type { SoundPlayer } from '@/features/sound/sound-player';
+import { connectRoom, type ConnectionStatus, type RoomClient, type RoomSocket } from '@/realtime/client';
+import { createRoomStore, type RoomStore } from '@/realtime/room-store';
 
 /**
  * ホストの進行画面の、部屋ごとの操作役。route の loader が部屋を開くときに1つ作り、

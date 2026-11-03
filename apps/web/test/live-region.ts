@@ -1,4 +1,4 @@
-import type { Politeness } from '../src/components/a11y/announce';
+import type { Politeness } from '@/components/a11y/announce';
 
 /**
  * __root に常に置いてある読み上げ領域（Announcer）を返す。

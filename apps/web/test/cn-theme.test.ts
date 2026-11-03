@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { cn } from '../src/lib/tailwind';
+import { cn } from '@/lib/tailwind';
 
 const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 

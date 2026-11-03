@@ -2,10 +2,11 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { Answer, RoomPhase } from '@zubatto-quiz/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ANNOUNCE_DELAY_MS } from '@/components/a11y/announce';
+import { Announcer } from '@/components/a11y/Announcer';
+import type { CurrentQuestion } from '@/realtime/room-store';
+
 import { liveRegion } from '../../../test/live-region';
-import { ANNOUNCE_DELAY_MS } from '../../components/a11y/announce';
-import { Announcer } from '../../components/a11y/Announcer';
-import type { CurrentQuestion } from '../../realtime/room-store';
 import { QuestionView } from './QuestionView';
 
 const shown: CurrentQuestion = {

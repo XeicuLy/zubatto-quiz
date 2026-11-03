@@ -1,8 +1,8 @@
 import type { Question, QuestionSet } from '@zubatto-quiz/protocol';
 import { and, asc, desc, eq, getTableColumns } from 'drizzle-orm';
 
-import type { Db } from '../db';
-import { questions, questionSets } from '../db/schema';
+import type { Db } from '@/db';
+import { questions, questionSets } from '@/db/schema';
 
 /**
  * 問題セットを D1 で読み書きする層（F7・ADR 0002）。D1 の問題セットには、ここ以外から触らない。

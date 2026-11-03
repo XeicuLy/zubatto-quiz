@@ -1,5 +1,3 @@
-import { fileURLToPath } from 'node:url';
-
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { defineProject } from 'vitest/config';
@@ -11,8 +9,8 @@ export default defineProject({
     tanstackRouter({ target: 'react', autoCodeSplitting: true, routeFileIgnorePattern: String.raw`\.test\.` }),
     react(),
   ],
-  // vite.config.ts を読まないので、@/ の別名もここに書く
-  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+  // vite.config.ts を読まないので、@/ を tsconfig の paths で解決する設定もここに書く
+  resolve: { tsconfigPaths: true },
   test: {
     name: 'web',
     // 画面のコンポーネントは jsdom で描く。Worker の入口のテストは、ファイルの先頭で node に切り替える

@@ -1,11 +1,11 @@
 import { CLOSE_CODES, type CloseReason, type Resume } from '@zubatto-quiz/protocol';
 
-import { getAttachment, setAttachment } from '../attachment';
-import { closeReplacedConnections } from '../replace-connection';
-import { resendCurrentPhase } from '../resend';
-import { send } from '../send';
-import { readParticipants, readRoomSnapshot } from '../snapshot';
-import { hashToken } from '../token-hash';
+import { getAttachment, setAttachment } from '@/room/attachment';
+import { closeReplacedConnections } from '@/room/replace-connection';
+import { resendCurrentPhase } from '@/room/resend';
+import { send } from '@/room/send';
+import { readParticipants, readRoomSnapshot } from '@/room/snapshot';
+import { hashToken } from '@/room/token-hash';
 
 /** resume を通す、入室からの時間（F19・ADR 0004） */
 export const RESUME_WINDOW_MS = 6 * 60 * 60 * 1000;

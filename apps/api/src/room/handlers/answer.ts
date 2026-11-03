@@ -1,8 +1,9 @@
 import type { Answer, AnswerProgress, ErrorCode } from '@zubatto-quiz/protocol';
 import { normalizeElapsedMs } from '@zubatto-quiz/scoring';
 
-import { answerProgressOf } from '../resend';
-import { send, sendToHosts } from '../send';
+import { answerProgressOf } from '@/room/resend';
+import { send, sendToHosts } from '@/room/send';
+
 import { closeAnsweringIfDue } from './host-commands';
 
 type AcceptResult =

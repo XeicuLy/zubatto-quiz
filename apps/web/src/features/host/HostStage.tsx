@@ -1,13 +1,13 @@
 import type { FinalRanking as FinalRankingMessage, Revealed, RoomSnapshot } from '@zubatto-quiz/protocol';
 import type { ReactNode, Ref } from 'react';
 
-import { useAnnouncement } from '../../components/a11y/announce';
-import type { CurrentQuestion } from '../../realtime/room-store';
-import { useCountdown } from '../player/use-countdown';
-import { AnswerDistribution } from '../results/AnswerDistribution';
-import { ChoiceNumber, choiceColors } from '../results/choice-style';
-import { FastestCorrect } from '../results/FastestCorrect';
-import { FinalRanking, StandingsRanking } from '../results/Ranking';
+import { useAnnouncement } from '@/components/a11y/announce';
+import { useCountdown } from '@/features/player/use-countdown';
+import { AnswerDistribution } from '@/features/results/AnswerDistribution';
+import { ChoiceNumber, choiceColors } from '@/features/results/choice-style';
+import { FastestCorrect } from '@/features/results/FastestCorrect';
+import { FinalRanking, StandingsRanking } from '@/features/results/Ranking';
+import type { CurrentQuestion } from '@/realtime/room-store';
 
 export interface HostStageProps {
   /** 待機（lobby）は HostLobby が出すので渡さない */

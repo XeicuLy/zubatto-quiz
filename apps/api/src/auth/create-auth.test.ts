@@ -2,9 +2,10 @@ import { env, exports } from 'cloudflare:workers';
 import { count, eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createDb } from '@/db';
+import { account, hostAllowlist, session, user } from '@/db/schema';
+
 import { allowGithubUser, createTestAuth, insertGithubUser } from '../../test/auth/create-test-auth';
-import { createDb } from '../db';
-import { account, hostAllowlist, session, user } from '../db/schema';
 import { createAuthOptions, HOST_NOT_ALLOWED } from './create-auth';
 
 const db = createDb(env.DB);

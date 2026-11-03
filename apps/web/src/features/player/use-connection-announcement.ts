@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-import { useAnnouncement } from '../../components/a11y/announce';
-import type { ConnectionStatus } from '../../realtime/client';
+import { useAnnouncement } from '@/components/a11y/announce';
+import type { ConnectionStatus } from '@/realtime/client';
 
 interface ConnectionAnnouncement {
   connection: ConnectionStatus;

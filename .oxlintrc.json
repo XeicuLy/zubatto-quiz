@@ -57,10 +57,20 @@
   },
   "overrides": [
     {
+      // アプリの中では、親のフォルダーのファイルを @/（そのアプリの src/）で読む（ADR 0007）。同じフォルダーの ./ はよい。
+      // packages/* と tools/* は相対パスのまま（ソースのまま読み込まれ、読み込む側の @/ で解決されてしまう）。
+      // テストのコードは下の上書きで外す。src/ の外の test/ にある道具は @/ で書けないため
+      "files": ["apps/*/src/**"],
+      "rules": {
+        "import/no-relative-parent-imports": "error"
+      }
+    },
+    {
       // E2E（e2e/ と playwright.config.ts）もテストのコード。@playwright/test は名前が **/test に当たる
       "files": ["**/test/**", "**/*.test.*", "**/*.spec.*", "**/vitest.config.*", "e2e/**", "playwright.config.*"],
       "rules": {
-        "no-restricted-imports": "off"
+        "no-restricted-imports": "off",
+        "import/no-relative-parent-imports": "off"
       }
     },
     {

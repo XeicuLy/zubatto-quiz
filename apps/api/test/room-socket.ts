@@ -2,7 +2,7 @@ import type { ClientMessage, Joined, ServerMessage } from '@zubatto-quiz/protoco
 import { env } from 'cloudflare:workers';
 import { expect } from 'vitest';
 
-import { roomRequest, type RoomEntry } from '../src/room/connections';
+import { roomRequest, type RoomEntry } from '@/room/connections';
 
 /** newRoom が作る問題。n 問目（1始まり）の ID は q-n で、制限時間は10秒。正解はどれも0番目 */
 export const testQuestion = (n: number) => ({

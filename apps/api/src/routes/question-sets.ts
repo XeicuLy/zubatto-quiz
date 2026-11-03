@@ -7,15 +7,16 @@ import {
 import { Hono } from 'hono';
 import { csrf } from 'hono/csrf';
 
-import { requireHost, type HostEnv } from '../auth/require-host';
-import { createDb } from '../db';
+import { requireHost, type HostEnv } from '@/auth/require-host';
+import { createDb } from '@/db';
 import {
   createQuestionSet,
   deleteQuestionSet,
   getQuestionSet,
   listQuestionSets,
   updateQuestionSet,
-} from '../question-sets/repository';
+} from '@/question-sets/repository';
+
 import { jsonBody, notFound } from './common';
 
 /** 本文を questionSetSchema で確かめる（F4・F9） */

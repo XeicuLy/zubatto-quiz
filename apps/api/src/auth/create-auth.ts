@@ -2,8 +2,9 @@ import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError } from 'better-auth/api';
 
-import { createDb } from '../db';
-import * as schema from '../db/schema';
+import { createDb } from '@/db';
+import * as schema from '@/db/schema';
+
 import { isAllowedGithubUser, isAllowedUser } from './allowlist';
 
 const DAY_SECONDS = 60 * 60 * 24;

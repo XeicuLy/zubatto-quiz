@@ -2,6 +2,9 @@ import { CLOSE_CODES, MAX_PARTICIPANTS, type Joined } from '@zubatto-quiz/protoc
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { getAttachment } from '@/room/attachment';
+import { hashToken } from '@/room/token-hash';
+
 import {
   closeOf,
   connect,
@@ -11,8 +14,6 @@ import {
   newToken,
   type RoomStub,
 } from '../../../test/room-socket';
-import { getAttachment } from '../attachment';
-import { hashToken } from '../token-hash';
 import { handleJoin } from './join';
 
 const player = { role: 'player' } as const;

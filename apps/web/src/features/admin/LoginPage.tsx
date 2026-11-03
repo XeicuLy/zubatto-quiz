@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { GitHubMark } from '@/components/icons/github-mark';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-
-import { githubSignInUrl } from '../../lib/auth-client';
+import { githubSignInUrl } from '@/lib/auth-client';
 
 /** 許可リストの外で拒否されたときに、Better Auth が ?error= に入れる値（apps/api の HOST_NOT_ALLOWED） */
 const HOST_NOT_ALLOWED = 'host_not_allowed';
