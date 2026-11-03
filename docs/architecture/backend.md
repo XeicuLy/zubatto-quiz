@@ -44,6 +44,7 @@
 
 - 進行の操作は、ホストの役割の接続からだけ受け付ける。`webSocketMessage` は `isHostCommand` とアタッチメントの役割を確かめ、回答者の接続には `not_host` を返す。`handleHostCommand`（`room/handlers/host-commands.ts`）はそのあとに動く
 - 進行の順番は、protocol の `room-flow.ts` にある純粋な関数 `transition` が決め、表でテストしている。ホストの画面の `canSend(room, command)` はそれを包んでいるので、ボタンが押せるのは、DO がその操作を受け付けるときとちょうど同じになる。段階や `questionIndex` が合わない操作には `invalid_state` を返す
+- 進行の表は `fixtures/room-flow.json` にあり、TS のテストはそれを読んで回す。進行の順番は `ws.schema.json` に入らないので、Go で書き直すときも同じ JSON を読み、表を二重に持たない。どの行も `questionCount` をはっきり書き、`expected` には関数の戻り値をまるごと書く。JSON の段階や操作は文字列に広がるので、テストは protocol のスキーマ（`z.strictObject`）で parse してから使う。打ち間違いや余計なキーは、ここで落ちる
 - 締切のあとの進み方は、① `revealed` → ② `fastest` →（③ `standings`）→ 次の `showQuestion`、最後の問題のあとは `showFinalRanking` だけ。`canShowStandings` は最後の2問で ③ を断るので、2問以下の部屋では ③ は出ない
 - `retryQuestion` は締切の前（`question`/`accepting`）だけ使える。その問題の `answers` を消し、`question` へ戻して `questionShown` を送り直す。`endRoom` はどの段階からでも使え、未確認の接続も含めたすべての接続を 4410 `room_ended` で閉じる
 - `applyHostCommand` は、状態を読み、`transition` を呼び、`room`（とやり直しの `DELETE`）を1つの `transactionSync` で書いてから配る。`questions.correct_index` は自分では読まず（S2）、D1 にも `fetch` にも触れない（P1）。`questionShown` には選択肢を入れず、`answeringStarted` で足す。①②③と最終結果は、コミットのあとに `sendResults` を呼んで送る
