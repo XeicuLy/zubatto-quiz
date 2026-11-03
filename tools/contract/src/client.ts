@@ -1,3 +1,7 @@
+import { randomBytes } from 'node:crypto';
+import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
+
 import { validateResponse, validateServerMessage } from './validate.ts';
 
 /**
@@ -146,6 +150,11 @@ export class ContractSocket {
     for (const wake of this.#wakers) wake();
   }
 
+  /** これまでに届いた、スキーマに合うメッセージ。届いた順に並ぶ */
+  get messages(): readonly ServerMessage[] {
+    return [...this.#received];
+  }
+
   /** これまでに届いた、スキーマに合うメッセージの type */
   get types(): Set<string> {
     return new Set(this.#received.map((message) => message.type));
@@ -194,4 +203,48 @@ export class ContractSocket {
   close(): void {
     this.#socket.close();
   }
+}
+
+/**
+ * 部屋の入口へ WebSocket の Upgrade の要求を1つ送り、返ってきた状態コードを返す。受け付けられたら（101）すぐ閉じる。
+ * 応答を返さずに切られたら null を返す。つなげなかったとき（ECONNREFUSED など）は失敗する。
+ *
+ * - Node の WebSocket は、断られたときの状態コードを見せない（閉じたときの code が 1006 になるだけ）ので、node:http で握手する
+ * - 付けるのは握手に要るヘッダーと headers だけ。ブラウザと違って Origin は自分では付けないので、Origin のない要求を作れる
+ * - vite preview（@cloudflare/vite-plugin 1.63.1）は、Worker が 101 でない応答を返すと、それを返さずに接続を切る。
+ *   本番や Go のサーバーなら状態コードが返るが、どちらの形でも「受け付けなかった」ことは確かめられる
+ */
+export function handshakeStatus(url: string, headers: Record<string, string> = {}): Promise<number | null> {
+  const target = new URL(url);
+  const send = target.protocol === 'wss:' ? httpsRequest : httpRequest;
+  target.protocol = target.protocol === 'wss:' ? 'https:' : 'http:';
+  return new Promise((resolve, reject) => {
+    const handshake = send(target, {
+      headers: {
+        Connection: 'Upgrade',
+        Upgrade: 'websocket',
+        'Sec-WebSocket-Version': '13',
+        'Sec-WebSocket-Key': randomBytes(16).toString('base64'),
+        ...headers,
+      },
+      timeout: WAIT_MS,
+    });
+    handshake.on('upgrade', (response, socket) => {
+      socket.destroy();
+      resolve(response.statusCode ?? 101);
+    });
+    handshake.on('response', (response) => {
+      response.resume();
+      resolve(response.statusCode ?? 0);
+    });
+    handshake.on('timeout', () =>
+      handshake.destroy(new Error(`${target.pathname} が ${WAIT_MS} ms のあいだに応えなかった`)),
+    );
+    handshake.on('error', (error: NodeJS.ErrnoException) => {
+      // 応答の前に相手が切った。つなげなかったのとは分ける
+      if (error.code === 'ECONNRESET') resolve(null);
+      else reject(error);
+    });
+    handshake.end();
+  });
 }

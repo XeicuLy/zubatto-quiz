@@ -1,6 +1,9 @@
+import { createServer, type IncomingHttpHeaders } from 'node:http';
+import type { AddressInfo } from 'node:net';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ContractSocket, loginAsHost, request, roomSocketUrl, type HostSession } from './client.ts';
+import { ContractSocket, handshakeStatus, loginAsHost, request, roomSocketUrl, type HostSession } from './client.ts';
 
 const origin = 'http://localhost:4173';
 const session: HostSession = { origin, cookie: 'better-auth.session_token=abc' };
@@ -183,6 +186,14 @@ describe('ContractSocket', () => {
     expect(socket.types).toEqual(new Set(['participants', 'hostReady']));
   });
 
+  it('messages は、スキーマに合うメッセージを届いた順に返す', async () => {
+    const { socket, fake } = await openSocket();
+    fake.serverSend(hostReady);
+    fake.serverSend({ type: 'participants', participants: [] });
+
+    expect(socket.messages).toEqual([hostReady, { type: 'participants', participants: [] }]);
+  });
+
   it('ws.schema.json に合わないメッセージが届いたら、待っている waitFor をすぐ失敗させる', async () => {
     const { socket, fake } = await openSocket();
     const waiting = socket.waitFor('hostReady');
@@ -232,5 +243,76 @@ describe('ContractSocket', () => {
     FakeWebSocket.last!.serverClose(1006);
 
     await expect(socket.opened).rejects.toThrow(/close code 1006/);
+  });
+});
+
+describe('handshakeStatus', () => {
+  const server = createServer();
+  /** 最後に届いた要求のヘッダー */
+  let received: IncomingHttpHeaders | undefined;
+  let url = '';
+
+  beforeEach(async () => {
+    received = undefined;
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    url = `ws://127.0.0.1:${(server.address() as AddressInfo).port}/api/rooms/${roomId}/ws/play`;
+  });
+
+  afterEach(async () => {
+    server.removeAllListeners('request');
+    server.removeAllListeners('upgrade');
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  it('WebSocket の Upgrade の要求を、渡したヘッダーだけを足して送り、断られたときの状態コードを返す', async () => {
+    server.on('upgrade', (incoming, socket) => {
+      received = incoming.headers;
+      socket.end('HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n');
+    });
+
+    await expect(handshakeStatus(url, { Cookie: session.cookie })).resolves.toBe(403);
+    expect(received).toMatchObject({
+      upgrade: 'websocket',
+      connection: 'Upgrade',
+      'sec-websocket-version': '13',
+      cookie: session.cookie,
+    });
+    expect(received?.['sec-websocket-key']).toMatch(/^[A-Za-z0-9+/]{22}==$/);
+    // Origin は渡したときだけ付く。Node はブラウザと違って自分では付けない
+    expect(received).not.toHaveProperty('origin');
+  });
+
+  it('応答を返さずに切られたら null を返す（vite preview は 101 でない応答をこう扱う）', async () => {
+    server.on('upgrade', (_incoming, socket) => socket.destroy());
+
+    await expect(handshakeStatus(url)).resolves.toBeNull();
+  });
+
+  it('つなげなかったら、切られたのとは分けて失敗する', async () => {
+    await new Promise((resolve) => server.close(resolve));
+
+    await expect(handshakeStatus(url)).rejects.toThrow(/ECONNREFUSED/);
+    // afterEach で閉じ直せるよう、もう一度立てておく
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  });
+
+  it('受け付けられたら 101 を返し、開いた接続はすぐ閉じる', async () => {
+    const clientClosed = new Promise<void>((resolve) => {
+      server.on('upgrade', (incoming, socket) => {
+        received = incoming.headers;
+        // 相手が閉じたことは end で分かる。upgrade の socket は読むまで止まっているので、流しておく。
+        // こちらの側も閉じないと、server.close() がこの socket を待ち続ける
+        socket.resume();
+        socket.on('end', () => {
+          socket.end();
+          resolve();
+        });
+        socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n');
+      });
+    });
+
+    await expect(handshakeStatus(url, { Origin: origin })).resolves.toBe(101);
+    expect(received).toMatchObject({ origin });
+    await clientClosed;
   });
 });
