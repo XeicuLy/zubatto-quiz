@@ -209,6 +209,16 @@ describe('ContractSocket', () => {
     await expect(socket.closed).resolves.toBe(4410);
   });
 
+  it('最後の waitFor のあとに合わないメッセージが届いて閉じたら、closed もその理由で失敗する', async () => {
+    const { socket, fake } = await openSocket();
+    fake.serverSend(hostReady);
+    await socket.waitFor('hostReady');
+    fake.serverSend({ ...hostReady, correctIndex: 0 });
+    fake.serverClose(4410);
+
+    await expect(socket.closed).rejects.toThrow(/ws\.schema\.json の hostReady/);
+  });
+
   it('待つ上限を過ぎたら失敗する', async () => {
     const { socket } = await openSocket();
 

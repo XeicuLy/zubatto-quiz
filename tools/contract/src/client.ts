@@ -94,7 +94,7 @@ export class ContractSocket {
   #closeCode: number | null = null;
   /** 開いたら解決し、開く前に閉じたら、閉じたときの code を持って失敗する */
   readonly opened: Promise<void>;
-  /** 閉じたときの code で解決する */
+  /** 閉じたときの code で解決する。それまでにスキーマに合わないメッセージが届いていたら、その理由で失敗する */
   readonly closed: Promise<number>;
 
   constructor({ url, origin, cookie }: { url: string; origin: string; cookie?: string }) {
@@ -111,13 +111,17 @@ export class ContractSocket {
     });
     // 開けなかったことは opened を待つ側が扱う。待たれる前に失敗しても、未処理の拒否にしない
     this.opened.catch(() => {});
-    this.closed = new Promise((resolve) => {
+    this.closed = new Promise((resolve, reject) => {
       this.#socket.addEventListener('close', (event) => {
         this.#closeCode = event.code;
-        resolve(event.code);
+        // 最後の waitFor のあとに届いたものは、ほかに確かめる場所がない。合わないものがあれば、閉じたことより先にそれを知らせる
+        if (this.#failure === null) resolve(event.code);
+        else reject(this.#failure);
         this.#wake();
       });
     });
+    // 失敗は closed を待つ側が扱う。待たれる前に失敗しても、未処理の拒否にしない
+    this.closed.catch(() => {});
     this.#socket.addEventListener('message', (event) => this.#receive(event.data));
   }
 
