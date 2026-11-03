@@ -107,3 +107,5 @@
 - `openapi.json` は丸ごと `addSchema` して、中の `$ref` を ajv に解かせる。`openapi`・`paths` などの最上位のキーは JSON Schema にないので、`addVocabulary` で知らせないと strict モードで止まる。401 などの応答の `$ref`（`#/components/responses/…`）は OpenAPI のもので ajv は解かないので、部品が1段たどる（2026-11-03 に ajv 8.20.0 で確かめた）
 - `format` を確かめるために ajv-formats を足している。ajv だけでは `unknown format "uuid"` で止まる。止まらないように `validateFormats: false` にすると、`pattern` のない `joinUrl` の uri が素通りになる
 - 204 の本文は調べない。Fetch の `Response` は 204 に本文を持たせられず、`fetch` も捨てるので、テストで作ることも、受け取ることもできない
+- シナリオのログイン（`POST /api/e2e/login`）は openapi.json に書かない。本番にない経路を仕様に書くと、Go 版も本番の入口に足してよいと読めてしまうため。経路の文字列は apps/api から import せず `src/client.ts` に書き、契約テストのパッケージを TS のサーバーから切り離しておく
+- シナリオは本番に近いビルド（`e2e:serve`）に向けて走らせる。`vite dev` では `_headers` が効かず、本番と違う応答になりうる（[通しの E2E](#通しの-e2e) と同じ理由）

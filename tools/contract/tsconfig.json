@@ -4,5 +4,5 @@
     // 手元の node で、サーバーの外から応答を確かめるテスト。fetch と Response の型も node の型から来る
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "vitest.config.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
 }
