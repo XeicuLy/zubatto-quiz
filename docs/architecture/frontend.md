@@ -176,7 +176,7 @@
 
 ## ホストの部屋
 
-- `/rooms/$roomId/host`（`features/host/`）: 問題セットの一覧の `CreateRoomButton` が `createRoom`（`features/admin/api.ts`）を呼び、`roomId` を持ってそこへ移る
+- `/rooms/$roomId/host`（`features/host/`）: 問題セットの一覧の `CreateRoomButton` が `createRoom`（`src/api/rooms.ts`）を呼び、`roomId` を持ってそこへ移る
 - `beforeLoad` は、`requireHost` より先に `roomIdSchema` を確かめる。そのため、形の悪い ID で `get-session` を呼ぶことはない
 - loader は1つの `createHostRoom`（`host-room.ts`）を作り、回答者と同じく `onEnter`/`onLeave` が `connect`/`leave` を呼ぶ。ホストは最初のメッセージを送らない
 - 参加の URL は `roomJoinUrl(roomId, location)` で、API の `joinUrl` と同じ値（同じオリジン、ADR 0006）。そのため、再読み込みしても出せる
@@ -220,10 +220,10 @@
 
 ## ホストのログイン
 
-- `src/lib/auth-client.ts` が、Better Auth（`better-auth/client`）を import する唯一のファイル。Go へ作り直すときは、このファイルだけを置き換える。出すのは `fetchHostSession`、`githubSignInUrl`、`signOut`
+- `src/api/auth-client.ts` が、Better Auth（`better-auth/client`）を import する唯一のファイル。Go へ作り直すときは、このファイルだけを置き換える。出すのは `fetchHostSession`、`githubSignInUrl`、`signOut`
 - `githubSignInUrl` は `errorCallbackURL: '/login'` を送る。そのため、許可リストで断られると `/login?error=host_not_allowed` へ戻る。jsdom は移動できないので `disableRedirect` を使い、呼ぶ側が `location.assign` する
 - クライアントは `customFetchImpl` で、呼ぶたびに全体の `fetch` を引く。そうしないと、テストで差し替えた `fetch` が使われない
-- `/admin/route.tsx` の `beforeLoad` は `requireHost`（`features/admin/host-session.ts`）。`queryClient.query(hostSessionQueryOptions)` を呼び、セッションがなければ `redirect({ to: '/login' })`。ホストだけのルートでは、これを使い回す
+- `/admin/route.tsx` の `beforeLoad` は `requireHost`（`src/shared/auth/require-host.ts`）。`queryClient.query(hostSessionQueryOptions)`（`src/api/host-session.ts`）を呼び、セッションがなければ `redirect({ to: '/login' })`。ホストだけのルートでは、これを使い回す
 - キャッシュしたセッションは信じない（既定の `staleTime: 0` で毎回読み直す）。そのため、ほかのタブやサーバーで終わったセッションのまま `/admin` の中を移り、キャッシュした一覧を見ることはできない。`/login` の `beforeLoad` も同じことをし、ログイン済みのホストを `/admin` へ送る
 - ログアウトは `queryClient.clear()` を呼ぶので、セッションも一覧も残らない
 - この確かめは画面を隠すだけで、データを守るのは API の `requireHost`（S1）
@@ -231,7 +231,7 @@
 
 ## 問題セットの編集
 
-- `features/admin/api.ts` は、protocol のスキーマで `/api/question-sets` を呼び、`ApiError(status)` を投げる。`questionSetsQueryOptions` は 4xx をやり直さないので、401 ならすぐに「ログインが切れました」を出す
+- HTTP の呼び出しは `src/api/` に置く。`question-sets.ts` と `rooms.ts` は、`request.ts` を通して `/api/question-sets` と `/api/rooms` を呼び、応答を protocol のスキーマで読む。2xx 以外は `ApiError(status)`（`errors.ts`）を投げる。`questionSetsQueryOptions` は 4xx をやり直さないので、401 ならすぐに「ログインが切れました」を出す
 - 問題セットには1問以上が要るので、「問題セットを作る」は `DRAFT_QUESTION_SET` を保存して `/admin/sets/$setId` へ移る
 - 編集画面（`/admin/sets/$setId`）の loader は、`questionSetQueryOptions(setId)` を読む（訪れるたびに新しく読む）。ルートの `errorComponent` が 401/404 を出す。`QuestionSetEditor`（`setId` を key にする）は、loader のデータから下書きを1回だけ作る
 - 下書き（`question-set-draft.ts`）は `QuestionSetInput` ではない。`correctIndex` は `null`（まだ正解を選んでいない）でもよく、制限時間は入力欄の秒の文字列
