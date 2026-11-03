@@ -31,26 +31,26 @@ export function AdminLayout({ host }: AdminLayoutProps) {
   }
 
   return (
-    <div className="min-h-dvh bg-backstage font-sans text-backstage-ink antialiased">
-      <header className="border-b border-backstage-line bg-backstage-surface">
+    <div className="min-h-dvh bg-background font-sans text-foreground antialiased">
+      <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-5 py-3">
           <p className="shrink-0 font-logo text-xl">ズバクイ</p>
           <div className="flex min-w-0 items-center gap-3 text-sm">
-            <p className="name-clip text-backstage-muted" title={host.name}>
+            <p className="name-clip text-muted-foreground" title={host.name}>
               {host.name}
             </p>
             <button
               type="button"
               onClick={logout}
               disabled={signingOut}
-              className="shrink-0 underline focus-visible:outline-2 focus-visible:outline-stage disabled:opacity-60"
+              className="shrink-0 underline focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-60"
             >
               ログアウト
             </button>
           </div>
         </div>
         {signOutFailed && (
-          <p role="alert" className="mx-auto max-w-4xl px-5 pb-3 text-sm font-bold text-alert-strong">
+          <p role="alert" className="mx-auto max-w-4xl px-5 pb-3 text-sm font-bold text-destructive">
             ログアウトできませんでした。もう一度押してください。
           </p>
         )}

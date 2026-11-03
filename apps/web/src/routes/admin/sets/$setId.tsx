@@ -32,7 +32,7 @@ function QuestionSetLoadError({ error }: ErrorComponentProps) {
       <Card variant="destructive" role="alert">
         {status === 401 ? (
           <>
-            <h1 className="font-bold text-alert-strong">ログインが切れました</h1>
+            <h1 className="font-bold text-destructive">ログインが切れました</h1>
             <Link to="/login" className="mt-3 inline-block font-bold underline">
               ログインし直す
             </Link>
@@ -40,15 +40,15 @@ function QuestionSetLoadError({ error }: ErrorComponentProps) {
         ) : status === 404 ? (
           <>
             {/* 他人のセットも、ないセットと同じに見せる（S1） */}
-            <h1 className="font-bold text-alert-strong">問題セットが見つかりません</h1>
-            <p className="mt-2 text-sm text-backstage-muted">消されたか、URL が違います。</p>
+            <h1 className="font-bold text-destructive">問題セットが見つかりません</h1>
+            <p className="mt-2 text-sm text-muted-foreground">消されたか、URL が違います。</p>
             <Link to="/admin" className="mt-3 inline-block font-bold underline">
               問題セットの一覧に戻る
             </Link>
           </>
         ) : (
           <>
-            <h1 className="font-bold text-alert-strong">問題セットを読めませんでした</h1>
+            <h1 className="font-bold text-destructive">問題セットを読めませんでした</h1>
             <button type="button" onClick={() => void router.invalidate()} className="mt-3 font-bold underline">
               もう一度読む
             </button>

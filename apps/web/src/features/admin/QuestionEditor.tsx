@@ -19,10 +19,10 @@ interface QuestionEditorProps {
 
 /** 選択肢の番号の丸。回答者画面の早押しパネルと同じ色にする。Tailwind はクラス名を文字のまま探すので、書き出しておく */
 const choiceBadge = [
-  'bg-choice-1 text-on-choice',
-  'bg-choice-2 text-on-choice',
-  'bg-choice-3 text-on-choice',
-  'bg-choice-4 text-on-choice-4',
+  'bg-choice-1 text-choice-1-foreground',
+  'bg-choice-2 text-choice-2-foreground',
+  'bg-choice-3 text-choice-3-foreground',
+  'bg-choice-4 text-choice-4-foreground',
 ] as const;
 
 /** 1問の編集（F4・F9）。問題文・2〜4個の選択肢・正解・制限時間を入れ、並べ替えと消すもここから行う */
@@ -38,7 +38,7 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
   return (
     <li
       aria-labelledby={`${id}-heading`}
-      className={`rounded-panel bg-backstage-surface p-5 ${hasError ? 'border-2 border-alert-strong' : 'border border-backstage-line'}`}
+      className={`rounded-panel bg-card p-5 ${hasError ? 'border-2 border-destructive' : 'border border-border'}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h2 id={`${id}-heading`} className="text-xl font-bold">
@@ -92,7 +92,7 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
         {/* 大きさと太さは Field のラベルにそろえる。text-label は1行用（行の高さ 1）で、390 px で折り返すと行が詰まるので text-body にする */}
         <legend className="text-body font-bold">
           選択肢と正解{' '}
-          <span className="font-normal text-backstage-muted">
+          <span className="font-normal text-muted-foreground">
             （{MIN_CHOICES}〜{MAX_CHOICES}個。正解を1つ選ぶ）
           </span>
         </legend>
@@ -130,7 +130,7 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
                       aria-label={`選択肢${choiceNumber}を正解にする`}
                       checked={question.correctIndex === choiceIndex}
                       onChange={() => dispatch({ type: 'setCorrect', index, choiceIndex })}
-                      className="size-4 accent-stage"
+                      className="size-4 accent-primary"
                     />
                     正解
                   </label>
@@ -162,7 +162,7 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
             選択肢を足す
           </Button>
         ) : (
-          <p className="mt-3 text-sm text-backstage-muted">選択肢は{MAX_CHOICES}つまでです</p>
+          <p className="mt-3 text-sm text-muted-foreground">選択肢は{MAX_CHOICES}つまでです</p>
         )}
       </fieldset>
 
