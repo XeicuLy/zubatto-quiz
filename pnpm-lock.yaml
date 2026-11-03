@@ -194,6 +194,15 @@ importers:
 
   packages/scoring: {}
 
+  tools/contract:
+    dependencies:
+      ajv:
+        specifier: 8.20.0
+        version: 8.20.0
+      ajv-formats:
+        specifier: 3.0.1
+        version: 3.0.1
+
   tools/docs-check:
     devDependencies:
       yaml:
