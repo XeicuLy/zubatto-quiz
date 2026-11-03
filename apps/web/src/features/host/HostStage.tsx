@@ -106,7 +106,7 @@ function QuestionStage({ question, questionCount, headingRef }: QuestionStagePro
     <StageFrame
       question={question}
       questionCount={questionCount}
-      aside={<p className="text-stage-label text-on-stage-muted">制限時間 {question.limitMs / 1000}秒</p>}
+      aside={<p className="text-stage-label text-muted-foreground">制限時間 {question.limitMs / 1000}秒</p>}
     >
       <h1
         ref={headingRef}
@@ -145,7 +145,7 @@ function AcceptingStage({ question, choices, questionCount, participantCount, he
         <p className="text-stage-label">
           <span>回答</span>{' '}
           <span className="font-numeral text-stage-title tabular-nums">{progress?.answeredCount ?? 0}</span>
-          <span className="text-on-stage-muted">/ {progress?.participantCount ?? participantCount} 人</span>
+          <span className="text-muted-foreground">/ {progress?.participantCount ?? participantCount} 人</span>
         </p>
       }
     >
@@ -160,13 +160,13 @@ function AcceptingStage({ question, choices, questionCount, participantCount, he
         <p className="shrink-0 text-center">
           <span className="sr-only">残り</span>
           <span className="block font-numeral text-timer tabular-nums">{Math.ceil(leftMs / 1000)}</span>
-          <span className="text-stage-label text-on-stage-muted">秒</span>
+          <span className="text-stage-label text-muted-foreground">秒</span>
         </p>
       </div>
-      <div className="h-3 overflow-hidden rounded-full bg-stage-raised" aria-hidden="true">
+      <div className="h-3 overflow-hidden rounded-full bg-muted" aria-hidden="true">
         {/* 幅は描くたびに変わるので、クラスではなく style で渡す。React は CSSOM で書くので、CSP の style-src に触れない */}
         <div
-          className="h-full rounded-full bg-on-stage transition-[width] ease-linear"
+          className="h-full rounded-full bg-primary transition-[width] ease-linear"
           style={{
             width: `${Math.max(0, ratio) * 100}%`,
             transitionDuration: `${startedAt === null ? 0 : nextTickMs}ms`,
@@ -203,7 +203,7 @@ function RevealedStage({ question, revealed, questionCount, headingRef }: Reveal
       question={question}
       questionCount={questionCount}
       aside={
-        <p className="text-stage-label text-on-stage-muted">
+        <p className="text-stage-label text-muted-foreground">
           締め切りました（{revealed.participantCount}人中 {revealed.answeredCount}人が回答）
         </p>
       }
@@ -237,7 +237,7 @@ function StageFrame({ question, questionCount, aside, children }: StageFrameProp
           <span>
             第<span className="font-numeral">{question.questionIndex + 1}</span>問
           </span>{' '}
-          <span className="text-stage-label text-on-stage-muted">/ {questionCount}</span>
+          <span className="text-stage-label text-muted-foreground">/ {questionCount}</span>
         </p>
         {aside}
       </header>

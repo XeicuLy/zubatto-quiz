@@ -26,7 +26,7 @@ export function JoinQrCode({ url }: { url: string }) {
       viewBox={`0 0 ${size} ${size}`}
       role="img"
       aria-label="参加用 URL の QR コード"
-      className="size-[clamp(12rem,14vw,16rem)] shrink-0 rounded-chip bg-on-stage text-stage forced-color-adjust-none"
+      className="size-[clamp(12rem,14vw,16rem)] shrink-0 rounded-chip bg-primary text-primary-foreground forced-color-adjust-none"
     >
       {/* crispEdges にしないと、隣り合う四角の境目がにじんで細い線が出ることがある */}
       <path fill="currentColor" shapeRendering="crispEdges" d={d} />

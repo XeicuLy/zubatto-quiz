@@ -41,9 +41,9 @@ export function HostConnectionNotice({ connection, closeReason, roomEnd, childre
         {children}
       </div>
       <div className="absolute inset-x-0 top-0 p-stage">
-        <div className="flex items-center gap-3 rounded-panel bg-alert px-5 py-4 text-stage-label font-bold text-stage shadow-panel">
+        <div className="flex items-center gap-3 rounded-panel bg-alert px-5 py-4 text-stage-label font-bold text-alert-foreground shadow-panel">
           <span
-            className="size-[1.2em] shrink-0 rounded-full border-3 border-stage border-t-transparent motion-safe:animate-spin"
+            className="size-[1.2em] shrink-0 rounded-full border-3 border-alert-foreground border-t-transparent motion-safe:animate-spin"
             aria-hidden="true"
           />
           <p>{reconnectingMessage}</p>
@@ -87,7 +87,7 @@ function ClosedScreen({ message }: { message: Message }) {
   return (
     <main className="flex min-h-dvh flex-col justify-center gap-4 p-stage">
       <h1 className="text-stage-title font-bold">{message.title}</h1>
-      <p className="text-stage-label leading-relaxed text-on-stage-muted">{message.body}</p>
+      <p className="text-stage-label leading-relaxed text-muted-foreground">{message.body}</p>
       <BackToListLink />
     </main>
   );
@@ -96,7 +96,7 @@ function ClosedScreen({ message }: { message: Message }) {
 /** 最終ランキングのあとに部屋が終わったとき、操作の帯の代わりに出す。接続は閉じたので、どの操作も送れない。読み上げは HostConnectionNotice が渡す */
 export function HostEndedBar() {
   return (
-    <footer className="sticky bottom-0 z-10 border-t border-stage-line bg-stage px-stage py-4">
+    <footer className="sticky bottom-0 z-10 border-t border-border bg-background px-stage py-4">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <p className="text-stage-label font-bold">{roomEndedMessage.title}</p>
         <BackToListLink />
@@ -109,7 +109,7 @@ function BackToListLink() {
   return (
     <Link
       to="/admin"
-      className="self-start text-stage-label font-bold underline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage"
+      className="self-start text-stage-label font-bold underline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-ring"
     >
       問題セットの一覧に戻る
     </Link>
