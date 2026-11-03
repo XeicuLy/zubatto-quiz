@@ -1,8 +1,8 @@
 import type { CloseReason } from '@zubatto-quiz/protocol';
 import type { ReactNode } from 'react';
 
-import type { RoomEnd } from '@/features/results/room-end';
 import type { ConnectionStatus } from '@/realtime/client';
+import type { RoomEnd } from '@/shared/results/room-end';
 
 import { useConnectionAnnouncement } from './use-connection-announcement';
 

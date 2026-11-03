@@ -1,8 +1,8 @@
 import { MAX_PARTICIPANTS } from '@zubatto-quiz/protocol';
 import { useStore } from 'zustand';
 
-import { FinalRanking } from '@/features/results/Ranking';
-import { roomEndOf } from '@/features/results/room-end';
+import { FinalRanking } from '@/shared/results/Ranking';
+import { roomEndOf } from '@/shared/results/room-end';
 import type { SoundPlayer } from '@/shared/sound/sound-player';
 import { SoundToggle } from '@/shared/sound/SoundToggle';
 

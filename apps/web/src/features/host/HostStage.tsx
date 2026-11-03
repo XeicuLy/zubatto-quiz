@@ -3,11 +3,11 @@ import type { ReactNode, Ref } from 'react';
 
 import { useAnnouncement } from '@/components/a11y/announce';
 import { useCountdown } from '@/features/player/use-countdown';
-import { AnswerDistribution } from '@/features/results/AnswerDistribution';
-import { ChoiceNumber, choiceColors } from '@/features/results/choice-style';
-import { FastestCorrect } from '@/features/results/FastestCorrect';
-import { FinalRanking, StandingsRanking } from '@/features/results/Ranking';
 import type { CurrentQuestion } from '@/realtime/room-store';
+import { AnswerDistribution } from '@/shared/results/AnswerDistribution';
+import { ChoiceNumber, choiceColors } from '@/shared/results/choice-style';
+import { FastestCorrect } from '@/shared/results/FastestCorrect';
+import { FinalRanking, StandingsRanking } from '@/shared/results/Ranking';
 
 export interface HostStageProps {
   /** 待機（lobby）は HostLobby が出すので渡さない */
@@ -24,7 +24,7 @@ export interface HostStageProps {
  * 進行画面の、投影する部分（F9・F13・F14・F15・F16）。1問の流れ（docs/design/README.md）の段階で出し分ける。
  * 文字と余白は vw で伸びるトークン（text-question・p-stage など）を使うので、PC からの投影でもホストのスマホでも読める。
  * 問題文は文字のまま出し、ホストの入れた改行だけを whitespace-pre-line で残す（F5）。
- * ① の回答の分布と ② ③・最終ランキングは、features/results の部品（② ③ と最終ランキングは回答者画面と共有の projector 版）を使う。
+ * ① の回答の分布と ② ③・最終ランキングは、shared/results の部品（② ③ と最終ランキングは回答者画面と共有の projector 版）を使う。
  * つなぎ直したときは、部屋の DO が今の問題の流れを最初から送り直すので、届いたものを描くだけでよい。
  * どの段階でも見出しに headingRef を付け、tabIndex={-1} で Tab の順番には入れずにフォーカスだけ受けられるようにする
  */

@@ -106,7 +106,7 @@ const surfacePairs = [
  * 回答者画面にしか出ないので、明るい面では測らない
  */
 const fixedOnStageTextPairs = [
-  // 「○ 正解」（results/QuestionResult.tsx）は面の背景に、「▲ 順位が上がりました」（results/MyPosition.tsx）はカードに置く
+  // 「○ 正解」（shared/results/QuestionResult.tsx）は面の背景に、「▲ 順位が上がりました」（shared/results/MyPosition.tsx）はカードに置く
   ['correct', 'background'],
   ['correct', 'card'],
 ] as const;

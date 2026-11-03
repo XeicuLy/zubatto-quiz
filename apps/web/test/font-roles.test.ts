@@ -17,10 +17,10 @@ describe('飾り文字（Dela Gothic One）を使う場所', () => {
     const files = filesUsing('font-numeral');
 
     expect(files.length).toBeGreaterThan(0);
-    expect(files.filter((path) => !/^features\/(host|results)\//.test(path))).toEqual([]);
+    expect(files.filter((path) => !/^(features\/host|shared\/results)\//.test(path))).toEqual([]);
     // results のうち、回答者画面だけで使う部品
-    expect(files).not.toContain('features/results/MyPosition.tsx');
-    expect(files).not.toContain('features/results/QuestionResult.tsx');
+    expect(files).not.toContain('shared/results/MyPosition.tsx');
+    expect(files).not.toContain('shared/results/QuestionResult.tsx');
   });
 
   it('前の名前 font-display は、もう使わない', () => {

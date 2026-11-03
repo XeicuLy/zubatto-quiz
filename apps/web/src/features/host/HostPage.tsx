@@ -2,7 +2,7 @@ import type { HostCommand } from '@zubatto-quiz/protocol';
 import { useLayoutEffect, useRef } from 'react';
 import { useStore } from 'zustand';
 
-import { roomEndOf } from '@/features/results/room-end';
+import { roomEndOf } from '@/shared/results/room-end';
 import type { SoundPlayer } from '@/shared/sound/sound-player';
 
 import { settleFocus, type Stage, stageAfter } from './host-commands';
