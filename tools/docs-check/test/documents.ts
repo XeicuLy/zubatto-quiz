@@ -26,6 +26,8 @@ export const documents = [
   'apps/web/src/README.md',
   // O2 のリハーサルの手順（README の手順書の表から開く）
   'tools/loadtest/README.md',
+  // 契約テストの使い方。protocol の書き出したスキーマへリンクする
+  'tools/contract/README.md',
   // O2 のリハーサルの記録。本番の前に読み返し、手順書へのリンクから止め方や使用量の見方に戻る
   'docs/rehearsal/o2-rehearsal.md',
   ...markdownIn('docs/runbooks/'),

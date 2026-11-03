@@ -1,6 +1,6 @@
 # テストの仕組み
 
-`apps/api` の Workers の実行環境でのテスト、通しの E2E（`e2e/`）、O2 のリハーサル用のボット（`tools/loadtest`）が、どう動き、どこに何があるかをまとめる。決めた理由の大もとは ADR にあり、ここには ADR に書いていない約束と、テストの道具の使い方を書く。
+`apps/api` の Workers の実行環境でのテスト、通しの E2E（`e2e/`）、O2 のリハーサル用のボット（`tools/loadtest`）、契約テスト（`tools/contract`）が、どう動き、どこに何があるかをまとめる。決めた理由の大もとは ADR にあり、ここには ADR に書いていない約束と、テストの道具の使い方を書く。
 
 コードを書くときに守る約束は、[CLAUDE.md](../../CLAUDE.md) に1行ずつ残している。この文書はその説明で、見出しを変えるときは CLAUDE.md のリンクも直す（docs-check が確かめる）。手元での動かし方は [README の「よく使うコマンド」](../../README.md#よく使うコマンド)にある。
 
@@ -98,3 +98,12 @@
 - 本番の環境でのリハーサル（2026-10-20）は [o2-rehearsal.md](../rehearsal/o2-rehearsal.md) に残している。どの行も満たし（いちばん遅くて 82 ms）、1回の本番は無料枠の1日の上限のどれも1%に届かない
 - `wrangler tail` は混むと間引く。リハーサルでも `/ws/play` は 270 本のうち 170 本しか残らなかった。件数はダッシュボードで見る
 - デプロイで接続が切れるかは、[o2-rehearsal.md の「わかったこと」](../rehearsal/o2-rehearsal.md#わかったこと)にある。中身が同じ API のデプロイでは切れなかったが、中身が変わるデプロイは確かめていないので、本番の最中に API をデプロイしない決まりは残す。接続をわざと切るときは `page.routeWebSocket` を使う。Playwright の `setOffline` も、開発者ツールの Offline も、開いている WebSocket を切らない
+
+## 契約テスト
+
+使い方は [tools/contract/README.md](../../tools/contract/README.md) にある。ここには、README に書いていない作りの理由を書く。
+
+- 調べる正は、protocol が書き出した `ws.schema.json` と `openapi.json` だけ。protocol の TypeScript は import せず、zod とは別の検証器（ajv 8 の `Ajv2020`）で読む。Go 版は zod を通らないので、書き出したファイルのほうを正として確かめる（ADR 0008）
+- `openapi.json` は丸ごと `addSchema` して、中の `$ref` を ajv に解かせる。`openapi`・`paths` などの最上位のキーは JSON Schema にないので、`addVocabulary` で知らせないと strict モードで止まる。401 などの応答の `$ref`（`#/components/responses/…`）は OpenAPI のもので ajv は解かないので、部品が1段たどる（2026-11-03 に ajv 8.20.0 で確かめた）
+- `format` を確かめるために ajv-formats を足している。ajv だけでは `unknown format "uuid"` で止まる。止まらないように `validateFormats: false` にすると、`pattern` のない `joinUrl` の uri が素通りになる
+- 204 の本文は調べない。Fetch の `Response` は 204 に本文を持たせられず、`fetch` も捨てるので、テストで作ることも、受け取ることもできない
