@@ -101,6 +101,16 @@ const surfacePairs = [
   ['destructive', 'background'],
 ] as const;
 
+/**
+ * 面で変わらない色を、組の相手でなく暗い面（.stage）の上に置くもの。[面で変わらない色, 暗い面の役割の色]。
+ * 回答者画面にしか出ないので、明るい面では測らない
+ */
+const fixedOnStageTextPairs = [
+  // 「○ 正解」（results/QuestionResult.tsx）は面の背景に、「▲ 順位が上がりました」（results/MyPosition.tsx）はカードに置く
+  ['correct', 'background'],
+  ['correct', 'card'],
+] as const;
+
 /** 文字でない部品（WCAG 2.2 の 1.4.11）は、隣の色に 3:1 以上にする（ADR 0007） */
 const nonTextMinimumRatio = 3;
 
@@ -113,6 +123,21 @@ const borderPairs = [
   ['destructive', 'card'],
   ['destructive', 'background'],
 ] as const;
+
+/** 面で変わらない色で描く枠を、暗い面の上に置くもの。[枠, 暗い面の役割の色] */
+const fixedOnStageBorderPairs = [
+  // 回答者の待機画面の「参加の情報を保存できない」の枠（player/WaitingRoom.tsx）
+  ['alert', 'background'],
+] as const;
+
+/** 面で変わらない色（@theme）と、暗い面の役割の色（.stage）を、同じ CSS から読んで比べる */
+async function fixedOnStageRatio(fixed: string, surfaceRole: string, utility: string): Promise<number> {
+  const css = await buildCss([`${utility}-${fixed}`]);
+  return contrastRatio(
+    valueOf(themeVariablesOf(css), `--color-${fixed}`),
+    valueOf(variablesOf(css, '.stage'), `--${surfaceRole}`),
+  );
+}
 
 describe(`文字と背景のコントラストは ${minimumRatio}:1 以上（ADR 0007）`, () => {
   it.each(fixedPairs)('%s の文字を %s の上に置ける', async (text, background) => {
@@ -135,6 +160,10 @@ describe(`文字と背景のコントラストは ${minimumRatio}:1 以上（ADR
       contrastRatio(valueOf(variables, `--${text}`), valueOf(variables, `--${background}`)),
     ).toBeGreaterThanOrEqual(minimumRatio);
   });
+
+  it.each(fixedOnStageTextPairs)('暗い面（.stage）で、%s の文字を %s の上に置ける', async (text, background) => {
+    expect(await fixedOnStageRatio(text, background, 'text')).toBeGreaterThanOrEqual(minimumRatio);
+  });
 });
 
 describe(`枠は隣の色に ${nonTextMinimumRatio}:1 以上（ADR 0007）`, () => {
@@ -149,5 +178,9 @@ describe(`枠は隣の色に ${nonTextMinimumRatio}:1 以上（ADR 0007）`, () 
     expect(
       contrastRatio(valueOf(variables, `--${border}`), valueOf(variables, `--${background}`)),
     ).toBeGreaterThanOrEqual(nonTextMinimumRatio);
+  });
+
+  it.each(fixedOnStageBorderPairs)('暗い面（.stage）で、%s の枠を %s に接して置ける', async (border, background) => {
+    expect(await fixedOnStageRatio(border, background, 'border')).toBeGreaterThanOrEqual(nonTextMinimumRatio);
   });
 });

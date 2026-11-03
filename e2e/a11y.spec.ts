@@ -94,11 +94,14 @@ test('コントラストの足りない oklch の文字を入れると、違反�
   // 明るい灰色の背景に、少し暗いだけの灰色の文字（約 1.5:1。AA は 4.5:1）
   await page.evaluate(`{
     const text = document.createElement('p');
+    text.id = 'low-contrast';
     text.textContent = '読みにくい文字';
     text.style.color = 'oklch(0.75 0 0)';
     text.style.backgroundColor = 'oklch(0.9 0 0)';
     document.body.append(text);
   }`);
 
-  expect((await a11yViolations(page)).map((violation) => violation.id)).toContain('color-contrast');
+  // 違反の id だけを見ると、トップページにほかの違反があったとき、差し込んだ文字を見落としても通る。場所まで確かめる
+  const contrast = (await a11yViolations(page)).find((violation) => violation.id === 'color-contrast');
+  expect(contrast?.targets).toContain('#low-contrast');
 });
