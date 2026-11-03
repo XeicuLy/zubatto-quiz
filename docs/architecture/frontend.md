@@ -209,7 +209,7 @@
 
 ## 音
 
-- F18 の音（`features/sound/`）は、Web Audio の発振器で作り、音のファイルは使わない
+- F18 の音（`shared/sound/`）は、Web Audio の発振器で作り、音のファイルは使わない
 - `createSoundCues`（純粋で、接続ごとに1つ）が、メッセージを合図に変える。`questionShown`（やり直しも）→ 出題、① → 締切、その 0.7 s あと（`AudioContext` の時計で）に `reveal`（ホスト）か `correct`/`incorrect`（回答者。回答していなければ締切だけ）
 - `joined`/`resumed`/`hostReady` のあとは、そのスナップショットの段階のメッセージが届くまで鳴らさない。DO が流れ全体をまとめて送り直すため。別の番号の `questionShown` が来ても、追いつきを終える
 - `host-room`/`player-room` が `onMessage` の中で `sound.play(cues.next(message))` を呼ぶ。コンポーネントの effect では呼ばない

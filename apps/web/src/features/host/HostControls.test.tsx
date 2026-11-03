@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { HostCommand, RoomPhase, RoomSnapshot } from '@zubatto-quiz/protocol';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createSoundPlayer } from '@/features/sound/sound-player';
+import { createSoundPlayer } from '@/shared/sound/sound-player';
 
 import { recordSounds } from '../../../test/fake-sound';
 import { HostControls } from './HostControls';
