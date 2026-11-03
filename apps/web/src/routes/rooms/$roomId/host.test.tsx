@@ -3,11 +3,12 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { CLOSE_CODES, type ServerMessage } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
+import { createAppRouter } from '@/router';
+
 import { stubFakeApi } from '../../../../test/fake-api';
 import { FakeRoomServer } from '../../../../test/fake-room-server';
 import { recordSounds } from '../../../../test/fake-sound';
 import { liveRegion } from '../../../../test/live-region';
-import { createAppRouter } from '../../../router';
 
 const ROOM_ID = 'a'.repeat(64);
 const ROOM = { title: '内輪クイズ', questionCount: 10, phase: 'lobby', questionIndex: null } as const;

@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Outlet, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
-import { signOut, type HostSession } from '../../lib/auth-client';
+import { signOut, type HostSession } from '@/lib/auth-client';
 
 interface AdminLayoutProps {
   host: HostSession;

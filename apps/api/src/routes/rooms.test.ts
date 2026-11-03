@@ -8,9 +8,10 @@ import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { createDb } from '@/db';
+import { getQuestionSet } from '@/question-sets/repository';
+
 import { apiRequest, apiRequestAs, loginAs, ORIGIN, resetHosts } from '../../test/host-request';
-import { createDb } from '../db';
-import { getQuestionSet } from '../question-sets/repository';
 
 beforeEach(resetHosts);
 

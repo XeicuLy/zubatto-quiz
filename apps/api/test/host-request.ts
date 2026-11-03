@@ -1,7 +1,8 @@
 import { env, exports } from 'cloudflare:workers';
 
-import { createDb } from '../src/db';
-import { hostAllowlist, user } from '../src/db/schema';
+import { createDb } from '@/db';
+import { hostAllowlist, user } from '@/db/schema';
+
 import { allowGithubUser, createTestAuth, insertGithubUser } from './auth/create-test-auth';
 
 /**

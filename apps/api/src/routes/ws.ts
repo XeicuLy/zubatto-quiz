@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
 
-import { requireHost, type HostEnv } from '../auth/require-host';
-import { refuseConnection, roomRequest } from '../room/connections';
+import { requireHost, type HostEnv } from '@/auth/require-host';
+import { refuseConnection, roomRequest } from '@/room/connections';
 
 type WsEnv = { Bindings: Env; Variables: HostEnv['Variables'] & { room: DurableObjectStub } };
 

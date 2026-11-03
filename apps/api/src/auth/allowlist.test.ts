@@ -1,8 +1,9 @@
 import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { createDb } from '../db';
-import { account, hostAllowlist, user } from '../db/schema';
+import { createDb } from '@/db';
+import { account, hostAllowlist, user } from '@/db/schema';
+
 import { isAllowedGithubUser, isAllowedUser } from './allowlist';
 
 // vitest-plugin はテストごとには D1 を戻さないので、テストの前に空にする（user を消すと account も消える）

@@ -1,8 +1,9 @@
 import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { createDb } from '../src/db';
-import { hostAllowlist, user } from '../src/db/schema';
+import { createDb } from '@/db';
+import { hostAllowlist, user } from '@/db/schema';
+
 import e2e from './e2e-entry';
 import { E2E_LOGIN_PATH } from './e2e-login-path';
 

@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { AdminLayout } from '../../features/admin/AdminLayout';
-import { requireHost } from '../../features/admin/host-session';
-import { pageTitle } from '../../lib/page-title';
+import { AdminLayout } from '@/features/admin/AdminLayout';
+import { requireHost } from '@/features/admin/host-session';
+import { pageTitle } from '@/lib/page-title';
 
 /**
  * ホストの管理画面（T29）。/admin の下の経路は、すべてここでログインを確かめる（S1）。

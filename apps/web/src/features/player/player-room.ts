@@ -1,10 +1,11 @@
 import type { Answer, CloseReason } from '@zubatto-quiz/protocol';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 
-import { connectRoom, playerHello, type RoomClient, type RoomSocket } from '../../realtime/client';
-import { createRoomStore, type RoomStore } from '../../realtime/room-store';
-import { createSoundCues } from '../sound/sound-cues';
-import type { SoundPlayer } from '../sound/sound-player';
+import { createSoundCues } from '@/features/sound/sound-cues';
+import type { SoundPlayer } from '@/features/sound/sound-player';
+import { connectRoom, playerHello, type RoomClient, type RoomSocket } from '@/realtime/client';
+import { createRoomStore, type RoomStore } from '@/realtime/room-store';
+
 import { clearToken, createToken, loadToken, saveToken } from './token-storage';
 
 /**

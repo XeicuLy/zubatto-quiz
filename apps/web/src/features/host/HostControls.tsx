@@ -3,9 +3,9 @@ import { useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, useConfirm } from '@/components/ui/confirm-dialog';
+import type { SoundPlayer } from '@/features/sound/sound-player';
+import { SoundToggle } from '@/features/sound/SoundToggle';
 
-import type { SoundPlayer } from '../sound/sound-player';
-import { SoundToggle } from '../sound/SoundToggle';
 import { forwardCommandsOf } from './host-commands';
 
 export interface HostControlsProps {

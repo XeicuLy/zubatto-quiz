@@ -8,7 +8,9 @@
 
 - 素の Vite の SPA（`index.html` + `src/main.tsx`）で、TanStack Router のファイルルートを使い、TanStack Query をルーターのコンテキストに置く。Tailwind CSS v4 のトークンは `src/styles.css` の `@theme` に書き、`tailwind.config.js` は使わない
 - フォントは `@fontsource` から読む。こうすると CSP は `'self'` のままで済む
-- `@/*` は `apps/web/src/*` を指す。`tsconfig.json`（shadcn の CLI はこのファイルだけを読み、references は読まない）と `tsconfig.app.json` の `paths`、`vite.config.ts` と `vitest.config.ts` の両方の `resolve.alias` に書く。今ある `../` の import を書き換えるのは #180
+- `@/*` は `apps/web/src/*` を指す（ADR 0007）。別名を書くのは tsconfig の `paths` だけで、`tsconfig.json`（shadcn の CLI はこのファイルだけを読み、references は読まない）・`tsconfig.app.json`・`tsconfig.node.json`（`test/*.test.ts` が `@/` で src を読む）の3つに同じものを書く
+- Vite と vitest は `@/` を `resolve.alias` でなく `resolve.tsconfigPaths: true` で解決する。`vite.config.ts` は `auxiliaryWorkers` で API の Worker も作るので、alias で `@` を `apps/web/src` に向けると、API の `@/` まで web を指してしまう。`tsconfigPaths` は、import する側のファイルから `tsconfig.json` の references をたどり、そのファイルを `include` する tsconfig の `paths` を使う。どの tsconfig にも入っていないファイルでは `@/` が解決されない。`vitest.config.ts` は `vite.config.ts` を読まないので、両方に書く
+- 親のフォルダーのファイルは `@/` で読み、`../` は使わない。`apps/*/src/` では oxlint の `import/no-relative-parent-imports` が止める。同じフォルダーの `./` はよい。テストのコードはこのルールから外す。`src/` のテストが `test/` の道具（`fake-api` など）を読む import は `@/` で書けないので、`../../../test/...` のまま。`test/` から `src/` を読むときは `@/` を使う。`packages/*` と `tools/*` は相対パスのまま（ADR 0007）
 - `src/routeTree.gen.ts` は、ルーターのプラグインが `vite dev`/`build` と vitest のときに作る。コミットする。oxfmt と oxlint は飛ばす。`src/routes/` の中のテストのファイルは `routeFileIgnorePattern` で外す。これは `vite.config.ts` と `vitest.config.ts` の両方に書く
 - `vitest.config.ts` は `vite.config.ts` を読まない。Cloudflare のプラグインが Workers を起こしてしまうため
 - DOM と Workers の型がぶつかるので、tsconfig を3つに分ける。`tsconfig.app.json`（DOM、`src/`）、`tsconfig.worker.json`（`src/server.ts` とそのテスト、Workers の型）、`tsconfig.node.json`（設定ファイルと `test/*.test.ts`）。ファイルを読むテストは `// @vitest-environment node` で node で動かし、`test/` に置く

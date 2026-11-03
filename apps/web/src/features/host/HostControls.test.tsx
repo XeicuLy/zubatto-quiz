@@ -2,8 +2,9 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { HostCommand, RoomPhase, RoomSnapshot } from '@zubatto-quiz/protocol';
 import { describe, expect, it, vi } from 'vitest';
 
+import { createSoundPlayer } from '@/features/sound/sound-player';
+
 import { recordSounds } from '../../../test/fake-sound';
-import { createSoundPlayer } from '../sound/sound-player';
 import { HostControls } from './HostControls';
 
 /** 5問の部屋。最後の2問は第4問と第5問 */

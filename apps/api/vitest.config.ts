@@ -28,6 +28,8 @@ export default defineProject({
       miniflare: { bindings: { TEST_MIGRATIONS: migrations, ...testSecrets } },
     }),
   ],
+  // @/ はこのアプリの src/（ADR 0007）。tsconfig.json の paths で解決する。wrangler（esbuild）は設定なしで paths を読む
+  resolve: { tsconfigPaths: true },
   test: {
     name: 'api',
     // test/bundle/ は wrangler を子のプロセスで動かすので、node の上で走らせる（vitest.bundle.config.ts）

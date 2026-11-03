@@ -1,11 +1,11 @@
 import { CLOSE_CODES, MAX_PARTICIPANTS, type CloseReason, type Join } from '@zubatto-quiz/protocol';
 
-import { getAttachment, setAttachment } from '../attachment';
-import { normalizeName } from '../normalize-name';
-import { resendCurrentPhase } from '../resend';
-import { broadcast, send } from '../send';
-import { readParticipants, readRoomSnapshot } from '../snapshot';
-import { hashToken } from '../token-hash';
+import { getAttachment, setAttachment } from '@/room/attachment';
+import { normalizeName } from '@/room/normalize-name';
+import { resendCurrentPhase } from '@/room/resend';
+import { broadcast, send } from '@/room/send';
+import { readParticipants, readRoomSnapshot } from '@/room/snapshot';
+import { hashToken } from '@/room/token-hash';
 
 type InsertResult =
   | { ok: true; participantId: string }

@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 
-import type { Db } from '../db';
-import { account, hostAllowlist } from '../db/schema';
+import type { Db } from '@/db';
+import { account, hostAllowlist } from '@/db/schema';
 
 /**
  * 新しく登録するときに使う。GitHub のユーザー ID が許可リストにあるかを返す（S1・ADR 0003）。

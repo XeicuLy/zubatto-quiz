@@ -7,9 +7,10 @@ import {
   type TransitionResult,
 } from '@zubatto-quiz/protocol';
 
-import { scheduleAlarm } from '../alarm';
-import { answeringStartedOf, questionShownOf, readQuestionRow } from '../resend';
-import { broadcast, send } from '../send';
+import { scheduleAlarm } from '@/room/alarm';
+import { answeringStartedOf, questionShownOf, readQuestionRow } from '@/room/resend';
+import { broadcast, send } from '@/room/send';
+
 import { scoreQuestion, sendResults } from './close-question';
 
 type RoomRow = {

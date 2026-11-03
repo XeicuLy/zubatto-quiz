@@ -2,8 +2,9 @@ import { CLOSE_CODES, type Participants } from '@zubatto-quiz/protocol';
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { getAttachment } from '@/room/attachment';
+
 import { connect, connectHost, joinPlayer, newRoom, newToken, resumePlayer } from '../../../test/room-socket';
-import { getAttachment } from '../attachment';
 import { handleResume, RESUME_WINDOW_MS } from './resume';
 
 const lobby = { title: 'テストの部屋', questionCount: 1, phase: 'lobby', questionIndex: null };

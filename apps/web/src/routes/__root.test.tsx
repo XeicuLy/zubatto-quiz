@@ -2,9 +2,10 @@ import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { ErrorScreen } from '@/components/error-screen';
+import { createAppRouter } from '@/router';
+
 import { stubFakeApi } from '../../test/fake-api';
-import { ErrorScreen } from '../components/error-screen';
-import { createAppRouter } from '../router';
 
 async function renderAt(path: string) {
   const router = createAppRouter({ history: createMemoryHistory({ initialEntries: [path] }) });

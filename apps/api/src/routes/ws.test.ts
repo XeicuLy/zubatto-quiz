@@ -3,9 +3,10 @@ import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { getAttachment } from '@/room/attachment';
+
 import { apiRequest, loginAs, ORIGIN, resetHosts } from '../../test/host-request';
 import { closeOf, newRoom, openSocket } from '../../test/room-socket';
-import { getAttachment } from '../room/attachment';
 
 beforeEach(resetHosts);
 

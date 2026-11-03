@@ -1,9 +1,9 @@
 import { betterAuth } from 'better-auth';
 import { testUtils } from 'better-auth/plugins';
 
-import { createAuthOptions } from '../../src/auth/create-auth';
-import type { Db } from '../../src/db';
-import { account, hostAllowlist, user } from '../../src/db/schema';
+import { createAuthOptions } from '@/auth/create-auth';
+import type { Db } from '@/db';
+import { account, hostAllowlist, user } from '@/db/schema';
 
 /**
  * テスト専用の auth インスタンス（ADR 0003）。本番と同じ設定に testUtils だけを足す。

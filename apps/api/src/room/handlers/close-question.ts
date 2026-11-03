@@ -1,9 +1,16 @@
 import type { RoomPhase } from '@zubatto-quiz/protocol';
 import { quickBonusPoints, scoreAnswer } from '@zubatto-quiz/scoring';
 
-import { getAttachment } from '../attachment';
-import { fastestFor, finalRankingFor, myResultsFor, readQuestionOutcome, revealedFor, standingsFor } from '../results';
-import { broadcast, send, sendToHosts } from '../send';
+import { getAttachment } from '@/room/attachment';
+import {
+  fastestFor,
+  finalRankingFor,
+  myResultsFor,
+  readQuestionOutcome,
+  revealedFor,
+  standingsFor,
+} from '@/room/results';
+import { broadcast, send, sendToHosts } from '@/room/send';
 
 /**
  * 締め切った問題の得点と、そのうちの早押しボーナス（F12）を確定して question_scores に書き、questions.closed_at に今の時刻を入れる（F11・A3）。

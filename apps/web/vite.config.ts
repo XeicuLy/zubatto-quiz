@@ -1,5 +1,3 @@
-import { fileURLToPath } from 'node:url';
-
 import { cloudflare } from '@cloudflare/vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
@@ -24,8 +22,9 @@ export default defineConfig(({ mode }) => ({
       persistState: mode === 'e2e' ? { path: E2E_STATE_PATH } : true,
     }),
   ],
-  // @/ はこのアプリの src/（ADR 0007）。tsconfig.app.json の paths と同じにする
-  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+  // @/ はこのアプリの src/（ADR 0007）。alias ではなく、import する側のファイルに一番近い tsconfig の paths で解決する。
+  // この Vite は API の Worker（auxiliaryWorkers）も作るので、alias で @ を apps/web/src に向けると、API の @/ まで web を指してしまう
+  resolve: { tsconfigPaths: true },
   build: {
     // 小さなファイル（日本語フォントの一部など）を data: の URL で CSS や JS に埋め込まない。
     // CSP の default-src 'self' は data: を許さないので、埋め込むとそのフォントや画像が読めなくなる（ADR 0004）

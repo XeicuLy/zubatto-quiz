@@ -10,9 +10,10 @@ import type {
 import { createRef, type Ref } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { Announcer } from '@/components/a11y/Announcer';
+import type { CurrentQuestion } from '@/realtime/room-store';
+
 import { liveRegion } from '../../../test/live-region';
-import { Announcer } from '../../components/a11y/Announcer';
-import type { CurrentQuestion } from '../../realtime/room-store';
 import { HostStage } from './HostStage';
 
 const TARO = '6f1c1c2e-2b8a-4c55-9d5e-1a2b3c4d5e61';

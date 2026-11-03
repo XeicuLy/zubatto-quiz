@@ -1,6 +1,6 @@
 import { clientMessageSchema, encodeServerMessage, type ClientMessage } from '@zubatto-quiz/protocol';
 
-import type { RoomSocket, RoomSocketEventMap } from '../src/realtime/client';
+import type { RoomSocket, RoomSocketEventMap } from '@/realtime/client';
 
 type ServerMessageInput = Parameters<typeof encodeServerMessage>[0];
 

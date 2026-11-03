@@ -2,8 +2,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 
+import { Announcer } from '@/components/a11y/Announcer';
+
 import { liveRegion } from '../../../test/live-region';
-import { Announcer } from '../../components/a11y/Announcer';
 import { ConnectionNotice } from './ConnectionNotice';
 
 const content = <p>待機画面</p>;

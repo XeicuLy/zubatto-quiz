@@ -5,7 +5,8 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "types": ["vite/client"],
-    // @/ はこのアプリの src/（ADR 0007）。vite.config.ts と vitest.config.ts の alias も同じにする
+    // @/ はこのアプリの src/（ADR 0007）。tsc のほか、Vite と vitest も resolve.tsconfigPaths でここを読む
+    // （tsconfig.json の references から、そのファイルを include する tsconfig を探す）。tsconfig.json・tsconfig.node.json と同じにする
     "paths": { "@/*": ["./src/*"] }
   },
   "include": [

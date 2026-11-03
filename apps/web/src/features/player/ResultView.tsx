@@ -1,10 +1,10 @@
 import type { MyResult, RoomPhase } from '@zubatto-quiz/protocol';
 
-import type { CurrentQuestion } from '../../realtime/room-store';
-import { FastestCorrect } from '../results/FastestCorrect';
-import { MyPosition } from '../results/MyPosition';
-import { QuestionResult } from '../results/QuestionResult';
-import { StandingsRanking } from '../results/Ranking';
+import { FastestCorrect } from '@/features/results/FastestCorrect';
+import { MyPosition } from '@/features/results/MyPosition';
+import { QuestionResult } from '@/features/results/QuestionResult';
+import { StandingsRanking } from '@/features/results/Ranking';
+import type { CurrentQuestion } from '@/realtime/room-store';
 
 export interface ResultViewProps {
   question: CurrentQuestion;
