@@ -4,7 +4,7 @@ import type { RoomPhase, RoomSnapshot } from './ws/server-messages.ts';
 /**
  * 進行の規則（docs/design/README.md の「1問の流れ」）。部屋の DO と進行画面の両方が使う。
  * 部屋の DO は受け付けるかを決めるのに、進行画面はボタンを押せるかを決めるのに使うので、押したのに断られる食い違いが起きない。
- * Go へ置き換えるときは、room-flow.test.ts の表をそのまま移す
+ * 表は fixtures/room-flow.json にあり、Go へ置き換えるときも同じ JSON を読む
  */
 
 /**

@@ -1,0 +1,739 @@
+{
+  "transitionAccepted": [
+    {
+      "name": "待機から第1問を出す",
+      "input": {
+        "state": {
+          "phase": "lobby",
+          "questionIndex": null,
+          "ended": false
+        },
+        "command": {
+          "type": "showQuestion",
+          "questionIndex": 0
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": true,
+        "next": {
+          "phase": "question",
+          "questionIndex": 0,
+          "ended": false
+        }
+      }
+    },
+    {
+      "name": "出題のあとに受付を始める（F8）",
+      "input": {
+        "state": {
+          "phase": "question",
+          "questionIndex": 0,
+          "ended": false
+        },
+        "command": {
+          "type": "startAnswering",
+          "questionIndex": 0
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": true,
+        "next": {
+          "phase": "accepting",
+          "questionIndex": 0,
+          "ended": false
+        }
+      }
+    },
+    {
+      "name": "受付中に締め切る",
+      "input": {
+        "state": {
+          "phase": "accepting",
+          "questionIndex": 0,
+          "ended": false
+        },
+        "command": {
+          "type": "closeAnswering",
+          "questionIndex": 0
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": true,
+        "next": {
+          "phase": "revealed",
+          "questionIndex": 0,
+          "ended": false
+        }
+      }
+    },
+    {
+      "name": "① のあとに ② を出す",
+      "input": {
+        "state": {
+          "phase": "revealed",
+          "questionIndex": 0,
+          "ended": false
+        },
+        "command": {
+          "type": "revealFastest",
+          "questionIndex": 0
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": true,
+        "next": {
+          "phase": "fastest",
+          "questionIndex": 0,
+          "ended": false
+        }
+      }
+    },
+    {
+      "name": "② のあとに ③ を出す",
+      "input": {
+        "state": {
+          "phase": "fastest",
+          "questionIndex": 0,
+          "ended": false
+        },
+        "command": {
+          "type": "showStandings",
+          "questionIndex": 0
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": true,
+        "next": {
+          "phase": "standings",
+          "questionIndex": 0,
+          "ended": false
+        }
+      }
+    },
+    {
+      "name": "② のあとに次の問題を出す（③ はなくてもよい）",
+      "input": {
+        "state": {
+          "phase": "fastest",
+          "questionIndex": 0,
+          "ended": false
+        },
+        "command": {
+          "type": "showQuestion",
+          "questionIndex": 1
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": true,
+        "next": {
+          "phase": "question",
+          "questionIndex": 1,
+          "ended": false
+        }
+      }
+    },
+    {
+      "name": "③ のあとに次の問題を出す",
+      "input": {
+        "state": {
+          "phase": "standings",
+          "questionIndex": 2,
+          "ended": false
+        },
+        "command": {
+          "type": "showQuestion",
+          "questionIndex": 3
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": true,
+        "next": {
+          "phase": "question",
+          "questionIndex": 3,
+          "ended": false
+        }
+      }
+    },
+    {
+      "name": "出題中の問題をやり直す（A3）",
+      "input": {
+        "state": {
+          "phase": "question",
+          "questionIndex": 2,
+          "ended": false
+        },
+        "command": {
+          "type": "retryQuestion",
+          "questionIndex": 2
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": true,
+        "next": {
+          "phase": "question",
+          "questionIndex": 2,
+          "ended": false
+        }
+      }
+    },
+    {
+      "name": "受付中の問題をやり直す（A3）",
+      "input": {
+        "state": {
+          "phase": "accepting",
+          "questionIndex": 2,
+          "ended": false
+        },
+        "command": {
+          "type": "retryQuestion",
+          "questionIndex": 2
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": true,
+        "next": {
+          "phase": "question",
+          "questionIndex": 2,
+          "ended": false
+        }
+      }
+    },
+    {
+      "name": "最後の問題の ② のあとに最終ランキングを出す",
+      "input": {
+        "state": {
+          "phase": "fastest",
+          "questionIndex": 4,
+          "ended": false
+        },
+        "command": {
+          "type": "showFinalRanking"
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": true,
+        "next": {
+          "phase": "final",
+          "questionIndex": 4,
+          "ended": false
+        }
+      }
+    },
+    {
+      "name": "受付中でも部屋を終えられる",
+      "input": {
+        "state": {
+          "phase": "accepting",
+          "questionIndex": 1,
+          "ended": false
+        },
+        "command": {
+          "type": "endRoom"
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": true,
+        "next": {
+          "phase": "accepting",
+          "questionIndex": 1,
+          "ended": true
+        }
+      }
+    },
+    {
+      "name": "最終ランキングのあとに部屋を終える",
+      "input": {
+        "state": {
+          "phase": "final",
+          "questionIndex": 4,
+          "ended": false
+        },
+        "command": {
+          "type": "endRoom"
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": true,
+        "next": {
+          "phase": "final",
+          "questionIndex": 4,
+          "ended": true
+        }
+      }
+    }
+  ],
+  "transitionRejected": [
+    {
+      "name": "待機から第2問を出す（問題を飛ばす）",
+      "input": {
+        "state": {
+          "phase": "lobby",
+          "questionIndex": null,
+          "ended": false
+        },
+        "command": {
+          "type": "showQuestion",
+          "questionIndex": 1
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "出題の前に受付を始める",
+      "input": {
+        "state": {
+          "phase": "lobby",
+          "questionIndex": null,
+          "ended": false
+        },
+        "command": {
+          "type": "startAnswering",
+          "questionIndex": 0
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "受付を始める前に締め切る",
+      "input": {
+        "state": {
+          "phase": "question",
+          "questionIndex": 0,
+          "ended": false
+        },
+        "command": {
+          "type": "closeAnswering",
+          "questionIndex": 0
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "受付開始の2度押し",
+      "input": {
+        "state": {
+          "phase": "accepting",
+          "questionIndex": 0,
+          "ended": false
+        },
+        "command": {
+          "type": "startAnswering",
+          "questionIndex": 0
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "今の問題と違う番号の受付開始",
+      "input": {
+        "state": {
+          "phase": "question",
+          "questionIndex": 0,
+          "ended": false
+        },
+        "command": {
+          "type": "startAnswering",
+          "questionIndex": 1
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "① から ② を飛ばして次の問題を出す（F14）",
+      "input": {
+        "state": {
+          "phase": "revealed",
+          "questionIndex": 0,
+          "ended": false
+        },
+        "command": {
+          "type": "showQuestion",
+          "questionIndex": 1
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "① から ② を飛ばして ③ を出す",
+      "input": {
+        "state": {
+          "phase": "revealed",
+          "questionIndex": 0,
+          "ended": false
+        },
+        "command": {
+          "type": "showStandings",
+          "questionIndex": 0
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "③ から ② へ戻る",
+      "input": {
+        "state": {
+          "phase": "standings",
+          "questionIndex": 0,
+          "ended": false
+        },
+        "command": {
+          "type": "revealFastest",
+          "questionIndex": 0
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "② から問題を1つ飛ばす",
+      "input": {
+        "state": {
+          "phase": "fastest",
+          "questionIndex": 0,
+          "ended": false
+        },
+        "command": {
+          "type": "showQuestion",
+          "questionIndex": 2
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "最後の問題のあとに次の問題を出す",
+      "input": {
+        "state": {
+          "phase": "fastest",
+          "questionIndex": 4,
+          "ended": false
+        },
+        "command": {
+          "type": "showQuestion",
+          "questionIndex": 5
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "最後でない問題のあとに最終ランキングを出す",
+      "input": {
+        "state": {
+          "phase": "fastest",
+          "questionIndex": 3,
+          "ended": false
+        },
+        "command": {
+          "type": "showFinalRanking"
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "最後の問題の ② の前に最終ランキングを出す",
+      "input": {
+        "state": {
+          "phase": "revealed",
+          "questionIndex": 4,
+          "ended": false
+        },
+        "command": {
+          "type": "showFinalRanking"
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "締切のあとにやり直す（得点は確定している）",
+      "input": {
+        "state": {
+          "phase": "revealed",
+          "questionIndex": 0,
+          "ended": false
+        },
+        "command": {
+          "type": "retryQuestion",
+          "questionIndex": 0
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "最後から2問目で ③ を出す（F15）",
+      "input": {
+        "state": {
+          "phase": "fastest",
+          "questionIndex": 3,
+          "ended": false
+        },
+        "command": {
+          "type": "showStandings",
+          "questionIndex": 3
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "最後の問題で ③ を出す（F15）",
+      "input": {
+        "state": {
+          "phase": "fastest",
+          "questionIndex": 4,
+          "ended": false
+        },
+        "command": {
+          "type": "showStandings",
+          "questionIndex": 4
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "終えた部屋で問題を出す",
+      "input": {
+        "state": {
+          "phase": "fastest",
+          "questionIndex": 0,
+          "ended": true
+        },
+        "command": {
+          "type": "showQuestion",
+          "questionIndex": 1
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "name": "終えた部屋をもう一度終える",
+      "input": {
+        "state": {
+          "phase": "lobby",
+          "questionIndex": null,
+          "ended": true
+        },
+        "command": {
+          "type": "endRoom"
+        },
+        "questionCount": 5
+      },
+      "expected": {
+        "ok": false
+      }
+    }
+  ],
+  "canShowStandings": [
+    {
+      "input": {
+        "questionIndex": 0,
+        "questionCount": 5
+      },
+      "expected": true
+    },
+    {
+      "input": {
+        "questionIndex": 2,
+        "questionCount": 5
+      },
+      "expected": true
+    },
+    {
+      "input": {
+        "questionIndex": 3,
+        "questionCount": 5
+      },
+      "expected": false
+    },
+    {
+      "input": {
+        "questionIndex": 4,
+        "questionCount": 5
+      },
+      "expected": false
+    },
+    {
+      "input": {
+        "questionIndex": 0,
+        "questionCount": 2
+      },
+      "expected": false
+    },
+    {
+      "input": {
+        "questionIndex": 1,
+        "questionCount": 2
+      },
+      "expected": false
+    }
+  ],
+  "canSend": [
+    {
+      "name": "待機で第1問を出す",
+      "input": {
+        "room": {
+          "title": "内輪クイズ",
+          "questionCount": 5,
+          "phase": "lobby",
+          "questionIndex": null
+        },
+        "command": {
+          "type": "showQuestion",
+          "questionIndex": 0
+        }
+      },
+      "expected": true
+    },
+    {
+      "name": "出題のあいだに受付を始める（F8）",
+      "input": {
+        "room": {
+          "title": "内輪クイズ",
+          "questionCount": 5,
+          "phase": "question",
+          "questionIndex": 0
+        },
+        "command": {
+          "type": "startAnswering",
+          "questionIndex": 0
+        }
+      },
+      "expected": true
+    },
+    {
+      "name": "出題のあいだに締め切る",
+      "input": {
+        "room": {
+          "title": "内輪クイズ",
+          "questionCount": 5,
+          "phase": "question",
+          "questionIndex": 0
+        },
+        "command": {
+          "type": "closeAnswering",
+          "questionIndex": 0
+        }
+      },
+      "expected": false
+    },
+    {
+      "name": "受付中にやり直す（A3）",
+      "input": {
+        "room": {
+          "title": "内輪クイズ",
+          "questionCount": 5,
+          "phase": "accepting",
+          "questionIndex": 1
+        },
+        "command": {
+          "type": "retryQuestion",
+          "questionIndex": 1
+        }
+      },
+      "expected": true
+    },
+    {
+      "name": "① でやり直す",
+      "input": {
+        "room": {
+          "title": "内輪クイズ",
+          "questionCount": 5,
+          "phase": "revealed",
+          "questionIndex": 1
+        },
+        "command": {
+          "type": "retryQuestion",
+          "questionIndex": 1
+        }
+      },
+      "expected": false
+    },
+    {
+      "name": "最後から2問目の ② で ③ を出す（F15）",
+      "input": {
+        "room": {
+          "title": "内輪クイズ",
+          "questionCount": 5,
+          "phase": "fastest",
+          "questionIndex": 3
+        },
+        "command": {
+          "type": "showStandings",
+          "questionIndex": 3
+        }
+      },
+      "expected": false
+    },
+    {
+      "name": "最終ランキングで部屋を終える",
+      "input": {
+        "room": {
+          "title": "内輪クイズ",
+          "questionCount": 5,
+          "phase": "final",
+          "questionIndex": 4
+        },
+        "command": {
+          "type": "endRoom"
+        }
+      },
+      "expected": true
+    }
+  ]
+}
