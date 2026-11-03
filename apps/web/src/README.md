@@ -17,7 +17,7 @@ flowchart LR
 
 - 矢印はデータの向き。届いたものは左から右へ一方向に流れ、画面は届いたものを描くだけ。正本は部屋の DO にあり、端末は写しを持つ
 - 押した操作（回答・ホストの進行）だけが、点線で入口へ戻り、そこから送られる
-- import の向きは矢印の逆になる。`features/` が `realtime/` を読み、`realtime/` は `features/` を読まない
+- import の向きは、入口の側だけ矢印の逆になる。`features/` は `realtime/`・`api/` を読んで届いたものを受け取り、`realtime/`・`api/` は `features/` を読まない。部品の側は矢印と同じ向きで、`features/` が `shared/`・`components/` を読んで描く
 - `routes/` は図の外にある。URL ごとに features の画面を出し、部屋に入るときに `loader` で接続の操作役を作る（[接続を開く場所](../../../docs/architecture/frontend.md#接続を開く場所)）
 
 ## 層
