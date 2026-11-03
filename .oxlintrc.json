@@ -13,6 +13,8 @@
     "jsx-a11y/prefer-tag-over-role": "off",
     "react/no-danger": "error",
     "react/no-danger-with-children": "error",
+    // 読み合うモジュールを作らない。@/ も tsconfig の paths で解いてたどる
+    "import/no-cycle": "error",
     // ADR 0004: 名前などの入力を HTML として解釈させない。文字として描画するには textContent や JSX の {} を使う
     "no-restricted-properties": [
       "error",
@@ -24,6 +26,7 @@
       { "object": "document", "property": "write", "message": "HTML として解釈される。" },
       { "object": "document", "property": "writeln", "message": "HTML として解釈される。" }
     ],
+    // 下の overrides の層の柵（apps/web/src）に書き写している。ここを直したら、そちらの4つも直す
     "no-restricted-imports": [
       "error",
       {
@@ -66,22 +69,157 @@
       }
     },
     {
-      // E2E（e2e/ と playwright.config.ts）もテストのコード。@playwright/test は名前が **/test に当たる
-      "files": ["**/test/**", "**/*.test.*", "**/*.spec.*", "**/vitest.config.*", "e2e/**", "playwright.config.*"],
+      // 層の柵（apps/web/src の向きは routes → features → shared → api・realtime、components/ui は lib だけを読む）。
+      // 上書きすると全体の no-restricted-imports が丸ごと置き換わるので、各上書きに全体の patterns と paths を書き写す。
+      // 全体を直したら、ここから下の4つも直す（tools/docs-check/test/oxlint-layers.test.ts が確かめる）。
+      // ../ で親をまたぐ import は import/no-relative-parent-imports が止めるので、@/ だけを書けば足りる。
+      // features: feature 同士を読まない。中は ./ で読む。feature の中にフォルダーを作るときは、feature ごとの上書きに分ける
+      "files": ["apps/web/src/features/**"],
       "rules": {
-        "no-restricted-imports": "off",
-        "import/no-relative-parent-imports": "off"
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/features/**"],
+                "message": "feature 同士は import しない。2つの feature で使うものは shared/ へ移す。"
+              },
+              {
+                "group": ["@/routes/**"],
+                "message": "routes はアプリの入口。ほかの層から routes を import しない。"
+              },
+              {
+                "group": ["**/test", "**/test/**", "**/*.test", "**/*.test.*", "**/*.spec", "**/*.spec.*"],
+                "message": "本番のコードからテストのコードを import しない。"
+              },
+              {
+                "group": ["@base-ui/*", "@base-ui/**"],
+                "message": "画面は components/ui の部品を使う。Base UI を import するのは apps/web/src/components/ui の中だけ（ADR 0007）。"
+              }
+            ],
+            "paths": [
+              {
+                "name": "cloudflare:test",
+                "message": "テスト専用のモジュール。本番のコードでは cloudflare:workers を使う。"
+              },
+              {
+                "name": "better-auth/plugins",
+                "importNames": ["testUtils"],
+                "message": "testUtils はテスト専用の auth インスタンス（apps/api/test/auth）にだけ入れる（ADR 0003）。"
+              },
+              {
+                "name": "better-auth/test",
+                "message": "Better Auth のテスト用のモジュール。本番のコードからは import しない（ADR 0003）。"
+              }
+            ]
+          }
+        ]
       }
     },
     {
-      // UI 部品は Base UI を土台にする（ADR 0007）。上書きすると全体の設定が丸ごと置き換わるので、
-      // @base-ui/* の禁止のほかは、全体の設定（patterns と paths）をそのまま書き写す。全体を直したら、ここも直す
+      // shared: 2つ以上の feature で使うもの。features と routes を読まない
+      "files": ["apps/web/src/shared/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/features/**"],
+                "message": "層の向きは routes → features → shared → api・realtime。下の層から features を import しない。"
+              },
+              {
+                "group": ["@/routes/**"],
+                "message": "routes はアプリの入口。ほかの層から routes を import しない。"
+              },
+              {
+                "group": ["**/test", "**/test/**", "**/*.test", "**/*.test.*", "**/*.spec", "**/*.spec.*"],
+                "message": "本番のコードからテストのコードを import しない。"
+              },
+              {
+                "group": ["@base-ui/*", "@base-ui/**"],
+                "message": "画面は components/ui の部品を使う。Base UI を import するのは apps/web/src/components/ui の中だけ（ADR 0007）。"
+              }
+            ],
+            "paths": [
+              {
+                "name": "cloudflare:test",
+                "message": "テスト専用のモジュール。本番のコードでは cloudflare:workers を使う。"
+              },
+              {
+                "name": "better-auth/plugins",
+                "importNames": ["testUtils"],
+                "message": "testUtils はテスト専用の auth インスタンス（apps/api/test/auth）にだけ入れる（ADR 0003）。"
+              },
+              {
+                "name": "better-auth/test",
+                "message": "Better Auth のテスト用のモジュール。本番のコードからは import しない（ADR 0003）。"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // api（HTTP）と realtime（WebSocket）: データの入口。画面の層を読まない
+      "files": ["apps/web/src/api/**", "apps/web/src/realtime/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/features/**"],
+                "message": "層の向きは routes → features → shared → api・realtime。下の層から features を import しない。"
+              },
+              {
+                "group": ["@/shared/**", "@/components/**"],
+                "message": "api/ と realtime/ はデータの入口。画面の層（shared/・components/）を import しない。"
+              },
+              {
+                "group": ["@/routes/**"],
+                "message": "routes はアプリの入口。ほかの層から routes を import しない。"
+              },
+              {
+                "group": ["**/test", "**/test/**", "**/*.test", "**/*.test.*", "**/*.spec", "**/*.spec.*"],
+                "message": "本番のコードからテストのコードを import しない。"
+              },
+              {
+                "group": ["@base-ui/*", "@base-ui/**"],
+                "message": "画面は components/ui の部品を使う。Base UI を import するのは apps/web/src/components/ui の中だけ（ADR 0007）。"
+              }
+            ],
+            "paths": [
+              {
+                "name": "cloudflare:test",
+                "message": "テスト専用のモジュール。本番のコードでは cloudflare:workers を使う。"
+              },
+              {
+                "name": "better-auth/plugins",
+                "importNames": ["testUtils"],
+                "message": "testUtils はテスト専用の auth インスタンス（apps/api/test/auth）にだけ入れる（ADR 0003）。"
+              },
+              {
+                "name": "better-auth/test",
+                "message": "Better Auth のテスト用のモジュール。本番のコードからは import しない（ADR 0003）。"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // components/ui: Base UI を土台にする（ADR 0007）ので @base-ui/* の禁止を外す。lib（cn）と自分のほかは読まない
       "files": ["apps/web/src/components/ui/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
             "patterns": [
+              {
+                "group": ["@/**", "!@/lib/**", "!@/components/ui/**"],
+                "message": "components/ui は lib/ と components/ui のほかを import しない。アプリの層を知らない部品にしておく（ADR 0007）。"
+              },
               {
                 "group": ["**/test", "**/test/**", "**/*.test", "**/*.test.*", "**/*.spec", "**/*.spec.*"],
                 "message": "本番のコードからテストのコードを import しない。"
@@ -104,6 +242,15 @@
             ]
           }
         ]
+      }
+    },
+    {
+      // E2E（e2e/ と playwright.config.ts）もテストのコード。@playwright/test は名前が **/test に当たる。
+      // 上書きは後に書いたものが勝つので、層の柵より後ろ（最後）に置く
+      "files": ["**/test/**", "**/*.test.*", "**/*.spec.*", "**/vitest.config.*", "e2e/**", "playwright.config.*"],
+      "rules": {
+        "no-restricted-imports": "off",
+        "import/no-relative-parent-imports": "off"
       }
     }
   ]
