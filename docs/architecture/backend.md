@@ -149,7 +149,8 @@
 
 `packages/scoring` に、F11・F14・F15 の純粋な関数を置く。部屋の DO は結果を保存して配るだけで、点や順位を自分では計算しない。
 
-- 配点は `config.ts` だけで変える（M2）。`defaultScoring` には F12 の `quickBonus`（1.00秒以内、1.00秒ちょうどを含む、+200点）が入っているので、`maxPointsPerQuestion` と F15 の `remainingMaxPoints` は1問1,200点になる。`quickBonusPoints` は `scoreAnswer` のうちのボーナスの部分。要件定義書の表のボーナスなしの列が要るテストは、`{ basePoints: 500, maxSpeedPoints: 500 }` を渡す
+- 配点は `config.ts` だけで変える（M2）。`defaultScoring` には F12 の `quickBonus`（1.00秒以内、1.00秒ちょうどを含む、+200点）が入っているので、`maxPointsPerQuestion` と F15 の `remainingMaxPoints` は1問1,200点になる。`quickBonusPoints` は `scoreAnswer` のうちのボーナスの部分。要件定義書の表のボーナスなしの列が要るテストは、`fixtures/score.json` の `configs.withoutQuickBonus` を渡す
+- 点と順位のテストの表は `fixtures/score.json` と `fixtures/ranking.json` にあり、TS のテストはそれを読んで回す。採点と同点の扱いは `ws.schema.json` に入らないので、Go で書き直すときも同じ JSON を読み、表を二重に持たない。どの行も `joinOrder` をはっきり書き、`expected` には関数の戻り値をまるごと書く。`configs.default` は `defaultScoring` と同じ値で、ずれたら `defaultScoring` のテストが落ちる。例外の文言のように TS の実装に頼るものだけは、テストに残す
 - 経過時間は `normalizeElapsedMs` で1回だけ正規化し、その値を表示・得点・ボーナス・最速の回答に使う（P2）
 - 同点のときの決め方は、要件定義書の[「同点のとき」](../requirements/zubatto-quiz.md#同点のとき)にある。`positionOf` は protocol の `playerPosition` の形から `rankUp` と `hidden` を除いたものを返し、締切の集計がそれを足す
 - `packages/protocol` と同じく、`tsconfig.lib.json` がテストでない `src/` を ambient な型なしで確かめる

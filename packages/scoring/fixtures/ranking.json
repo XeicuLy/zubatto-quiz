@@ -1,0 +1,1273 @@
+{
+  "rankByScore": [
+    {
+      "name": "点の高い順に並べ、1位から順位を付ける",
+      "input": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "score": 300
+        },
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "score": 900
+        },
+        {
+          "participantId": "c",
+          "joinOrder": 2,
+          "score": 500
+        }
+      ],
+      "expected": [
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "score": 900,
+          "rank": 1
+        },
+        {
+          "participantId": "c",
+          "joinOrder": 2,
+          "score": 500,
+          "rank": 2
+        },
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "score": 300,
+          "rank": 3
+        }
+      ]
+    },
+    {
+      "name": "同点は同じ順位にし、次の人はその人数だけ順位を飛ばす（1位・2位・2位・4位）",
+      "input": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "score": 900
+        },
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "score": 500
+        },
+        {
+          "participantId": "c",
+          "joinOrder": 2,
+          "score": 500
+        },
+        {
+          "participantId": "d",
+          "joinOrder": 3,
+          "score": 100
+        }
+      ],
+      "expected": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "score": 900,
+          "rank": 1
+        },
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "score": 500,
+          "rank": 2
+        },
+        {
+          "participantId": "c",
+          "joinOrder": 2,
+          "score": 500,
+          "rank": 2
+        },
+        {
+          "participantId": "d",
+          "joinOrder": 3,
+          "score": 100,
+          "rank": 4
+        }
+      ]
+    },
+    {
+      "name": "同じ順位の人は、渡した並びによらず入室した順に並べる",
+      "input": [
+        {
+          "participantId": "late",
+          "joinOrder": 2,
+          "score": 500
+        },
+        {
+          "participantId": "first",
+          "joinOrder": 0,
+          "score": 500
+        },
+        {
+          "participantId": "top",
+          "joinOrder": 3,
+          "score": 800
+        },
+        {
+          "participantId": "middle",
+          "joinOrder": 1,
+          "score": 500
+        }
+      ],
+      "expected": [
+        {
+          "participantId": "top",
+          "joinOrder": 3,
+          "score": 800,
+          "rank": 1
+        },
+        {
+          "participantId": "first",
+          "joinOrder": 0,
+          "score": 500,
+          "rank": 2
+        },
+        {
+          "participantId": "middle",
+          "joinOrder": 1,
+          "score": 500,
+          "rank": 2
+        },
+        {
+          "participantId": "late",
+          "joinOrder": 2,
+          "score": 500,
+          "rank": 2
+        }
+      ]
+    },
+    {
+      "name": "全員が0点なら、全員が1位",
+      "input": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "score": 0
+        },
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "score": 0
+        }
+      ],
+      "expected": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "score": 0,
+          "rank": 1
+        },
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "score": 0,
+          "rank": 1
+        }
+      ]
+    },
+    {
+      "name": "回答者がいなければ空",
+      "input": [],
+      "expected": []
+    }
+  ],
+  "requirementsExample": {
+    "input": {
+      "questionCount": 10,
+      "limitMs": 10000,
+      "players": [
+        {
+          "participantId": "P1",
+          "joinOrder": 0,
+          "elapsedMs": 1800,
+          "wrongQuestions": [1]
+        },
+        {
+          "participantId": "P2",
+          "joinOrder": 1,
+          "elapsedMs": 2100,
+          "wrongQuestions": [2]
+        },
+        {
+          "participantId": "P3",
+          "joinOrder": 2,
+          "elapsedMs": 2400,
+          "wrongQuestions": [3]
+        },
+        {
+          "participantId": "P4",
+          "joinOrder": 3,
+          "elapsedMs": 2700,
+          "wrongQuestions": [4]
+        },
+        {
+          "participantId": "P5",
+          "joinOrder": 4,
+          "elapsedMs": 3000,
+          "wrongQuestions": [5]
+        },
+        {
+          "participantId": "P6",
+          "joinOrder": 5,
+          "elapsedMs": 3300,
+          "wrongQuestions": [6]
+        },
+        {
+          "participantId": "P7",
+          "joinOrder": 6,
+          "elapsedMs": 3600,
+          "wrongQuestions": [7]
+        },
+        {
+          "participantId": "P8",
+          "joinOrder": 7,
+          "elapsedMs": 3900,
+          "wrongQuestions": [8]
+        },
+        {
+          "participantId": "P9",
+          "joinOrder": 8,
+          "elapsedMs": 4200,
+          "wrongQuestions": [9]
+        },
+        {
+          "participantId": "P10",
+          "joinOrder": 9,
+          "elapsedMs": 4500,
+          "wrongQuestions": [10]
+        },
+        {
+          "participantId": "P11",
+          "joinOrder": 10,
+          "elapsedMs": 4800,
+          "wrongQuestions": [1]
+        },
+        {
+          "participantId": "P12",
+          "joinOrder": 11,
+          "elapsedMs": 5100,
+          "wrongQuestions": [2]
+        },
+        {
+          "participantId": "P13",
+          "joinOrder": 12,
+          "elapsedMs": 5400,
+          "wrongQuestions": [3]
+        },
+        {
+          "participantId": "P14",
+          "joinOrder": 13,
+          "elapsedMs": 5700,
+          "wrongQuestions": [4]
+        },
+        {
+          "participantId": "P15",
+          "joinOrder": 14,
+          "elapsedMs": 6000,
+          "wrongQuestions": [5]
+        },
+        {
+          "participantId": "P16",
+          "joinOrder": 15,
+          "elapsedMs": 6300,
+          "wrongQuestions": [6]
+        },
+        {
+          "participantId": "P17",
+          "joinOrder": 16,
+          "elapsedMs": 6600,
+          "wrongQuestions": [7]
+        },
+        {
+          "participantId": "P18",
+          "joinOrder": 17,
+          "elapsedMs": 6900,
+          "wrongQuestions": [8]
+        },
+        {
+          "participantId": "物知り",
+          "joinOrder": 18,
+          "elapsedMs": 3000,
+          "wrongQuestions": []
+        },
+        {
+          "participantId": "勝負師",
+          "joinOrder": 19,
+          "elapsedMs": 800,
+          "wrongQuestions": [3, 7]
+        }
+      ]
+    },
+    "expected": {
+      "withoutQuickBonus": [
+        {
+          "participantId": "物知り",
+          "joinOrder": 18,
+          "score": 8500,
+          "rank": 1
+        },
+        {
+          "participantId": "P1",
+          "joinOrder": 0,
+          "score": 8190,
+          "rank": 2
+        },
+        {
+          "participantId": "P2",
+          "joinOrder": 1,
+          "score": 8055,
+          "rank": 3
+        },
+        {
+          "participantId": "P3",
+          "joinOrder": 2,
+          "score": 7920,
+          "rank": 4
+        },
+        {
+          "participantId": "P4",
+          "joinOrder": 3,
+          "score": 7785,
+          "rank": 5
+        },
+        {
+          "participantId": "勝負師",
+          "joinOrder": 19,
+          "score": 7680,
+          "rank": 6
+        },
+        {
+          "participantId": "P5",
+          "joinOrder": 4,
+          "score": 7650,
+          "rank": 7
+        },
+        {
+          "participantId": "P6",
+          "joinOrder": 5,
+          "score": 7515,
+          "rank": 8
+        },
+        {
+          "participantId": "P7",
+          "joinOrder": 6,
+          "score": 7380,
+          "rank": 9
+        },
+        {
+          "participantId": "P8",
+          "joinOrder": 7,
+          "score": 7245,
+          "rank": 10
+        },
+        {
+          "participantId": "P9",
+          "joinOrder": 8,
+          "score": 7110,
+          "rank": 11
+        },
+        {
+          "participantId": "P10",
+          "joinOrder": 9,
+          "score": 6975,
+          "rank": 12
+        },
+        {
+          "participantId": "P11",
+          "joinOrder": 10,
+          "score": 6840,
+          "rank": 13
+        },
+        {
+          "participantId": "P12",
+          "joinOrder": 11,
+          "score": 6705,
+          "rank": 14
+        },
+        {
+          "participantId": "P13",
+          "joinOrder": 12,
+          "score": 6570,
+          "rank": 15
+        },
+        {
+          "participantId": "P14",
+          "joinOrder": 13,
+          "score": 6435,
+          "rank": 16
+        },
+        {
+          "participantId": "P15",
+          "joinOrder": 14,
+          "score": 6300,
+          "rank": 17
+        },
+        {
+          "participantId": "P16",
+          "joinOrder": 15,
+          "score": 6165,
+          "rank": 18
+        },
+        {
+          "participantId": "P17",
+          "joinOrder": 16,
+          "score": 6030,
+          "rank": 19
+        },
+        {
+          "participantId": "P18",
+          "joinOrder": 17,
+          "score": 5895,
+          "rank": 20
+        }
+      ],
+      "default": [
+        {
+          "participantId": "勝負師",
+          "joinOrder": 19,
+          "score": 9280,
+          "rank": 1
+        },
+        {
+          "participantId": "物知り",
+          "joinOrder": 18,
+          "score": 8500,
+          "rank": 2
+        },
+        {
+          "participantId": "P1",
+          "joinOrder": 0,
+          "score": 8190,
+          "rank": 3
+        },
+        {
+          "participantId": "P2",
+          "joinOrder": 1,
+          "score": 8055,
+          "rank": 4
+        },
+        {
+          "participantId": "P3",
+          "joinOrder": 2,
+          "score": 7920,
+          "rank": 5
+        },
+        {
+          "participantId": "P4",
+          "joinOrder": 3,
+          "score": 7785,
+          "rank": 6
+        },
+        {
+          "participantId": "P5",
+          "joinOrder": 4,
+          "score": 7650,
+          "rank": 7
+        },
+        {
+          "participantId": "P6",
+          "joinOrder": 5,
+          "score": 7515,
+          "rank": 8
+        },
+        {
+          "participantId": "P7",
+          "joinOrder": 6,
+          "score": 7380,
+          "rank": 9
+        },
+        {
+          "participantId": "P8",
+          "joinOrder": 7,
+          "score": 7245,
+          "rank": 10
+        },
+        {
+          "participantId": "P9",
+          "joinOrder": 8,
+          "score": 7110,
+          "rank": 11
+        },
+        {
+          "participantId": "P10",
+          "joinOrder": 9,
+          "score": 6975,
+          "rank": 12
+        },
+        {
+          "participantId": "P11",
+          "joinOrder": 10,
+          "score": 6840,
+          "rank": 13
+        },
+        {
+          "participantId": "P12",
+          "joinOrder": 11,
+          "score": 6705,
+          "rank": 14
+        },
+        {
+          "participantId": "P13",
+          "joinOrder": 12,
+          "score": 6570,
+          "rank": 15
+        },
+        {
+          "participantId": "P14",
+          "joinOrder": 13,
+          "score": 6435,
+          "rank": 16
+        },
+        {
+          "participantId": "P15",
+          "joinOrder": 14,
+          "score": 6300,
+          "rank": 17
+        },
+        {
+          "participantId": "P16",
+          "joinOrder": 15,
+          "score": 6165,
+          "rank": 18
+        },
+        {
+          "participantId": "P17",
+          "joinOrder": 16,
+          "score": 6030,
+          "rank": 19
+        },
+        {
+          "participantId": "P18",
+          "joinOrder": 17,
+          "score": 5895,
+          "rank": 20
+        }
+      ]
+    }
+  },
+  "findFastest": [
+    {
+      "name": "正解した人を速い順に3人まで出し、正解した人数を数える（不正解の人は速くても入らない）",
+      "input": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "correct": true,
+          "elapsedMs": 3520
+        },
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "correct": false,
+          "elapsedMs": 300
+        },
+        {
+          "participantId": "c",
+          "joinOrder": 2,
+          "correct": true,
+          "elapsedMs": 1010
+        },
+        {
+          "participantId": "d",
+          "joinOrder": 3,
+          "correct": true,
+          "elapsedMs": 9990
+        },
+        {
+          "participantId": "e",
+          "joinOrder": 4,
+          "correct": true,
+          "elapsedMs": 500
+        }
+      ],
+      "expected": {
+        "fastest": [
+          {
+            "participantId": "e",
+            "elapsedMs": 500
+          },
+          {
+            "participantId": "c",
+            "elapsedMs": 1010
+          },
+          {
+            "participantId": "a",
+            "elapsedMs": 3520
+          }
+        ],
+        "correctCount": 4
+      }
+    },
+    {
+      "name": "正解した人が3人より少なければ、その人数だけ出す",
+      "input": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "correct": false,
+          "elapsedMs": 500
+        },
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "correct": true,
+          "elapsedMs": 2000
+        }
+      ],
+      "expected": {
+        "fastest": [
+          {
+            "participantId": "b",
+            "elapsedMs": 2000
+          }
+        ],
+        "correctCount": 1
+      }
+    },
+    {
+      "name": "全員が不正解なら、最速正解者はいない",
+      "input": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "correct": false,
+          "elapsedMs": 500
+        },
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "correct": false,
+          "elapsedMs": 800
+        }
+      ],
+      "expected": {
+        "fastest": [],
+        "correctCount": 0
+      }
+    },
+    {
+      "name": "経過時間（0.01秒単位）が同じ人は、入室した順に並べる",
+      "input": [
+        {
+          "participantId": "late",
+          "joinOrder": 5,
+          "correct": true,
+          "elapsedMs": 1000
+        },
+        {
+          "participantId": "early",
+          "joinOrder": 1,
+          "correct": true,
+          "elapsedMs": 1000
+        },
+        {
+          "participantId": "x",
+          "joinOrder": 3,
+          "correct": true,
+          "elapsedMs": 1200
+        }
+      ],
+      "expected": {
+        "fastest": [
+          {
+            "participantId": "early",
+            "elapsedMs": 1000
+          },
+          {
+            "participantId": "late",
+            "elapsedMs": 1000
+          },
+          {
+            "participantId": "x",
+            "elapsedMs": 1200
+          }
+        ],
+        "correctCount": 3
+      }
+    }
+  ],
+  "rankUpsAndBiggestClimber": [
+    {
+      "name": "順位が上がった人は上げた幅、変わらないか下がった人は0",
+      "input": {
+        "previous": [
+          {
+            "participantId": "x",
+            "joinOrder": 0,
+            "score": 1000
+          },
+          {
+            "participantId": "y",
+            "joinOrder": 1,
+            "score": 900
+          },
+          {
+            "participantId": "z",
+            "joinOrder": 2,
+            "score": 800
+          }
+        ],
+        "current": [
+          {
+            "participantId": "x",
+            "joinOrder": 0,
+            "score": 1500
+          },
+          {
+            "participantId": "y",
+            "joinOrder": 1,
+            "score": 1200
+          },
+          {
+            "participantId": "z",
+            "joinOrder": 2,
+            "score": 1800
+          }
+        ]
+      },
+      "expected": {
+        "rankUps": {
+          "x": 0,
+          "y": 0,
+          "z": 2
+        },
+        "biggestClimber": {
+          "participantId": "z",
+          "rankUp": 2
+        }
+      }
+    },
+    {
+      "name": "前のランキングにいない人（途中で入った人）は0",
+      "input": {
+        "previous": [
+          {
+            "participantId": "x",
+            "joinOrder": 0,
+            "score": 500
+          }
+        ],
+        "current": [
+          {
+            "participantId": "x",
+            "joinOrder": 0,
+            "score": 500
+          },
+          {
+            "participantId": "new",
+            "joinOrder": 1,
+            "score": 900
+          }
+        ]
+      },
+      "expected": {
+        "rankUps": {
+          "x": 0,
+          "new": 0
+        },
+        "biggestClimber": null
+      }
+    },
+    {
+      "name": "第1問は前のランキングがないので、一番順位を上げた人はいない",
+      "input": {
+        "previous": [],
+        "current": [
+          {
+            "participantId": "x",
+            "joinOrder": 0,
+            "score": 975
+          }
+        ]
+      },
+      "expected": {
+        "rankUps": {
+          "x": 0
+        },
+        "biggestClimber": null
+      }
+    },
+    {
+      "name": "誰も順位を上げなかったら、いない",
+      "input": {
+        "previous": [
+          {
+            "participantId": "x",
+            "joinOrder": 0,
+            "score": 1000
+          },
+          {
+            "participantId": "y",
+            "joinOrder": 1,
+            "score": 900
+          }
+        ],
+        "current": [
+          {
+            "participantId": "x",
+            "joinOrder": 0,
+            "score": 1900
+          },
+          {
+            "participantId": "y",
+            "joinOrder": 1,
+            "score": 1000
+          }
+        ]
+      },
+      "expected": {
+        "rankUps": {
+          "x": 0,
+          "y": 0
+        },
+        "biggestClimber": null
+      }
+    },
+    {
+      "name": "上げた幅が一番大きい人を出す",
+      "input": {
+        "previous": [
+          {
+            "participantId": "x",
+            "joinOrder": 0,
+            "score": 1000
+          },
+          {
+            "participantId": "y",
+            "joinOrder": 1,
+            "score": 900
+          },
+          {
+            "participantId": "z",
+            "joinOrder": 2,
+            "score": 800
+          },
+          {
+            "participantId": "w",
+            "joinOrder": 3,
+            "score": 700
+          }
+        ],
+        "current": [
+          {
+            "participantId": "x",
+            "joinOrder": 0,
+            "score": 1100
+          },
+          {
+            "participantId": "y",
+            "joinOrder": 1,
+            "score": 1000
+          },
+          {
+            "participantId": "z",
+            "joinOrder": 2,
+            "score": 1700
+          },
+          {
+            "participantId": "w",
+            "joinOrder": 3,
+            "score": 1800
+          }
+        ]
+      },
+      "expected": {
+        "rankUps": {
+          "x": 0,
+          "y": 0,
+          "z": 1,
+          "w": 3
+        },
+        "biggestClimber": {
+          "participantId": "w",
+          "rankUp": 3
+        }
+      }
+    },
+    {
+      "name": "上げた幅が同じなら、入室した順より、今の順位が上の人を優先する",
+      "input": {
+        "previous": [
+          {
+            "participantId": "a",
+            "joinOrder": 0,
+            "score": 600
+          },
+          {
+            "participantId": "x",
+            "joinOrder": 1,
+            "score": 1000
+          },
+          {
+            "participantId": "y",
+            "joinOrder": 2,
+            "score": 900
+          },
+          {
+            "participantId": "z",
+            "joinOrder": 3,
+            "score": 800
+          },
+          {
+            "participantId": "b",
+            "joinOrder": 4,
+            "score": 700
+          }
+        ],
+        "current": [
+          {
+            "participantId": "a",
+            "joinOrder": 0,
+            "score": 1100
+          },
+          {
+            "participantId": "x",
+            "joinOrder": 1,
+            "score": 1000
+          },
+          {
+            "participantId": "y",
+            "joinOrder": 2,
+            "score": 900
+          },
+          {
+            "participantId": "z",
+            "joinOrder": 3,
+            "score": 800
+          },
+          {
+            "participantId": "b",
+            "joinOrder": 4,
+            "score": 1200
+          }
+        ]
+      },
+      "expected": {
+        "rankUps": {
+          "a": 3,
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "b": 3
+        },
+        "biggestClimber": {
+          "participantId": "b",
+          "rankUp": 3
+        }
+      }
+    },
+    {
+      "name": "上げた幅も今の順位も同じなら、入室した順で先の人を出す",
+      "input": {
+        "previous": [
+          {
+            "participantId": "x",
+            "joinOrder": 0,
+            "score": 1000
+          },
+          {
+            "participantId": "y",
+            "joinOrder": 1,
+            "score": 900
+          },
+          {
+            "participantId": "b",
+            "joinOrder": 2,
+            "score": 700
+          },
+          {
+            "participantId": "a",
+            "joinOrder": 3,
+            "score": 700
+          }
+        ],
+        "current": [
+          {
+            "participantId": "x",
+            "joinOrder": 0,
+            "score": 1000
+          },
+          {
+            "participantId": "y",
+            "joinOrder": 1,
+            "score": 900
+          },
+          {
+            "participantId": "b",
+            "joinOrder": 2,
+            "score": 1200
+          },
+          {
+            "participantId": "a",
+            "joinOrder": 3,
+            "score": 1200
+          }
+        ]
+      },
+      "expected": {
+        "rankUps": {
+          "x": 0,
+          "y": 0,
+          "b": 2,
+          "a": 2
+        },
+        "biggestClimber": {
+          "participantId": "b",
+          "rankUp": 2
+        }
+      }
+    }
+  ],
+  "positionOf": [
+    {
+      "name": "1位は2位との差、2位・3位は順位と1つ上の人との差、4位以下は1つ上の人との差とトップとの差",
+      "input": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "score": 5000
+        },
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "score": 4800
+        },
+        {
+          "participantId": "c",
+          "joinOrder": 2,
+          "score": 4500
+        },
+        {
+          "participantId": "d",
+          "joinOrder": 3,
+          "score": 4000
+        },
+        {
+          "participantId": "e",
+          "joinOrder": 4,
+          "score": 3000
+        }
+      ],
+      "expected": {
+        "a": {
+          "kind": "leader",
+          "leadOverNext": 200
+        },
+        "b": {
+          "kind": "podium",
+          "rank": 2,
+          "gapToAbove": 200
+        },
+        "c": {
+          "kind": "podium",
+          "rank": 3,
+          "gapToAbove": 300
+        },
+        "d": {
+          "kind": "chasing",
+          "gapToAbove": 500,
+          "gapToTop": 1000
+        },
+        "e": {
+          "kind": "chasing",
+          "gapToAbove": 1000,
+          "gapToTop": 2000
+        }
+      }
+    },
+    {
+      "name": "回答者が1人だけなら、1位で、2位との差はない",
+      "input": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "score": 975
+        }
+      ],
+      "expected": {
+        "a": {
+          "kind": "leader",
+          "leadOverNext": null
+        }
+      }
+    },
+    {
+      "name": "1位が同点なら、どちらも1位で、2位との差は0",
+      "input": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "score": 3000
+        },
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "score": 3000
+        },
+        {
+          "participantId": "c",
+          "joinOrder": 2,
+          "score": 1000
+        }
+      ],
+      "expected": {
+        "a": {
+          "kind": "leader",
+          "leadOverNext": 0
+        },
+        "b": {
+          "kind": "leader",
+          "leadOverNext": 0
+        },
+        "c": {
+          "kind": "podium",
+          "rank": 3,
+          "gapToAbove": 2000
+        }
+      }
+    },
+    {
+      "name": "全員が同点なら、全員が1位で、差は0",
+      "input": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "score": 0
+        },
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "score": 0
+        }
+      ],
+      "expected": {
+        "a": {
+          "kind": "leader",
+          "leadOverNext": 0
+        },
+        "b": {
+          "kind": "leader",
+          "leadOverNext": 0
+        }
+      }
+    },
+    {
+      "name": "同点の人がいても、1つ上の人は自分より点の高い人のうち一番点の低い人（同点の人とは比べない）",
+      "input": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "score": 5000
+        },
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "score": 4000
+        },
+        {
+          "participantId": "c",
+          "joinOrder": 2,
+          "score": 4000
+        },
+        {
+          "participantId": "d",
+          "joinOrder": 3,
+          "score": 3500
+        },
+        {
+          "participantId": "e",
+          "joinOrder": 4,
+          "score": 3500
+        }
+      ],
+      "expected": {
+        "a": {
+          "kind": "leader",
+          "leadOverNext": 1000
+        },
+        "b": {
+          "kind": "podium",
+          "rank": 2,
+          "gapToAbove": 1000
+        },
+        "c": {
+          "kind": "podium",
+          "rank": 2,
+          "gapToAbove": 1000
+        },
+        "d": {
+          "kind": "chasing",
+          "gapToAbove": 500,
+          "gapToTop": 1500
+        },
+        "e": {
+          "kind": "chasing",
+          "gapToAbove": 500,
+          "gapToTop": 1500
+        }
+      }
+    },
+    {
+      "name": "3位が同点で4人以上いても、3位の人はみな順位を出す",
+      "input": [
+        {
+          "participantId": "a",
+          "joinOrder": 0,
+          "score": 900
+        },
+        {
+          "participantId": "b",
+          "joinOrder": 1,
+          "score": 800
+        },
+        {
+          "participantId": "c",
+          "joinOrder": 2,
+          "score": 700
+        },
+        {
+          "participantId": "d",
+          "joinOrder": 3,
+          "score": 700
+        },
+        {
+          "participantId": "e",
+          "joinOrder": 4,
+          "score": 100
+        }
+      ],
+      "expected": {
+        "a": {
+          "kind": "leader",
+          "leadOverNext": 100
+        },
+        "b": {
+          "kind": "podium",
+          "rank": 2,
+          "gapToAbove": 100
+        },
+        "c": {
+          "kind": "podium",
+          "rank": 3,
+          "gapToAbove": 100
+        },
+        "d": {
+          "kind": "podium",
+          "rank": 3,
+          "gapToAbove": 100
+        },
+        "e": {
+          "kind": "chasing",
+          "gapToAbove": 600,
+          "gapToTop": 800
+        }
+      }
+    }
+  ]
+}
