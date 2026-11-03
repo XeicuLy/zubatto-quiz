@@ -3,10 +3,10 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import type { QuestionSetSummary } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
+import { DRAFT_QUESTION_SET, questionSetsQueryOptions } from '@/api/question-sets';
 import { createAppRouter } from '@/router';
 
 import { stubFakeApi } from '../../../test/fake-api';
-import { DRAFT_QUESTION_SET, questionSetsQueryOptions } from './api';
 
 const QUIZ: QuestionSetSummary = {
   id: '11111111-1111-4111-8111-111111111111',

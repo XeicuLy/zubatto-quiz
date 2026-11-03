@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useRouter, type ErrorComponentProps } from '@tanstack/react-router';
 
+import { ApiError } from '@/api/errors';
+import { questionSetQueryOptions } from '@/api/question-sets';
 import { Card } from '@/components/ui/card';
-import { ApiError, questionSetQueryOptions } from '@/features/admin/api';
 import { QuestionSetEditor } from '@/features/admin/QuestionSetEditor';
 import { pageTitle } from '@/lib/page-title';
 

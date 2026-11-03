@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { questionSetsQueryOptions } from '@/features/admin/api';
+import { questionSetsQueryOptions } from '@/api/question-sets';
 import { QuestionSetList } from '@/features/admin/QuestionSetList';
 
 /** 問題セットの一覧（F7）。読めなかったときは、一覧の部品がその理由を出す */
