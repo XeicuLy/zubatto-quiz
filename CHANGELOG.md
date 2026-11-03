@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/XeicuLy/zubatto-quiz/compare/v1.1.0...v1.2.0) (2026-11-03)
+
+
+### 新機能
+
+* Button を問題セットの編集画面とホストの操作バーで使う ([#197](https://github.com/XeicuLy/zubatto-quiz/issues/197)) ([335440d](https://github.com/XeicuLy/zubatto-quiz/commit/335440db255cf2978c4af3885d57dc9f8f8271cb))
+* Button 部品を作り、管理画面とログイン画面で使う ([#195](https://github.com/XeicuLy/zubatto-quiz/issues/195)) ([e05ac1f](https://github.com/XeicuLy/zubatto-quiz/commit/e05ac1f7f35a76209edac419eb21381fc81f465b))
+* Card 部品を作り、管理画面とログイン画面で使う ([#200](https://github.com/XeicuLy/zubatto-quiz/issues/200)) ([7147140](https://github.com/XeicuLy/zubatto-quiz/commit/714714037d6bf00bb6838ac70459908ccd024f11))
+* ConfirmDialog 部品を作り、3つの確認をそろえる ([#201](https://github.com/XeicuLy/zubatto-quiz/issues/201)) ([75e99f6](https://github.com/XeicuLy/zubatto-quiz/commit/75e99f6363b760beb16fafbf21b33dec7d81bb13))
+* Field を問題の編集画面で使う ([#199](https://github.com/XeicuLy/zubatto-quiz/issues/199)) ([25ab4e8](https://github.com/XeicuLy/zubatto-quiz/commit/25ab4e81a73e7afc1e3795698c0da4897f4b206b))
+* Field 部品を作り、参加フォームで使う ([#198](https://github.com/XeicuLy/zubatto-quiz/issues/198)) ([64ac147](https://github.com/XeicuLy/zubatto-quiz/commit/64ac147c12082e375ce7afd3ee813f57275e5fc9))
+
 ## [1.1.0](https://github.com/XeicuLy/zubatto-quiz/compare/v1.0.0...v1.1.0) (2026-10-31)
 
 
