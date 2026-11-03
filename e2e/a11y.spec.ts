@@ -84,3 +84,21 @@ test('名前のないボタンを入れると、違反として集まる', async
 
   expect((await a11yViolations(page)).map((violation) => violation.id)).toContain('button-name');
 });
+
+// 色を読めないとき、axe は違反ではなく「要確認」に入れ、上の「違反がない」は空振りで通る。
+// styles.css と同じ oklch で書いた薄い文字を入れ、oklch の色でもコントラストを測れていることを確かめる
+test('コントラストの足りない oklch の文字を入れると、違反として集まる', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+
+  // 明るい灰色の背景に、少し暗いだけの灰色の文字（約 1.5:1。AA は 4.5:1）
+  await page.evaluate(`{
+    const text = document.createElement('p');
+    text.textContent = '読みにくい文字';
+    text.style.color = 'oklch(0.75 0 0)';
+    text.style.backgroundColor = 'oklch(0.9 0 0)';
+    document.body.append(text);
+  }`);
+
+  expect((await a11yViolations(page)).map((violation) => violation.id)).toContain('color-contrast');
+});

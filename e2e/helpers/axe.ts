@@ -14,11 +14,7 @@ interface A11yViolation {
  * それでも CSP を確かめる spec（csp.spec.ts・full-game.spec.ts）とは混ぜない
  */
 export async function a11yViolations(page: Page): Promise<A11yViolation[]> {
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa'])
-    // 色のコントラストは、選択肢の色とトークンを見直すまで外す（#126）。見直したら有効にする（#135）
-    .disableRules(['color-contrast'])
-    .analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
   return results.violations.map(({ id, help, nodes }) => ({
     id,
     help,
