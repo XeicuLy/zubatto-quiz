@@ -3,8 +3,8 @@ import { useStore } from 'zustand';
 
 import { FinalRanking } from '@/features/results/Ranking';
 import { roomEndOf } from '@/features/results/room-end';
-import type { SoundPlayer } from '@/features/sound/sound-player';
-import { SoundToggle } from '@/features/sound/SoundToggle';
+import type { SoundPlayer } from '@/shared/sound/sound-player';
+import { SoundToggle } from '@/shared/sound/SoundToggle';
 
 import { ConnectionNotice } from './ConnectionNotice';
 import { JoinForm } from './JoinForm';

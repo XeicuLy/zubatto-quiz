@@ -3,9 +3,9 @@ import { createRouter, type RouterHistory } from '@tanstack/react-router';
 
 import { ErrorScreen } from './components/error-screen';
 import { NotFoundScreen } from './components/not-found-screen';
-import { createSoundPlayer, type SoundPlayer } from './features/sound/sound-player';
 import type { RoomSocket } from './realtime/client';
 import { routeTree } from './routeTree.gen';
+import { createSoundPlayer, type SoundPlayer } from './shared/sound/sound-player';
 
 export interface RouterContext {
   queryClient: QueryClient;
