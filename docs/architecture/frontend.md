@@ -141,7 +141,7 @@
 
 ## 部屋の終わり
 
-- `features/results/room-end.ts` の純粋な関数 `roomEndOf(state)` が、`room_ended` で閉じたあとに残ったストアを読み、次の3つに分ける。`after_final`（段階が `final` で `finalRanking` がある）、`midway`、`not_entered`（`room === null`。再読み込みしたか、遅れて来て DO に `room_ended` で断られたので、どこで終わったかが分からない）
+- `shared/results/room-end.ts` の純粋な関数 `roomEndOf(state)` が、`room_ended` で閉じたあとに残ったストアを読み、次の3つに分ける。`after_final`（段階が `final` で `finalRanking` がある）、`midway`、`not_entered`（`room === null`。再読み込みしたか、遅れて来て DO に `room_ended` で断られたので、どこで終わったかが分からない）
 - `after_final` では、`ConnectionNotice`（最終順位の上の帯）と `HostPage`（`HostControls` のかわりに `HostEndedBar`）のどちらも最終順位を残す。それ以外では、お知らせが画面を置き換える
 - 文言で「結果は画面に出ている」とは言わない（F17）
 - `ConnectionNotice` は、つながっている間も終わったあとも、同じ `<>{banner}{children}</>` の形を返す。こうすると順位の表が作り直されず、スポットライトの動きがもう一度始まらない
@@ -159,7 +159,7 @@
 
 ## 結果の画面
 
-- `features/results/` の `QuestionResult`（回答者の ①）、`MyPosition`、`FastestCorrect`、`Ranking.tsx`（`StandingsRanking`、`FinalRanking`）は、protocol のメッセージを描くだけにする。順位、同点、得点、切り捨てた `elapsedMs` は、どれも DO から来る
+- `shared/results/` の `QuestionResult`（回答者の ①）、`MyPosition`、`FastestCorrect`、`Ranking.tsx`（`StandingsRanking`、`FinalRanking`）は、protocol のメッセージを描くだけにする。順位、同点、得点、切り捨てた `elapsedMs` は、どれも DO から来る
 - 共通の部品は `variant: 'projector' | 'mobile'` を受け取り、バリアントごとのクラスの表を省かずに書く。Tailwind はクラス名を文字列のまま探すため
 - `projector` は vw のトークン（`text-stage-*`、`text-timer`、`text-hero`、`p-stage`）を使う。`mobile` は決まった大きさを使い、`md:` のクラスは使わない。PC のブラウザでは、`max-w-md` の列の中でもそれが効いてしまうため
 - `meId` を渡すのは回答者だけで、自分の行を目立たせる
@@ -199,7 +199,7 @@
 - `reconnecting`/`closed` になったら印を消す。つなぎ直したあとの送り直しでは、ホスト自身の操作とほかのタブの操作を見分けられないため。今は `HostConnectionNotice` の木が変わることで、たまたま `HostScreen` が作り直されるが、それに頼らない
 - 確認は帯の中に `ConfirmDialog` で出す。開いたときに「やめる」にフォーカスを当て、Esc で閉じ、作り直さずに閉じたときは開いたボタンへフォーカスを戻す（`useConfirm`。[UI の部品](#ui-の部品)）
 - `HostStage` は、① を `AnswerDistribution` で描く（映す画面だけなので `variant` はない。棒は回答した人のうちの割合で、回答が0なら `NaN%` にせず棒を描かない。ブラウザは `NaN%` を捨てるため）。②③ と最終順位は T28 の `projector` の部品で描く
-- 選択肢の色（省かずに書く）と `ChoiceNumber` は `features/results/choice-style.tsx` にあり、受け付け中のステージと ① で共有する
+- 選択肢の色（省かずに書く）と `ChoiceNumber` は `shared/results/choice-style.tsx` にあり、受け付け中のステージと ① で共有する
 
 ## 締切の予備のタイマー
 
