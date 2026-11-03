@@ -37,7 +37,7 @@
 - 前の名前（`stage*`、`backstage*`、`on-*`、`alert-strong`）は #134 で消した。Tailwind は知らない class を黙って捨てるので、画面に書き戻しても色が抜けるだけで、型もほかのテストも落ちない。`test/color-roles.test.ts` が、src の画面のファイルにその名前があると落ちる。暗い面の印の `.stage` と、投影の大きさの `text-stage-*`・`p-stage` は残る名前で、数えない
 - 暗い面の一段明るい紺は、`card`・`secondary`・`muted`・`accent` が今は同じ値。値でなく役割で選ぶ。囲み（参加用 URL の箱、あなたの位置、ランキングの行）は `card`、名前のチップは `secondary`、押せなくなった選択肢や時間のバーの溝は `muted` と `muted-foreground`
 - 色を反転させて目立たせるもの（ランキングの自分の行、QR の白い板、時間のバー）は `bg-primary text-primary-foreground`、その中の「あなた」は `bg-primary-foreground text-primary`。選択肢のパネルの上の番号の丸の影は `bg-background/25`（パネルは暗い面にしか出ない）
-- 文字と背景の組は、投影でもスマホでも 4.5:1 以上にする（ADR 0007）。`test/contrast.test.ts` が、組の表（`<name>-foreground` と `<name>`、面ごとの `foreground` と `background` など）のコントラストを、コンパイルした CSS の値から計算する。計算は oklch → OKLab → 線形 sRGB → 相対輝度で、依存は増やさない。sRGB の外の色は、sRGB の画面では切り詰められ、P3 の画面ではそのまま出て明るさが変わるので、2通りに測って低いほうを見る。新しい組を作ったら表に足す
+- 文字と背景の組は、投影でもスマホでも 4.5:1 以上にする（ADR 0007）。`test/contrast.test.ts` が、組の表（`<name>-foreground` と `<name>`、面ごとの `foreground` と `background` など）のコントラストを、コンパイルした CSS の値から計算する。計算は oklch → OKLab → 線形 sRGB → 相対輝度で、依存は増やさない。sRGB の外の色は、sRGB の画面では切り詰められ、P3 の画面ではそのまま出て明るさが変わるので、2通りに測って低いほうを見る。新しい組を作ったら表に足す。実際の画面は、E2E の axe の `color-contrast` でも確かめる（[testing.md](testing.md#アクセシビリティの自動チェック)）。どのトークンをどこで使うかの一覧は [docs/design/README.md](../design/README.md#トークンの一覧と使い分け) にある
 - 選択肢の白い文字が 4.5:1 に届くよう、`choice-1`〜`3` は文字ではなく背景を暗くした（#126）。番号がいつも出ているので、4色の見分けは番号でもできる。どれも sRGB の中に収まる値にしてある
 
 ## 文字と余白とフォーカス
