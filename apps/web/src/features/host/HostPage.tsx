@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { useStore } from 'zustand';
 
 import { roomEndOf } from '@/features/results/room-end';
-import type { SoundPlayer } from '@/features/sound/sound-player';
+import type { SoundPlayer } from '@/shared/sound/sound-player';
 
 import { settleFocus, type Stage, stageAfter } from './host-commands';
 import type { HostRoom } from './host-room';
