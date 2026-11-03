@@ -41,7 +41,7 @@ export function StandingsRanking({ standings, variant, meId, headingRef }: Stand
         <h2 ref={headingRef} tabIndex={headingRef ? -1 : undefined} className={`font-bold focus-target ${size.title}`}>
           途中経過（第{standings.questionIndex + 1}問まで）
         </h2>
-        <p className={`text-on-stage-muted ${size.sub}`}>
+        <p className={`text-muted-foreground ${size.sub}`}>
           上位{standings.entries.length}人 / {standings.participantCount}人
         </p>
       </header>
@@ -53,7 +53,7 @@ export function StandingsRanking({ standings, variant, meId, headingRef }: Stand
           <col className="w-[5em]" />
           <col className="w-[5em]" />
         </colgroup>
-        <thead className="whitespace-nowrap text-on-stage-muted">
+        <thead className="whitespace-nowrap text-muted-foreground">
           <tr>
             <th scope="col" className="px-2 text-left font-normal">
               順位
@@ -73,7 +73,7 @@ export function StandingsRanking({ standings, variant, meId, headingRef }: Stand
           {standings.entries.map((entry) => {
             const isMe = entry.participantId === meId;
             return (
-              <tr key={entry.participantId} className={isMe ? 'bg-on-stage text-stage' : 'bg-stage-raised'}>
+              <tr key={entry.participantId} className={isMe ? 'bg-primary text-primary-foreground' : 'bg-card'}>
                 <td className="rounded-l-chip px-2 py-1.5 font-bold whitespace-nowrap tabular-nums">
                   <span className={size.numeral}>{entry.rank}</span>位
                 </td>
@@ -86,7 +86,7 @@ export function StandingsRanking({ standings, variant, meId, headingRef }: Stand
                   </p>
                 </td>
                 <td
-                  className={`px-2 py-1.5 text-right tabular-nums ${entry.points === 0 && !isMe ? 'text-on-stage-muted' : ''}`}
+                  className={`px-2 py-1.5 text-right tabular-nums ${entry.points === 0 && !isMe ? 'text-muted-foreground' : ''}`}
                 >
                   +{formatPoints(entry.points)}
                 </td>
@@ -156,7 +156,7 @@ export function FinalRanking({ ranking, variant, meId, headingRef }: FinalRankin
         <h2 ref={headingRef} tabIndex={headingRef ? -1 : undefined} className={`font-bold focus-target ${size.title}`}>
           最終ランキング
         </h2>
-        <p className={`text-on-stage-muted ${size.sub}`}>
+        <p className={`text-muted-foreground ${size.sub}`}>
           全{ranking.questionCount}問 / {ranking.entries.length}人
         </p>
       </header>
@@ -167,7 +167,7 @@ export function FinalRanking({ ranking, variant, meId, headingRef }: FinalRankin
         <div className={`grid ${size.top}`}>
           <section
             aria-label="優勝"
-            className={`flex flex-col justify-center gap-2 rounded-panel bg-spotlight text-on-spotlight motion-safe:animate-spotlight-in ${size.winnerBox}`}
+            className={`flex flex-col justify-center gap-2 rounded-panel bg-spotlight text-spotlight-foreground motion-safe:animate-spotlight-in ${size.winnerBox}`}
           >
             <p className={`font-bold ${size.winnerLabel}`}>優勝</p>
             {winners.map((entry) => (
@@ -175,7 +175,7 @@ export function FinalRanking({ ranking, variant, meId, headingRef }: FinalRankin
                 <p className={`name-wrap font-bold ${size.winnerName}`}>
                   {entry.name}
                   {entry.participantId === meId && (
-                    <span className="ml-3 inline-block rounded-full bg-on-spotlight px-2 align-middle text-xs font-bold text-spotlight">
+                    <span className="ml-3 inline-block rounded-full bg-spotlight-foreground px-2 align-middle text-xs font-bold text-spotlight">
                       あなた
                     </span>
                   )}
@@ -197,7 +197,7 @@ export function FinalRanking({ ranking, variant, meId, headingRef }: FinalRankin
                   isMe={entry.participantId === meId}
                   numeralClassName={size.numeral}
                   className="rounded-panel px-4 py-2 font-bold"
-                  idleClassName="bg-stage-raised"
+                  idleClassName="bg-card"
                 />
               ))}
             </ol>
@@ -213,7 +213,7 @@ export function FinalRanking({ ranking, variant, meId, headingRef }: FinalRankin
               entry={entry}
               isMe={entry.participantId === meId}
               numeralClassName={size.numeral}
-              className="break-inside-avoid border-b border-stage-line px-2 py-1"
+              className="break-inside-avoid border-b border-border px-2 py-1"
               idleClassName=""
             />
           ))}
@@ -235,7 +235,9 @@ interface RankRowProps {
 
 function RankRow({ entry, isMe, className, idleClassName, numeralClassName }: RankRowProps) {
   return (
-    <li className={`flex items-center gap-4 ${className} ${isMe ? 'bg-on-stage text-stage' : idleClassName}`}>
+    <li
+      className={`flex items-center gap-4 ${className} ${isMe ? 'bg-primary text-primary-foreground' : idleClassName}`}
+    >
       <span className="w-[2.8em] shrink-0 font-bold whitespace-nowrap tabular-nums">
         <span className={numeralClassName}>{entry.rank}</span>位
       </span>
@@ -249,5 +251,5 @@ function RankRow({ entry, isMe, className, idleClassName, numeralClassName }: Ra
 }
 
 function MeChip() {
-  return <span className="shrink-0 rounded-full bg-stage px-2 text-xs text-on-stage">あなた</span>;
+  return <span className="shrink-0 rounded-full bg-primary-foreground px-2 text-xs text-primary">あなた</span>;
 }
