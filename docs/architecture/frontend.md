@@ -151,11 +151,11 @@
 - `PlayerPage` は、`lobby` では `WaitingRoom` を、`question` からは `QuestionView`（`questionId` を key にする）を、`myResult` が届くまで出す。そのあとは `ResultView` が引き継ぐ（[結果の画面](#結果の画面)）
 - `features/player/QuestionView.tsx` の中の `Answering` は、`accepting` の間だけある。そのため、`retryQuestion`（同じ `questionId` で `question` へ戻る）で、2回押しを防ぐ ref と始まりの時刻が捨てられる
 - 始まりの時刻は、`useLayoutEffect` から頼んだ `requestAnimationFrame` の中で取り、`limitMs - remainingMs` だけ前にずらす。こうすると、問題の途中でつなぎ直した回答者も、本当の始まりから測れる
-- `answer-timer.ts` の `elapsedMsAt` は、ms の単位で切り捨てる。サーバーは 0.01 s で切り捨てるので、四捨五入すると 1009.6 ms が 1.01 s になってしまう
+- `shared/countdown/answer-timer.ts` の `elapsedMsAt` は、ms の単位で切り捨てる。サーバーは 0.01 s で切り捨てるので、四捨五入すると 1009.6 ms が 1.01 s になってしまう
 - 残り時間は、`setTimeout` で1秒の切れ目ごとに描き直す。こうすると、遅れることのある DO の alarm を待たずに、0 ちょうどでボタンを閉じられる
 - 押したらすぐに回答済みとして出し、`answerAccepted` が届いたら時間を置き換える。`player.answer` は `client.send` の真偽値を返し、`false` のときはボタンを押せるままにする
 - 押したボタンは消えるので、`AnsweredList`（`tabIndex={-1}`、名前は「あなたの回答」、回答していなければ「選択肢」）が作られたときに1回だけフォーカスを受け取る。それは `focusList`（`pending !== null`。この画面で押したとき）のときだけで、つなぎ直しや締切のあとには受け取らない。フォーカスした一覧は選んだ選択肢を読み上げないので、読み上げでそれを伝える
-- 残り時間は、ホストの受け付け中のステージと `useCountdown`（`features/player/use-countdown.ts`）を共有する
+- 残り時間は、ホストの受け付け中のステージと `useCountdown`（`shared/countdown/use-countdown.ts`）を共有する
 
 ## 結果の画面
 
@@ -248,7 +248,7 @@
 - 文と一緒に出てくる画面には、`role="status"` を付けない。`useAnnouncement(message, politeness)` で文を渡す。これは文が変わったときに `announce` を呼ぶ effect
 - `announce` は領域を空にし、`ANNOUNCE_DELAY_MS`（100 ms）あとに文を入れる。React は同期の2回の set を1回の描画にまとめるので、同じ文がもう一度読まれないため
 - 閉じた画面、最終順位のあとの帯、`replaced` は assertive にし、ほかは polite にする
-- `useConnectionAnnouncement`（どちらの接続のお知らせも使う）は、`reconnecting` のあとだけ「つながりました」と言う
+- `useConnectionAnnouncement`（`shared/connection/use-connection-announcement.ts`。どちらの接続のお知らせも使う）は、`reconnecting` のあとだけ「つながりました」と言う
 - 回答の時間と「締切になりました」を読み上げるのは `Answering` だけ。締切のあとの分かれ道は `AnswerFooter` を作り直すので、そこで読み上げると2回読まれる
 - テストは `liveRegion(politeness)`（`test/live-region.ts`）で領域を探し、`setup.ts` がテストのたびに `clearAnnouncements()` を呼ぶ
 - Playwright の `getByText` は部分一致なので、領域にも入っている見える文は、`{ exact: true }` か `getByRole('paragraph')` で探す
