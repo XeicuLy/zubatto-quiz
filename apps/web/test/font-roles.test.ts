@@ -1,21 +1,7 @@
 // @vitest-environment node
-import { readdirSync, readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-
 import { describe, expect, it } from 'vitest';
 
-const srcDir = fileURLToPath(new URL('../src/', import.meta.url));
-
-/** src の画面のファイル（テストと自動生成のルート表を除く）を、src からの相対パスで返す */
-const screenFiles = readdirSync(srcDir, { recursive: true, encoding: 'utf8' })
-  .filter((path) => /\.tsx?$/.test(path) && !/\.test\.tsx?$/.test(path) && !path.endsWith('routeTree.gen.ts'))
-  .map((path) => path.replaceAll('\\', '/'))
-  .sort();
-
-function filesUsing(className: string): string[] {
-  const pattern = new RegExp(String.raw`(?<![\w-])${className}(?![\w-])`);
-  return screenFiles.filter((path) => pattern.test(readFileSync(`${srcDir}${path}`, 'utf8')));
-}
+import { filesUsing } from './screen-files';
 
 describe('飾り文字（Dela Gothic One）を使う場所', () => {
   it('ロゴ（font-logo）は、アプリの名前を出す4画面だけ', () => {
