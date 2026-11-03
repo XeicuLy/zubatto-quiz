@@ -41,17 +41,17 @@ export function QuestionView({ question, phase, questionCount, name, onAnswer }:
         question={question}
         questionCount={questionCount}
         aside={
-          <p className="name-clip min-w-0 rounded-full bg-stage-raised px-3 py-1 text-sm" title={name}>
+          <p className="name-clip min-w-0 rounded-full bg-secondary px-3 py-1 text-sm" title={name}>
             {name}
           </p>
         }
       >
         <div className="mt-8 flex flex-1 flex-col gap-3" aria-hidden="true">
           {[0, 1, 2, 3].map((slot) => (
-            <div key={slot} className="flex-1 rounded-panel border-2 border-dashed border-stage-line" />
+            <div key={slot} className="flex-1 rounded-panel border-2 border-dashed border-border" />
           ))}
         </div>
-        <p className="mt-4 text-center font-bold text-on-stage-muted">選択肢は、ホストが受付を始めると出ます</p>
+        <p className="mt-4 text-center font-bold text-muted-foreground">選択肢は、ホストが受付を始めると出ます</p>
       </QuestionFrame>
     );
   }
@@ -149,17 +149,17 @@ interface QuestionFrameProps {
 function QuestionFrame({ question, questionCount, aside, progress, children }: QuestionFrameProps) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
-      <header className="flex items-center justify-between gap-4 border-b border-stage-line pb-3">
+      <header className="flex items-center justify-between gap-4 border-b border-border pb-3">
         <p className="shrink-0 text-lg font-bold">
-          第{question.questionIndex + 1}問 <span className="text-sm text-on-stage-muted">/ {questionCount}</span>
+          第{question.questionIndex + 1}問 <span className="text-sm text-muted-foreground">/ {questionCount}</span>
         </p>
         {aside}
       </header>
       {progress !== undefined && (
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-stage-raised" aria-hidden="true">
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true">
           {/* 幅は描くたびに変わるので、クラスではなく style で渡す。React は CSSOM で書くので、CSP の style-src に触れない */}
           <div
-            className="h-full rounded-full bg-on-stage transition-[width] ease-linear"
+            className="h-full rounded-full bg-primary transition-[width] ease-linear"
             style={{ width: `${Math.max(0, progress.ratio) * 100}%`, transitionDuration: `${progress.overMs ?? 0}ms` }}
           />
         </div>
@@ -179,14 +179,14 @@ function AnswerFooter({ answer, limitMs, closed }: { answer: MyAnswer | null; li
     <div className="mt-auto pt-8 text-center">
       {answer !== null && (
         <>
-          <p className="text-on-stage-muted">回答までの時間</p>
+          <p className="text-muted-foreground">回答までの時間</p>
           <p className="text-6xl font-bold tabular-nums">
             {secondsOf(answer, limitMs)}
             <span className="ml-1 text-2xl">秒</span>
           </p>
         </>
       )}
-      <p className="mt-4 font-bold text-on-stage-muted">{closed ? '締切になりました' : '締切を待っています'}</p>
+      <p className="mt-4 font-bold text-muted-foreground">{closed ? '締切になりました' : '締切を待っています'}</p>
     </div>
   );
 }

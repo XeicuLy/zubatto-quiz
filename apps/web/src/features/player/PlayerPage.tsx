@@ -34,7 +34,7 @@ export function PlayerPage({ player, sound }: { player: PlayerRoom; sound: Sound
       return (
         <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
           <h1 className="text-3xl leading-snug font-bold">この部屋は満員です</h1>
-          <p className="mt-4 leading-relaxed text-on-stage-muted">
+          <p className="mt-4 leading-relaxed text-muted-foreground">
             1つの部屋に入れるのは{MAX_PARTICIPANTS}人までです。ホストに、別の部屋を作れるか聞いてください。
           </p>
         </main>
@@ -43,7 +43,7 @@ export function PlayerPage({ player, sound }: { player: PlayerRoom; sound: Sound
       return (
         <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
           <h1 className="text-3xl leading-snug font-bold">部屋が見つかりません</h1>
-          <p className="mt-4 leading-relaxed text-on-stage-muted">URL が正しいか、ホストに確かめてください。</p>
+          <p className="mt-4 leading-relaxed text-muted-foreground">URL が正しいか、ホストに確かめてください。</p>
         </main>
       );
     case 'room':

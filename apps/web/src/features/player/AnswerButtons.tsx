@@ -16,11 +16,11 @@ interface AnswerButtonsProps {
  * Tailwind はクラス名を文字列のまま探すので、色のクラスは組み立てずに選択肢ごとに書いておく
  */
 const panelColors = [
-  { panel: 'bg-choice-1 text-on-choice', badge: 'bg-stage/25' },
-  { panel: 'bg-choice-2 text-on-choice', badge: 'bg-stage/25' },
-  { panel: 'bg-choice-3 text-on-choice', badge: 'bg-stage/25' },
+  { panel: 'bg-choice-1 text-choice-1-foreground', badge: 'bg-background/25' },
+  { panel: 'bg-choice-2 text-choice-2-foreground', badge: 'bg-background/25' },
+  { panel: 'bg-choice-3 text-choice-3-foreground', badge: 'bg-background/25' },
   // 黄色の上は白い字が読めないので、濃い字にする
-  { panel: 'bg-choice-4 text-on-choice-4', badge: 'bg-stage/15' },
+  { panel: 'bg-choice-4 text-choice-4-foreground', badge: 'bg-background/15' },
 ] as const;
 
 /** 1回押したら選び直せない。二度押しを止めるのは、送る側（QuestionView）の役目 */
@@ -36,7 +36,7 @@ export function AnswerButtons({ choices, chosen, onChoose, focusList = false }: 
           key={index}
           type="button"
           onClick={() => onChoose(index)}
-          className={`flex max-h-40 min-h-16 flex-1 items-center gap-4 rounded-panel px-4 py-3 text-left text-xl font-bold shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-on-stage active:translate-y-1.5 active:shadow-none ${panelColors[index].panel}`}
+          className={`flex max-h-40 min-h-16 flex-1 items-center gap-4 rounded-panel px-4 py-3 text-left text-xl font-bold shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-ring active:translate-y-1.5 active:shadow-none ${panelColors[index].panel}`}
         >
           <ChoiceNumber index={index} className={panelColors[index].badge} />
           <span className="min-w-0 wrap-anywhere">{choice}</span>
@@ -65,13 +65,13 @@ function AnsweredList({ choices, chosen, focus }: { choices: string[]; chosen: n
       tabIndex={-1}
       aria-label={chosen === null ? '選択肢' : 'あなたの回答'}
       // 選んだ項目の ring は ring-offset と合わせて 8px はみ出すので、枠はその外に出す
-      className="mt-6 flex flex-col gap-3 rounded-panel focus-visible:outline-4 focus-visible:outline-offset-12 focus-visible:outline-on-stage"
+      className="mt-6 flex flex-col gap-3 rounded-panel focus-visible:outline-4 focus-visible:outline-offset-12 focus-visible:outline-ring"
     >
       {choices.map((choice, index) =>
         index === chosen ? (
           <li
             key={index}
-            className={`flex items-center gap-4 rounded-panel px-4 py-3 text-xl font-bold ring-4 ring-on-stage ring-offset-4 ring-offset-stage ${panelColors[index].panel}`}
+            className={`flex items-center gap-4 rounded-panel px-4 py-3 text-xl font-bold ring-4 ring-foreground ring-offset-4 ring-offset-background ${panelColors[index].panel}`}
           >
             <ChoiceNumber index={index} className={panelColors[index].badge} />
             <span className="min-w-0 wrap-anywhere">{choice}</span>
@@ -80,9 +80,9 @@ function AnsweredList({ choices, chosen, focus }: { choices: string[]; chosen: n
         ) : (
           <li
             key={index}
-            className="flex items-center gap-4 rounded-panel bg-stage-raised px-4 py-3 text-xl font-bold text-on-stage-muted opacity-60"
+            className="flex items-center gap-4 rounded-panel bg-muted px-4 py-3 text-xl font-bold text-muted-foreground opacity-60"
           >
-            <ChoiceNumber index={index} className="bg-stage" />
+            <ChoiceNumber index={index} className="bg-background" />
             <span className="min-w-0 wrap-anywhere">{choice}</span>
           </li>
         ),

@@ -15,7 +15,7 @@ interface WaitingRoomProps {
 export function WaitingRoom({ name, participants, persisted }: WaitingRoomProps) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-10 pb-24">
-      <p className="text-on-stage-muted">参加しました</p>
+      <p className="text-muted-foreground">参加しました</p>
       <h1 className="mt-2 name-wrap text-4xl leading-snug font-bold">{name}</h1>
       {!persisted && (
         <p className="mt-4 rounded-chip border-2 border-alert px-4 py-3 text-sm leading-relaxed">
@@ -23,19 +23,19 @@ export function WaitingRoom({ name, participants, persisted }: WaitingRoomProps)
         </p>
       )}
 
-      <div className="mt-8 rounded-panel border-2 border-dashed border-stage-line p-6 text-center">
+      <div className="mt-8 rounded-panel border-2 border-dashed border-border p-6 text-center">
         <p className="text-lg font-bold">ホストが始めるのを待っています</p>
-        <p className="mt-2 text-on-stage-muted">
-          いま <span className="text-2xl font-bold text-on-stage">{participants.length}</span> 人が参加中
+        <p className="mt-2 text-muted-foreground">
+          いま <span className="text-2xl font-bold text-foreground">{participants.length}</span> 人が参加中
         </p>
       </div>
 
-      <h2 id="participants-heading" className="mt-8 font-bold text-on-stage-muted">
+      <h2 id="participants-heading" className="mt-8 font-bold text-muted-foreground">
         参加者
       </h2>
       <ul aria-labelledby="participants-heading" className="mt-3 flex flex-wrap gap-2">
         {participants.map((participant) => (
-          <li key={participant.participantId} className="name-wrap rounded-chip bg-stage-raised px-3 py-1.5">
+          <li key={participant.participantId} className="name-wrap rounded-chip bg-secondary px-3 py-1.5">
             {participant.name}
           </li>
         ))}
