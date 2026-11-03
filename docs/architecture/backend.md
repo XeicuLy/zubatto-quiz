@@ -9,6 +9,7 @@
 - 最初の版は、すべて TypeScript で Cloudflare の無料プランの上に作る。最初の本番のあとで、バックエンドを Go と Cloud Run（Terraform）で作り直す（[ADR 0001](../adr/0001-backend-runtime-and-realtime-transport.md)）。そのため、画面が頼るものにバックエンドの基盤の事情を持ち込まない。とくに **WebSocket の JSON メッセージの仕様は基盤に依存させず、画面とバックエンドで同じものを使う**。こうしておけば、作り直しで画面に手を入れずに済む
 - Hono の Worker が1つと、**部屋ごとに1つの Durable Object（DO）** で動かす。DO は WebSocket Hibernation API と DO の SQLite を使い、部屋の状態・得点・回答の唯一の正本になる。ポーリングや SSE は使わない
 - Worker は2つに分ける（[ADR 0006](../adr/0006-spa-and-api-worker-layout.md)）。`apps/web` は SPA を静的アセットとして配り、`/api/*` を Service binding で `apps/api`（Hono・DO・Better Auth）へ転送する。ブラウザからは1つのオリジンに見えるので、CORS も `crossSubDomainCookies` も使わない。API と WebSocket のパスは、すべて `/api/` の下に置く
+- `@/*` は `apps/api/src/*` を指す（ADR 0007）。`tsconfig.json` の `paths` に書き、vitest は `resolve.tsconfigPaths: true` で、wrangler（esbuild）は設定なしでそれを読む。E2E では `apps/web` の Vite が API の Worker（`test/e2e-entry.ts`）も作るが、これも import する側に近い tsconfig を読むので、API の `@/` は API の `src/` を指す。`../` を使わないきまりは [frontend.md](frontend.md#全体の形) と同じ
 - `GET /api/health` は `{ ok: true }` を返すだけの、生きているかの確かめ
 - `apps/api` は `workers_dev: false` と `preview_urls: false` にしている。本番の最中は `apps/api` をデプロイしない。部屋の WebSocket が切れるため
 
