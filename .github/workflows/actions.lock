@@ -36,7 +36,7 @@ dependencies:
         repo_id: 642580244
     'actions/upload-artifact@v7.0.1':
         ref: 'v7.0.1'
-        commit: 'sha1-043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+        commit: 'sha1-e454baaac2be505c9450e11b8f3215c6fc023ce8'
         owner_id: 44036562
         repo_id: 192625955
     'googleapis/release-please-action@v5.0.0':
