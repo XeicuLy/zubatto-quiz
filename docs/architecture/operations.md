@@ -79,6 +79,16 @@ workflow が使う action は、GitHub 公式の lockfile `.github/workflows/act
 - `v7` のような短いタグは使わない。動くタグが古いコミットへ戻されたときは、ツールが気づけない
 - ローカルの `./` の action と、外部の再利用する workflow（`jobs.<id>.uses`）は lock に入らない。今はどちらも使っていない。使うときは README の Limitations を読む
 
+実行時に runner がどこまで止めるかは、次のとおり（公開リポジトリの Free プランで、#248 で、2026-11-05 に確かめた）。runner が止めないものがあるので、PR では `--verify` の結果と lock の差分を見る。
+
+| lock の状態                             | runner の動き                                                              | `--verify`   | `--verify-local` |
+| --------------------------------------- | -------------------------------------------------------------------------- | ------------ | ---------------- |
+| 合っている                              | lock のコミットで動く（ログに `Using locked action versions` と出る）      | 通る         | 通る             |
+| `commit` が存在しない SHA               | `Set up job` で止まる                                                      | 試していない | 試していない     |
+| `uses:` を変えて lock を直していない    | 動き始めない（`startup_failure`）                                          | 止まる       | 止まる           |
+| `commit` がタグの履歴にある古いコミット | **止まらない。そのコミットで動く**                                         | 止まる       | **通る**         |
+| workflow が lock に載っていない         | **止まらない。タグが指すコミットで動く**（ログに `Using locked` が出ない） | 止まる       | 止まる           |
+
 action を足す、更新する、または workflow を足すときの手順は次のとおり。
 
 1. 拡張を版を指定して入れる（初回だけ）: `gh extension install github/gh-actions-lock --pin v0.4.1`
