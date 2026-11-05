@@ -1,4 +1,4 @@
-import { type KeyboardEvent, type RefObject, useCallback, useId, useLayoutEffect, useRef, useState } from 'react';
+import { type KeyboardEvent, type RefObject, useId, useLayoutEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/tailwind';
 
@@ -126,11 +126,14 @@ function useConfirm<T extends string>() {
     }
   }, [confirming]);
 
-  const open = useCallback((which: T, from: RefObject<HTMLElement | null>) => {
+  function open(which: T, from: RefObject<HTMLElement | null>) {
     opener.current = from;
     setConfirming(which);
-  }, []);
-  const close = useCallback(() => setConfirming(null), []);
+  }
+
+  function close() {
+    setConfirming(null);
+  }
 
   return { confirming, open, close };
 }

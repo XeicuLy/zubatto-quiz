@@ -1,7 +1,10 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { encode } from 'uqr';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { JoinQrCode } from './JoinQrCode';
+
+vi.mock('uqr', { spy: true });
 
 const joinUrl = (id: string) => `https://zubakui.example/r/${id.repeat(64)}`;
 
@@ -9,6 +12,10 @@ const qrImage = () => screen.getByRole('img', { name: '参加用 URL の QR コ�
 const pathOf = (svg: Element) => svg.querySelector('path')?.getAttribute('d') ?? '';
 
 describe('参加用 URL の QR コード（F1）', () => {
+  beforeEach(() => {
+    vi.mocked(encode).mockClear();
+  });
+
   it('画像として、何の QR かを読み上げられる', () => {
     render(<JoinQrCode url={joinUrl('a')} />);
 
@@ -22,6 +29,16 @@ describe('参加用 URL の QR コード（F1）', () => {
 
     expect(first).not.toBe('');
     expect(pathOf(qrImage())).not.toBe(first);
+  });
+
+  // 参加者が入るたびに待機画面は描き直される。計算し直さないのは React Compiler の働きなので、回数で確かめる
+  it('同じ URL で描き直しても計算し直さず、URL が変わったときだけ計算する', () => {
+    const { rerender } = render(<JoinQrCode url={joinUrl('a')} />);
+    rerender(<JoinQrCode url={joinUrl('a')} />);
+    expect(encode).toHaveBeenCalledTimes(1);
+
+    rerender(<JoinQrCode url={joinUrl('b')} />);
+    expect(encode).toHaveBeenCalledTimes(2);
   });
 
   it('まわりに4マスの余白（クワイエットゾーン）を空ける', () => {
