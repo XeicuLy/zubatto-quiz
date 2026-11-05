@@ -29,6 +29,7 @@
 - React Compiler は Babel のプラグインとして動かす。`@vitejs/plugin-react` 6 は Babel を内蔵せず、`react({ compiler: true })`（Rust 版）はまだ実験中なので使わない。設定は `react-compiler.ts` の `reactCompiler()` 1つにまとめ、`vite.config.ts` と `vitest.config.ts` の `react()` のすぐ後ろで呼ぶ。片方だけ変えると、本番とテストで違うコードが動くため
   - 変換がかかるのは画面の環境（`consumer` が `client`）だけで、同じ Vite で作る API と画面の Worker にはかからない。`src/routeTree.gen.ts` は部品がないので外す
   - `@babel/core` は 7 系のままにする。8 系では、`{ size = 'md' }` のように既定値を付けた props を持つ部品を Compiler が読めず、エラーなしで飛ばす。ビルドもテストも通るので、効果がなくなったことが見えない（2026-11-05 に Babel 8.1.0 と Compiler 1.0.0 で確かめた）。`src/lib/react-compiler.test.tsx` は、既定値付きの部品の描画回数で、この変換が vitest で動いていることを確かめる
+  - `useMemo`・`useCallback`・`memo` は手で書かない。Compiler は手書きのものも尊重するので残っていても動くが、残すと「書くべきなのか」が読み手に分からなくなる。計算し直さないことが大事な部品は、計算の回数をテストで確かめる（`JoinQrCode.test.tsx`。`encode` の回数を数える）
 - DOM と Workers の型がぶつかるので、tsconfig を3つに分ける。`tsconfig.app.json`（DOM、`src/`）、`tsconfig.worker.json`（`src/server.ts` とそのテスト、Workers の型）、`tsconfig.node.json`（設定ファイルと `test/*.test.ts`）。ファイルを読むテストは `// @vitest-environment node` で node で動かし、`test/` に置く
 - `vite dev` は `auxiliaryWorkers` で2つの Worker を両方動かす。`apps/web/wrangler.jsonc` か `src/server.ts` を変えたら、次で型を作り直す
 
