@@ -30,6 +30,18 @@ jobs:
         with:
           persist-credentials: false
 
+      # lock の中身まで上流と照らし合わせる。runner と --verify-local が通す、古いコミットへのすり替えもここで止まる
+      # トークンは依存パッケージのコードが動く前のこの2つの step にだけ渡す。ネットワークを使うので、GitHub の不調で落ちたら再実行する
+      - name: Install gh-actions-lock
+        run: gh extension install github/gh-actions-lock --pin v0.4.1
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Verify actions.lock
+        run: gh actions-lock --verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Install tools via mise
         uses: jdx/mise-action@v5.1.1
 
