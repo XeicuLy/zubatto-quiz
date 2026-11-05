@@ -4,6 +4,8 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
+import { reactCompiler } from './react-compiler.ts';
+
 /** E2E のローカルの D1 と DO の置き場所。package.json の e2e:serve が、毎回空にしてからマイグレーションを当てる */
 const E2E_STATE_PATH = '.wrangler/e2e';
 
@@ -13,6 +15,8 @@ export default defineConfig(({ mode }) => ({
     // テストのファイル（*.test.tsx）は経路にしない
     tanstackRouter({ target: 'react', autoCodeSplitting: true, routeFileIgnorePattern: String.raw`\.test\.` }),
     react(),
+    // 画面の環境（consumer が client）だけにかかる。同じ Vite で作る API と画面の Worker は変換しない
+    reactCompiler(),
     tailwindcss(),
     // vite dev 1つで、画面の Worker と API の Worker（部屋の DO を含む）を動かす（ADR 0006）
     // --mode e2e（.env.e2e の CLOUDFLARE_ENV）では、両方の Worker を wrangler.jsonc の env.e2e で作る。
