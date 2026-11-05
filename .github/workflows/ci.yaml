@@ -26,12 +26,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
       - name: Install tools via mise
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        uses: jdx/mise-action@v5.1.1
 
       # pnpm は mise で入れているので、setup-node の cache は使えない。store の場所は pnpm の版で変わるので、pnpm に聞く
       - name: Get pnpm store path
@@ -41,7 +41,7 @@ jobs:
       # PR で作ったキャッシュはその PR の中でしか使えない。どの PR でも使えるのは main で作ったものだけ
       # lockfile が変わったら restore-keys で前の store を戻し、増えた分だけを取ってくる
       - name: Cache pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -71,12 +71,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
       - name: Install tools via mise
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        uses: jdx/mise-action@v5.1.1
 
       # pnpm は mise で入れているので、setup-node の cache は使えない。store の場所は pnpm の版で変わるので、pnpm に聞く
       - name: Get pnpm store path
@@ -86,7 +86,7 @@ jobs:
       # PR で作ったキャッシュはその PR の中でしか使えない。どの PR でも使えるのは main で作ったものだけ
       # lockfile が変わったら restore-keys で前の store を戻し、増えた分だけを取ってくる
       - name: Cache pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -104,7 +104,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
@@ -124,7 +124,7 @@ jobs:
       # 落ちたときだけ、トレース（操作ごとの画面と DOM）とレポートを残す。pnpm exec playwright show-trace で開ける
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: playwright-report
           path: |

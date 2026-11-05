@@ -70,6 +70,38 @@
 - PR の CI は `refs/pull/N/merge` の上で動くので、main に入ったコミットにはチェックが付かない。そのため `ci.yaml` は main への push でも動く
 - シェルでは、全角の文字が続く変数を `{}` で囲む（`${result}）`）。bash は、マルチバイトの文字のバイトを変数名の一部として読むことがある
 
+## action の固定
+
+workflow が使う action は、GitHub 公式の lockfile `.github/workflows/actions.lock` で固定する。`gh actions-lock` が書く生成物なので、手で直さない。
+
+- lock は、action ごとにコミットとリポジトリの ID を持つ。action が内部で呼ぶ action まで入る。実行するときは、lock のコミットが使われる
+- `uses:` はタグの全桁（`actions/checkout@v7.0.1`）で書く。SHA は lock にあるので、`uses:` には SHA も版のコメントも書かない。SHA で書いてあっても、`gh actions-lock` がタグに書き換える（v0.4.1 で、2026-11-05 に確かめた）
+- `v7` のような短いタグは使わない。動くタグが古いコミットへ戻されたときは、ツールが気づけない
+- ローカルの `./` の action と、外部の再利用する workflow（`jobs.<id>.uses`）は lock に入らない。今はどちらも使っていない。使うときは README の Limitations を読む
+
+実行時に runner がどこまで止めるかは、次のとおり（公開リポジトリの Free プランで、#248 で、2026-11-05 に確かめた）。runner が止めないものがあるので、PR では `--verify` の結果と lock の差分を見る。
+
+| lock の状態                             | runner の動き                                                              | `--verify`   | `--verify-local` |
+| --------------------------------------- | -------------------------------------------------------------------------- | ------------ | ---------------- |
+| 合っている                              | lock のコミットで動く（ログに `Using locked action versions` と出る）      | 通る         | 通る             |
+| `commit` が存在しない SHA               | `Set up job` で止まる                                                      | 試していない | 試していない     |
+| `uses:` を変えて lock を直していない    | 動き始めない（`startup_failure`）                                          | 止まる       | 止まる           |
+| `commit` がタグの履歴にある古いコミット | **止まらない。そのコミットで動く**                                         | 止まる       | **通る**         |
+| workflow が lock に載っていない         | **止まらない。タグが指すコミットで動く**（ログに `Using locked` が出ない） | 止まる       | 止まる           |
+
+action を足す、更新する、または workflow を足すときの手順は次のとおり。
+
+1. 拡張を版を指定して入れる（初回だけ）: `gh extension install github/gh-actions-lock --pin v0.4.1`
+2. `uses:` を直す
+3. `gh actions-lock` を動かす。全部の workflow を読むので、ファイルは指定しない
+4. `git diff .github/workflows/` で、lock の `commit` と `ref` の変わり方を読んでから、workflow と一緒にコミットする
+
+`tag-commit-mismatch`（lock のコミットが、タグの履歴の古いコミット）か `unreachable-pin`（lock のコミットが、タグの履歴にない）と出たときは、タグが動かされたか、lock が書き換えられた。`unreachable-pin` は、上流が force-push や squash で履歴を書き換えたときにも出る。ツールには見分けられないので、そのまま受け入れない。
+
+1. main の lock と比べる。書き換えられていたら、main のものに戻す
+2. 上流のリリースノートと履歴を読み、コミットが変わった理由を確かめる。`tag-commit-mismatch` なら2つのコミットの差も読む。履歴の書き換えで古いコミットと比べられないときも、リリースノートと履歴で理由の説明がつかなければ受け入れない
+3. 問題がなければ、`tag-commit-mismatch` は `--relock` で、`unreachable-pin` は `--accept-moved` で受け入れ、差分を読む。どちらも自動の処理では使わない
+
 ## ログ
 
 本番中と本番のあとのログの見方と残し方は、[logs.md](../runbooks/logs.md) にある。ここには、手順に出てこない作りの理由を書く。
