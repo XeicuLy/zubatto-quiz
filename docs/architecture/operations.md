@@ -70,6 +70,24 @@
 - PR の CI は `refs/pull/N/merge` の上で動くので、main に入ったコミットにはチェックが付かない。そのため `ci.yaml` は main への push でも動く
 - シェルでは、全角の文字が続く変数を `{}` で囲む（`${result}）`）。bash は、マルチバイトの文字のバイトを変数名の一部として読むことがある
 
+## action の固定
+
+workflow が使う action は、GitHub 公式の lockfile `.github/workflows/actions.lock` で固定する。`gh actions-lock` が書く生成物なので、手で直さない。
+
+- lock は、action ごとにコミットとリポジトリの ID を持つ。action が内部で呼ぶ action まで入る。実行するときは、lock のコミットが使われる
+- `uses:` はタグの全桁（`actions/checkout@v7.0.1`）で書く。SHA は lock にあるので、`uses:` には SHA も版のコメントも書かない。SHA で書いてあっても、`gh actions-lock` がタグに書き換える（v0.4.1 で、2026-11-05 に確かめた）
+- `v7` のような短いタグは使わない。動くタグが古いコミットへ戻されたときは、ツールが気づけない
+- ローカルの `./` の action と、外部の再利用する workflow（`jobs.<id>.uses`）は lock に入らない。今はどちらも使っていない。使うときは README の Limitations を読む
+
+action を足す、更新する、または workflow を足すときの手順は次のとおり。
+
+1. 拡張を版を指定して入れる（初回だけ）: `gh extension install github/gh-actions-lock --pin v0.4.1`
+2. `uses:` を直す
+3. `gh actions-lock` を動かす。全部の workflow を読むので、ファイルは指定しない
+4. `git diff .github/workflows/` で、lock の `commit` と `ref` の変わり方を読んでから、workflow と一緒にコミットする
+
+`ref-moved` と出たときは、タグかブランチが別のコミットへ動いている。`--relock` は短いタグやブランチを今のコミットへ進めるためのもので、全桁のタグが動いたときは、まず理由を調べる。履歴が書き換えられたことが分かったときだけ `--accept-moved` を使う。自動の処理では使わない。
+
 ## ログ
 
 本番中と本番のあとのログの見方と残し方は、[logs.md](../runbooks/logs.md) にある。ここには、手順に出てこない作りの理由を書く。
