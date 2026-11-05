@@ -52,7 +52,7 @@ jobs:
     steps:
       # 確かめるスクリプトと、必須のチェックの名前を読むルールセットのファイルだけを取ってくる
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: |
@@ -78,12 +78,12 @@ jobs:
     environment: production
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
       - name: Install tools via mise
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        uses: jdx/mise-action@v5.1.1
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
