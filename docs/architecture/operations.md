@@ -96,10 +96,10 @@ action を足す、更新する、または workflow を足すときの手順は
 3. `gh actions-lock` を動かす。全部の workflow を読むので、ファイルは指定しない
 4. `git diff .github/workflows/` で、lock の `commit` と `ref` の変わり方を読んでから、workflow と一緒にコミットする
 
-`tag-commit-mismatch`（lock のコミットが、タグの履歴の古いコミット）か `unreachable-pin`（lock のコミットが、タグの履歴にない）と出たときは、タグが動かされたか、lock が書き換えられた。ツールには見分けられないので、そのまま受け入れない。
+`tag-commit-mismatch`（lock のコミットが、タグの履歴の古いコミット）か `unreachable-pin`（lock のコミットが、タグの履歴にない）と出たときは、タグが動かされたか、lock が書き換えられた。`unreachable-pin` は、上流が force-push や squash で履歴を書き換えたときにも出る。ツールには見分けられないので、そのまま受け入れない。
 
 1. main の lock と比べる。書き換えられていたら、main のものに戻す
-2. タグが動いていたら、上流の2つのコミットの差を読む
+2. 上流のリリースノートと履歴を読み、コミットが変わった理由を確かめる。`tag-commit-mismatch` なら2つのコミットの差も読む。履歴の書き換えで古いコミットと比べられないときも、リリースノートと履歴で理由の説明がつかなければ受け入れない
 3. 問題がなければ、`tag-commit-mismatch` は `--relock` で、`unreachable-pin` は `--accept-moved` で受け入れ、差分を読む。どちらも自動の処理では使わない
 
 ## ログ
