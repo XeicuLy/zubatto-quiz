@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { encode } from 'uqr';
 
 import { qrPathOf } from './qr-path';
@@ -15,11 +14,7 @@ const QUIET_ZONE = 4;
  * 色はトークンに合わせ、強制カラーモードでも明るい地に暗いマスのまま描く
  */
 export function JoinQrCode({ url }: { url: string }) {
-  // 参加者が入るたびに待機画面は描き直されるので、URL が変わったときだけ作り直す
-  const { size, d } = useMemo(() => {
-    const qr = encode(url, { ecc: 'M', boostEcc: true, border: QUIET_ZONE });
-    return { size: qr.size, d: qrPathOf(qr.data) };
-  }, [url]);
+  const { size, data } = encode(url, { ecc: 'M', boostEcc: true, border: QUIET_ZONE });
 
   return (
     <svg
@@ -29,7 +24,7 @@ export function JoinQrCode({ url }: { url: string }) {
       className="size-[clamp(12rem,14vw,16rem)] shrink-0 rounded-chip bg-primary text-primary-foreground forced-color-adjust-none"
     >
       {/* crispEdges にしないと、隣り合う四角の境目がにじんで細い線が出ることがある */}
-      <path fill="currentColor" shapeRendering="crispEdges" d={d} />
+      <path fill="currentColor" shapeRendering="crispEdges" d={qrPathOf(data)} />
     </svg>
   );
 }
