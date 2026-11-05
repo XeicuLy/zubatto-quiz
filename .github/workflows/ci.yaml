@@ -53,7 +53,7 @@ jobs:
       # PR で作ったキャッシュはその PR の中でしか使えない。どの PR でも使えるのは main で作ったものだけ
       # lockfile が変わったら restore-keys で前の store を戻し、増えた分だけを取ってくる
       - name: Cache pnpm store
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6.0.0
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
