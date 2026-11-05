@@ -76,18 +76,18 @@ workflow が使う action は、GitHub 公式の lockfile `.github/workflows/act
 
 - lock は、action ごとにコミットとリポジトリの ID を持つ。action が内部で呼ぶ action まで入る。実行するときは、lock のコミットが使われる
 - `uses:` はタグの全桁（`actions/checkout@v7.0.1`）で書く。SHA は lock にあるので、`uses:` には SHA も版のコメントも書かない。SHA で書いてあっても、`gh actions-lock` がタグに書き換える（v0.4.1 で、2026-11-05 に確かめた）
-- `v7` のような短いタグは使わない。動くタグが古いコミットへ戻されたときは、ツールが気づけない
-- ローカルの `./` の action と、外部の再利用する workflow（`jobs.<id>.uses`）は lock に入らない。今はどちらも使っていない。使うときは README の Limitations を読む
+- `v7` のような短いタグや `main` のようなブランチは使わない。動く ref が古いコミットへ戻されたときは、ツールが気づけない。`--no-narrow` で作った lock や `@main` は `--verify` を通るので、`ci-workflow.test.ts` で止める
+- ローカルの `./` の action と、外部の再利用する workflow（`jobs.<id>.uses`）は lock に入らない。今はどちらも使っていない。外部の再利用する workflow は、タグでも `@main` でも存在しないファイルでも `--verify` を通るので、`ci-workflow.test.ts` で止める（v0.4.1 で、2026-11-05 に確かめた）。使うときは README の Limitations を読む
 
-実行時に runner がどこまで止めるかは、次のとおり（公開リポジトリの Free プランで、#248 で、2026-11-05 に確かめた）。runner が止めないものがあるので、PR では `--verify` の結果と lock の差分を見る。
+実行時に runner がどこまで止めるかと、`--verify` の結果は、次のとおり（公開リポジトリの Free プランで、#248 と #252 で、2026-11-05 に確かめた）。runner が止めないものがあるので、必須チェック `ci` の中で `--verify` を動かし、PR では lock の差分も読む。`--verify-local` は古いコミットへのすり替えを通すので使わない。
 
-| lock の状態                             | runner の動き                                                              | `--verify`   | `--verify-local` |
-| --------------------------------------- | -------------------------------------------------------------------------- | ------------ | ---------------- |
-| 合っている                              | lock のコミットで動く（ログに `Using locked action versions` と出る）      | 通る         | 通る             |
-| `commit` が存在しない SHA               | `Set up job` で止まる                                                      | 試していない | 試していない     |
-| `uses:` を変えて lock を直していない    | 動き始めない（`startup_failure`）                                          | 止まる       | 止まる           |
-| `commit` がタグの履歴にある古いコミット | **止まらない。そのコミットで動く**                                         | 止まる       | **通る**         |
-| workflow が lock に載っていない         | **止まらない。タグが指すコミットで動く**（ログに `Using locked` が出ない） | 止まる       | 止まる           |
+| lock の状態                             | runner の動き                                                                                 | `--verify` | `--verify-local` |
+| --------------------------------------- | --------------------------------------------------------------------------------------------- | ---------- | ---------------- |
+| 合っている                              | lock のコミットで動く（ログに `Using locked action versions` と出る）                         | 通る       | 通る             |
+| `commit` が存在しない SHA               | `Set up job` で止まる                                                                         | 止まる     | **通る**         |
+| `uses:` を変えて lock を直していない    | 動き始めない（`startup_failure`。job ができないので `ci` のチェックが付かず、マージできない） | 止まる     | 止まる           |
+| `commit` がタグの履歴にある古いコミット | **止まらない。そのコミットで動く**                                                            | 止まる     | **通る**         |
+| workflow が lock に載っていない         | **止まらない。タグが指すコミットで動く**（ログに `Using locked` が出ない）                    | 止まる     | 止まる           |
 
 action を足す、更新する、または workflow を足すときの手順は次のとおり。
 
@@ -101,6 +101,24 @@ action を足す、更新する、または workflow を足すときの手順は
 1. main の lock と比べる。書き換えられていたら、main のものに戻す
 2. 上流のリリースノートと履歴を読み、コミットが変わった理由を確かめる。`tag-commit-mismatch` なら2つのコミットの差も読む。履歴の書き換えで古いコミットと比べられないときも、リリースノートと履歴で理由の説明がつかなければ受け入れない
 3. 問題がなければ、`tag-commit-mismatch` は `--relock` で、`unreachable-pin` は `--accept-moved` で受け入れ、差分を読む。どちらも自動の処理では使わない
+
+### ci で落ちたとき
+
+`ci` は Checkout の直後に `Install gh-actions-lock` と `Verify actions.lock` を動かす。`GH_TOKEN` はこの2つの step にだけ `github.token` を渡す（権限は `contents: read` で足りる）。`pnpm install` より前に動くので、依存パッケージのコードはトークンを読めない。拡張の版を上げるときは、`ci.yaml` と上の手順の `--pin` をそろえる。
+
+どこで、何と出て落ちたかで直し方が変わる。
+
+| 落ち方                                                                            | 直し方                                                                                       |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| どちらかの step が `TLS handshake timeout` などの通信のエラーか、時間切れで落ちる | lock のずれではない。`gh run rerun <run の ID> --failed` で再実行する                        |
+| CI の run が `startup_failure` で、`ci` のチェックが付かない                      | 手元で `gh actions-lock --verify` を動かして理由を読む。多くは次の行と同じ                   |
+| `Ref changed`・`Not pinned`・`Unused lockfile entry`（`uses:` と lock のずれ）    | 手元で `gh actions-lock` を動かし、差分を読んでから、workflow と一緒にコミットする           |
+| `tag-commit-mismatch`・`unreachable-pin`（lock のコミットが上流と合わない）       | そのまま受け入れない。上の手順で、書き換えられていないかと、コミットが変わった理由を確かめる |
+| `ci-workflow.test.ts` の `usesThatVerifyMisses` で落ちる                          | `uses:` を全桁のタグに直す。外部の再利用する workflow は使わない                             |
+
+通信の不調は、#252 で2回目の実行で1回起きた（`api.github.com` の `TLS handshake timeout`。1つの step に9分20秒かかった）。そのときは Checkout も4分半かかっており、同じコミットの `e2e` は別の runner で通り、再実行は8秒で終わった。そのため、自動の再試行は入れず、2つの step を `timeout-minutes: 3` で区切って、早く落として再実行する。再実行で足りないほど増えたら、やり方を考え直す。
+
+`main` への push でも動くので、上流がタグを動かすと、PR がなくても `main` の `ci` が落ち、`verify-ci` がデプロイを止める。`main` で落ちたときも同じ表で直す。
 
 ## ログ
 
@@ -116,19 +134,19 @@ action を足す、更新する、または workflow を足すときの手順は
 
 `tools/docs-check`（vitest の project `docs`）は、文書・設定・workflow が、リポジトリの今の形とずれていないかを確かめる。
 
-| テスト                           | 確かめること                                                                                                                                                                                                                  |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `links.test.ts`                  | `test/documents.ts` に並べた文書の相対リンクと `#見出し` が、リポジトリの中を指し、GitHub の見出しの slug で解決できること                                                                                                    |
-| `scripts.test.ts`                | 同じ文書の `pnpm [-s] [--filter <pkg>] run <script>` が、あるスクリプトを指すこと。`logs:api`・`logs:web` が `pnpm --silent` で始まり、ファイルへ `>>` で残すこと                                                             |
-| `docs-index.test.ts`             | `docs/README.md` の ADR の一覧に、どの ADR もちょうど1行あり、状態が ADR の Status と合うこと                                                                                                                                 |
-| `main-ruleset.test.ts`           | [上の「ルールセット」](#ルールセット)のとおり                                                                                                                                                                                 |
-| `release-tag-ruleset.test.ts`    | 同じく                                                                                                                                                                                                                        |
-| `release-please.test.ts`         | [上の「リリース」](#リリース)のとおり                                                                                                                                                                                         |
-| `dev-vars-example.test.ts`       | [上の「インフラの管理」](#インフラの管理)のとおり                                                                                                                                                                             |
-| `ci-workflow.test.ts`            | `run:` に `github.event.*` や `github.head_ref` を `${{ }}` で埋め込んでいないこと。そうした値は `env:` を通す                                                                                                                |
-| `deploy-workflow.test.ts`        | deploy.yaml と ci.yaml を `yaml` で読み、きっかけ（`release` か、`target` を付けた dispatch）と失敗する job やスクリプトごとに、どのスクリプトが動くかを試す（`scriptsThatRun`）。`production` を使う job が1つだけであること |
-| `verify-required-checks.test.ts` | `verify-required-checks.sh` を偽の `gh` と本物の `jq` で、`CI_POLL_SECONDS=0` で動かす                                                                                                                                        |
-| `oxlint-layers.test.ts`          | 一時フォルダーに `.oxlintrc.json` の写しと、import を1行だけ書いたファイルを置いて oxlint を走らせ、`apps/web/src` の層の柵と `import/no-cycle` が効くこと（[frontend.md の「全体の形」](frontend.md#全体の形)）              |
+| テスト                           | 確かめること                                                                                                                                                                                                                                                                                         |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `links.test.ts`                  | `test/documents.ts` に並べた文書の相対リンクと `#見出し` が、リポジトリの中を指し、GitHub の見出しの slug で解決できること                                                                                                                                                                           |
+| `scripts.test.ts`                | 同じ文書の `pnpm [-s] [--filter <pkg>] run <script>` が、あるスクリプトを指すこと。`logs:api`・`logs:web` が `pnpm --silent` で始まり、ファイルへ `>>` で残すこと                                                                                                                                    |
+| `docs-index.test.ts`             | `docs/README.md` の ADR の一覧に、どの ADR もちょうど1行あり、状態が ADR の Status と合うこと                                                                                                                                                                                                        |
+| `main-ruleset.test.ts`           | [上の「ルールセット」](#ルールセット)のとおり                                                                                                                                                                                                                                                        |
+| `release-tag-ruleset.test.ts`    | 同じく                                                                                                                                                                                                                                                                                               |
+| `release-please.test.ts`         | [上の「リリース」](#リリース)のとおり                                                                                                                                                                                                                                                                |
+| `dev-vars-example.test.ts`       | [上の「インフラの管理」](#インフラの管理)のとおり                                                                                                                                                                                                                                                    |
+| `ci-workflow.test.ts`            | `run:` に `github.event.*` や `github.head_ref` を `${{ }}` で埋め込んでいないこと。そうした値は `env:` を通す。`ci` が `pnpm install` より前に `--verify` を動かし、トークンをその step にだけ渡すこと。`--verify` が止めない `uses:` の書き方がないこと（[上の「action の固定」](#action-の固定)） |
+| `deploy-workflow.test.ts`        | deploy.yaml と ci.yaml を `yaml` で読み、きっかけ（`release` か、`target` を付けた dispatch）と失敗する job やスクリプトごとに、どのスクリプトが動くかを試す（`scriptsThatRun`）。`production` を使う job が1つだけであること                                                                        |
+| `verify-required-checks.test.ts` | `verify-required-checks.sh` を偽の `gh` と本物の `jq` で、`CI_POLL_SECONDS=0` で動かす                                                                                                                                                                                                               |
+| `oxlint-layers.test.ts`          | 一時フォルダーに `.oxlintrc.json` の写しと、import を1行だけ書いたファイルを置いて oxlint を走らせ、`apps/web/src` の層の柵と `import/no-cycle` が効くこと（[frontend.md の「全体の形」](frontend.md#全体の形)）                                                                                     |
 
 - `scriptRunsIn` は、スクリプト名を空白かバッククォートの手前まで読む。そのため `logs:web.bak` を `logs:web` とは読まないが、名前のすぐあとの全角の `）` は名前の一部として読む。コマンドは1行に1つずつ書く
 - 文書の一覧は `test/documents.ts` にあり、`links.test.ts` と `scripts.test.ts` が共有する。相対リンクや `pnpm run` のコマンドを書く文書を足したら、ここにも足す
