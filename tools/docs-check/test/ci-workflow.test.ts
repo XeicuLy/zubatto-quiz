@@ -41,7 +41,8 @@ function untrustedExpressionsInRun(text: string): string[] {
 
 /**
  * gh actions-lock --verify が止めない uses: の書き方を返す（v0.4.1 で、2026-11-05 に確かめた）。
- * 外部の再利用する workflow は lock に載らず、存在しないファイルでも通る。@main や @v7 は lock に載せると通り、動く ref を古いコミットへ戻されても気づけない
+ * 外部の再利用する workflow は lock に載らず、存在しないファイルでも通る。@main や @v7 は lock に載せると通り、動く ref を古いコミットへ戻されても気づけない。
+ * コンテナは lock に載らず、タグでも警告だけで通る。digest なら内容は固まるが、使っていないので例外を作らず、同じように止める
  */
 function usesThatVerifyMisses(text: string): string[] {
   const jobs = Object.values((parse(text) as Workflow).jobs);
@@ -118,6 +119,7 @@ describe('usesThatVerifyMisses', () => {
       [`a/b@${'0'.repeat(40)}`],
     ],
     ['コンテナの action は止める', stepUses('docker://alpine:3'), ['docker://alpine:3']],
+    ['コンテナは digest を付けても止める', stepUses('docker://alpine@sha256:abc'), ['docker://alpine@sha256:abc']],
     [
       '外部の再利用する workflow は全桁のタグでも止める',
       jobUses('a/b/.github/workflows/x.yaml@v1.2.3'),
