@@ -76,7 +76,7 @@ workflow が使う action は、GitHub 公式の lockfile `.github/workflows/act
 
 - lock は、action ごとにコミットとリポジトリの ID を持つ。action が内部で呼ぶ action まで入る。実行するときは、lock のコミットが使われる
 - `uses:` はタグの全桁（`actions/checkout@v7.0.1`）で書く。SHA は lock にあるので、`uses:` には SHA も版のコメントも書かない。SHA で書いてあっても、`gh actions-lock` がタグに書き換える（v0.4.1 で、2026-11-05 に確かめた）
-- `v7` のような短いタグや `main` のようなブランチは使わない。動く ref が古いコミットへ戻されたときは、ツールが気づけない。`--no-narrow` で作った lock や `@main` は `--verify` を通るので、`ci-workflow.test.ts` で止める
+- `v7` のような短いタグや `main` のようなブランチは使わない。lock の `commit` をその ref の履歴にある古いコミットへ戻しても、`--verify` は通す（全桁のタグなら `tag-commit-mismatch` で止まる）。上流が ref を戻したときは、`commit` が ref の履歴から外れれば `unreachable-pin` で止まるが、履歴に残れば気づけない。`--no-narrow` で作った lock や `@main` は `--verify` を通るので、`ci-workflow.test.ts` で止める
 - ローカルの `./` の action と、外部の再利用する workflow（`jobs.<id>.uses`）は lock に入らない。今はどちらも使っていない。外部の再利用する workflow は、タグでも `@main` でも存在しないファイルでも `--verify` を通るので、`ci-workflow.test.ts` で止める（v0.4.1 で、2026-11-05 に確かめた）。使うときは README の Limitations を読む
 
 実行時に runner がどこまで止めるかと、`--verify` の結果は、次のとおり（公開リポジトリの Free プランで、#248 と #252 で、2026-11-05 に確かめた）。runner が止めないものがあるので、必須チェック `ci` の中で `--verify` を動かし、PR では lock の差分も読む。`--verify-local` は古いコミットへのすり替えを通すので使わない。
@@ -108,13 +108,13 @@ action を足す、更新する、または workflow を足すときの手順は
 
 どこで、何と出て落ちたかで直し方が変わる。
 
-| 落ち方                                                                            | 直し方                                                                                       |
-| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| どちらかの step が `TLS handshake timeout` などの通信のエラーか、時間切れで落ちる | lock のずれではない。`gh run rerun <run の ID> --failed` で再実行する                        |
-| CI の run が `startup_failure` で、`ci` のチェックが付かない                      | 手元で `gh actions-lock --verify` を動かして理由を読む。多くは次の行と同じ                   |
-| `Ref changed`・`Not pinned`・`Unused lockfile entry`（`uses:` と lock のずれ）    | 手元で `gh actions-lock` を動かし、差分を読んでから、workflow と一緒にコミットする           |
-| `tag-commit-mismatch`・`unreachable-pin`（lock のコミットが上流と合わない）       | そのまま受け入れない。上の手順で、書き換えられていないかと、コミットが変わった理由を確かめる |
-| `ci-workflow.test.ts` の `usesThatVerifyMisses` で落ちる                          | `uses:` を全桁のタグに直す。外部の再利用する workflow は使わない                             |
+| 落ち方                                                                            | 直し方                                                                                                                              |
+| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| どちらかの step が `TLS handshake timeout` などの通信のエラーか、時間切れで落ちる | lock のずれではない。`gh run rerun <run の ID> --failed` で再実行する                                                               |
+| CI の run が `startup_failure` で、`ci` のチェックが付かない                      | 手元で `gh actions-lock --verify` を動かして理由を読む。多くは次の行と同じ                                                          |
+| `Ref changed`・`Not pinned`・`Unused lockfile entry`（`uses:` と lock のずれ）    | 手元で `gh actions-lock` を動かし、差分を読んでから、workflow と一緒にコミットする                                                  |
+| `tag-commit-mismatch`・`unreachable-pin`（lock のコミットが上流と合わない）       | そのまま受け入れない。上の手順で、書き換えられていないかと、コミットが変わった理由を確かめる                                        |
+| `ci-workflow.test.ts` の `usesThatVerifyMisses` で落ちる                          | action は `uses:` を全桁のタグに直す。コンテナ（`docker://`）は `@sha256:` を付けても使わない。外部の再利用する workflow も使わない |
 
 通信の不調は、#252 で2回目の実行で1回起きた（`api.github.com` の `TLS handshake timeout`。1つの step に9分20秒かかった）。そのときは Checkout も4分半かかっており、同じコミットの `e2e` は別の runner で通り、再実行は8秒で終わった。そのため、自動の再試行は入れず、2つの step を `timeout-minutes: 3` で区切って、早く落として再実行する。再実行で足りないほど増えたら、やり方を考え直す。
 
