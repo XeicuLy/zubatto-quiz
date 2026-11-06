@@ -1,0 +1,18 @@
+# 約束は tools/docs-check/test/dependabot.test.ts で固定する。理由は docs/architecture/operations.md の「Dependabot での更新」にある
+version: 2
+updates:
+  # lock に載っている workflow なら、actions.lock も同じ PR で更新される。ここに設定は要らない
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # PR の題名が main のコミットになるので、commitlint を通す形にする。include: scope は書かない（ci(deps): になる）
+    commit-message:
+      prefix: ci
+    cooldown:
+      default-days: 3
+    # major は入れない。release-please.yaml と deploy.yaml は PR の CI で動かないので、壊れる更新を action ごとに切り分ける
+    groups:
+      actions:
+        patterns: ['*']
+        update-types: [minor, patch]

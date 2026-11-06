@@ -120,6 +120,22 @@ action を足す、更新する、または workflow を足すときの手順は
 
 `main` への push でも動くので、上流がタグを動かすと、PR がなくても `main` の `ci` が落ち、`verify-ci` がデプロイを止める。`main` で落ちたときも同じ表で直す。
 
+### Dependabot での更新
+
+action の更新は、Dependabot が週に1回 PR にする（`.github/dependabot.yml`）。自動マージはしない。上の手順を手で行うのは、action を足すときと、Dependabot を待たずに更新するときだけ。
+
+- lock に載っている workflow なら、Dependabot は `uses:` と一緒に `actions.lock` も同じ PR で作り直す。設定は要らない（[GitHub の文書](https://docs.github.com/en/actions/how-tos/secure-your-work/lock-workflow-dependencies)で、2026-11-06 に確かめた）。lock に載っていない workflow は `uses:` だけが変わるので、workflow を足すときは必ず `gh actions-lock` まで動かす
+- `commit-message.prefix` は `ci` にする。squash マージなので PR の題名が `main` のコミットになり、`pr-title` の commitlint を通す必要がある。`ci` は CHANGELOG に載らず、版も上がらない。`include: scope` は書かない。書くと `ci(deps):` になり、scope を付けない決まりから外れる
+- minor と patch は1つの PR にまとめる。PR ごとに `e2e` が約10分かかるので、数を減らす。major は action ごとの PR に分ける。`release-please.yaml` と `deploy.yaml` は PR の CI で動かないので、壊れる更新はマージのあとで初めて分かる。分けておけば、原因の action をすぐ切り分けられる
+- `cooldown.default-days` は3日にする。乗っ取られて新しいタグが公開されると、そのタグは `--verify` を通る。`--verify` が止めるのは、すでにあるタグが動いたときだけだからだ。公開から数日待って、見つかるまでの時間を稼ぐ。github-actions では `semver-major-days` などの版ごとの設定は使えない
+- 更新の PR の GitHub Actions は `GITHUB_TOKEN` が読み取りだけになり、読める secrets は Dependabot secrets だけになる（今は0件）。本番の secrets は `production` 環境にあるので、更新された action のコードが PR の CI で動いても届かない。`pull_request_target` と `workflow_run` は使わない
+
+更新の PR で読むことは次のとおり。
+
+1. `actions.lock` の差分で、`ref` と `commit` が更新した action の分だけ変わっていること。`owner_id` と `repo_id` が変わっていたら、リポジトリの持ち主が変わった可能性があるので、そのままマージしない
+2. `release-please.yaml` か `deploy.yaml` が使う action なら、上流のリリースノートを読む。必須チェックが通っても、この2つの中での動きは確かめられていない
+3. `ci` の `Verify actions.lock` が `tag-commit-mismatch` か `unreachable-pin` で落ちたら、[上の手順](#ci-で落ちたとき)で理由を確かめる
+
 ## ログ
 
 本番中と本番のあとのログの見方と残し方は、[logs.md](../runbooks/logs.md) にある。ここには、手順に出てこない作りの理由を書く。
@@ -144,6 +160,7 @@ action を足す、更新する、または workflow を足すときの手順は
 | `release-please.test.ts`         | [上の「リリース」](#リリース)のとおり                                                                                                                                                                                                                                                                |
 | `dev-vars-example.test.ts`       | [上の「インフラの管理」](#インフラの管理)のとおり                                                                                                                                                                                                                                                    |
 | `ci-workflow.test.ts`            | `run:` に `github.event.*` や `github.head_ref` を `${{ }}` で埋め込んでいないこと。そうした値は `env:` を通す。`ci` が `pnpm install` より前に `--verify` を動かし、トークンをその step にだけ渡すこと。`--verify` が止めない `uses:` の書き方がないこと（[上の「action の固定」](#action-の固定)） |
+| `dependabot.test.ts`             | [上の「Dependabot での更新」](#dependabot-での更新)のとおり（週に1回、題名は scope のない `ci:`、major を分ける、`cooldown` の下限）                                                                                                                                                                 |
 | `deploy-workflow.test.ts`        | deploy.yaml と ci.yaml を `yaml` で読み、きっかけ（`release` か、`target` を付けた dispatch）と失敗する job やスクリプトごとに、どのスクリプトが動くかを試す（`scriptsThatRun`）。`production` を使う job が1つだけであること                                                                        |
 | `verify-required-checks.test.ts` | `verify-required-checks.sh` を偽の `gh` と本物の `jq` で、`CI_POLL_SECONDS=0` で動かす                                                                                                                                                                                                               |
 | `oxlint-layers.test.ts`          | 一時フォルダーに `.oxlintrc.json` の写しと、import を1行だけ書いたファイルを置いて oxlint を走らせ、`apps/web/src` の層の柵と `import/no-cycle` が効くこと（[frontend.md の「全体の形」](frontend.md#全体の形)）                                                                                     |
