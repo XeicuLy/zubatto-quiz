@@ -16,3 +16,43 @@ updates:
       actions:
         patterns: ['*']
         update-types: [minor, patch]
+
+  # .mise.toml（node・pnpm など）は Dependabot が読まないので、手で更新する
+  - package-ecosystem: npm
+    # pnpm-lock.yaml は root に1つだけなので、/ だけを指す
+    directory: /
+    schedule:
+      interval: weekly
+    # chore は CHANGELOG に載らず、版も上がらない。include: scope は書かない（chore(deps): になる）
+    commit-message:
+      prefix: chore
+    # pnpm の公開待ち期間（1日）より長くする。推移的な依存には効かない
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+    ignore:
+      # 8 系では、React Compiler が既定値付き props の部品を黙って飛ばす
+      - dependency-name: '@babel/core'
+        update-types: [version-update:semver-major]
+      # .mise.toml の Node の版に合わせて、手で上げる
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+    # 先に一致したグループに入るので、minor-and-patch は最後に書く
+    groups:
+      # 版をそろえるものは、major のときだけ一緒に別の PR にする
+      storybook:
+        patterns: ['storybook', '@storybook/*']
+        update-types: [major]
+      react:
+        patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+        update-types: [major]
+      tailwindcss:
+        patterns: ['tailwindcss', '@tailwindcss/*']
+        update-types: [major]
+      commitlint:
+        patterns: ['@commitlint/*']
+        update-types: [major]
+      # ほかの major はどのグループにも入らず、パッケージごとの PR になる
+      minor-and-patch:
+        patterns: ['*']
+        update-types: [minor, patch]

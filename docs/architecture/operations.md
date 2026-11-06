@@ -120,9 +120,27 @@ action を足す、更新する、または workflow を足すときの手順は
 
 `main` への push でも動くので、上流がタグを動かすと、PR がなくても `main` の `ci` が落ち、`verify-ci` がデプロイを止める。`main` で落ちたときも同じ表で直す。
 
-### Dependabot での更新
+### mise の版とキャッシュ
 
-action の更新は、Dependabot が週に1回 PR にする（`.github/dependabot.yml`）。自動マージはしない。上の手順を手で行うのは、action を足すときと、Dependabot を待たずに更新するときだけ。
+`actions.lock` が固定するのは `jdx/mise-action` のコードで、action が動くときに取ってくる mise 本体は固定しない。そのため、mise 本体は `with.version` で固定し、`deploy` ではキャッシュも読まない。どちらも `ci-workflow.test.ts` が確かめる。
+
+- 版を書かないと、`cache_max_age_days`（既定で30日）でキャッシュの鍵が変わるたびに、公開から24時間たった最新の mise に入れ替わる。リポジトリに差分がなくても `ci` と `deploy` で動くものが変わり、PR のレビューも `cooldown` の3日も通らない（2026-11-07 に上流の README で確かめた）
+- `deploy` は `cache: false` にする。`main` への push で動く `ci` と `e2e` は、依存パッケージのコードを動かし、同じ鍵のキャッシュに書き込める。ここで作られたツールを復元すると、そのツールが Cloudflare のトークンを扱うことになる。上流の README も、成果物を公開する job ではキャッシュを復元しないように書いている
+- その代わり、`deploy` は毎回ツールを取り直すので、GitHub やツールの配布元の不調で `Install tools via mise` が止まることがある。トークンを守るほうを選び、この弱点は受け入れる。止まったときは [deploy.md](../runbooks/deploy.md#失敗したとき) のとおり再実行する
+
+Dependabot は `uses:` だけを更新し、`with.version` は更新しない。mise を上げるときは、手で次のように行う。
+
+1. [mise のリリース](https://github.com/jdx/mise/releases)から、公開から3日以上たった版を選び、リリースノートを読む
+2. `with.version` をすべての workflow で同じ版に直す
+3. `ci` と `e2e` が通ることを PR で確かめる。`deploy` の動きは PR では確かめられないので、マージのあとの最初のデプロイで見る
+
+## Dependabot での更新
+
+action と npm の依存の更新は、Dependabot が週に1回 PR にする（`.github/dependabot.yml`）。自動マージはしない。`.mise.toml`（node・pnpm・shellcheck・uv の版）は Dependabot が読まないので、手で更新する。
+
+### action の更新
+
+[上の「action の固定」](#action-の固定)の手順を手で行うのは、action を足すときと、Dependabot を待たずに更新するときだけ。
 
 - lock に載っている workflow なら、Dependabot は `uses:` と一緒に `actions.lock` も同じ PR で作り直す。設定は要らない（[GitHub の文書](https://docs.github.com/en/actions/how-tos/secure-your-work/lock-workflow-dependencies)で、2026-11-06 に確かめた）。lock に載っていない workflow は `uses:` だけが変わるので、workflow を足すときは必ず `gh actions-lock` まで動かす
 - `commit-message.prefix` は `ci` にする。squash マージなので PR の題名が `main` のコミットになり、`pr-title` の commitlint を通す必要がある。`ci` は CHANGELOG に載らず、版も上がらない。`include: scope` は書かない。書くと `ci(deps):` になり、scope を付けない決まりから外れる
@@ -137,19 +155,36 @@ action の更新は、Dependabot が週に1回 PR にする（`.github/dependabo
 3. `ci` の `Verify actions.lock` が `tag-commit-mismatch` か `unreachable-pin` で落ちたら、[上の手順](#ci-で落ちたとき)で理由を確かめる
 4. PR の題名を、日本語の subject に直してからマージする（例: `ci: mise-action と upload-artifact を更新する`）。`commit-message.prefix` で決められるのは `ci` までで、subject は英語のまま届く。`pr-title` の commitlint は subject の言語を見ないので、直さなくても通り、そのまま `main` のコミットになる
 
-### mise の版とキャッシュ
+### npm の依存の更新
 
-`actions.lock` が固定するのは `jdx/mise-action` のコードで、action が動くときに取ってくる mise 本体は固定しない。そのため、mise 本体は `with.version` で固定し、`deploy` ではキャッシュも読まない。どちらも `ci-workflow.test.ts` が確かめる。
+- `directory` は `/` だけにする。`pnpm-lock.yaml` は root に1つだけで、pnpm は `.mise.toml` と同じ 12 系まで Dependabot が対応している（[GitHub の文書](https://docs.github.com/en/code-security/dependabot/ecosystems-supported-by-dependabot/supported-ecosystems-and-repositories)で、2026-11-07 に確かめた）
+- `commit-message.prefix` は `chore` にし、`include: scope` は書かない。理由は action の `ci` と同じ。`chore` は版を上げないので、更新は次のリリースで本番に届く。脆弱性を直す更新をすぐ本番に出したいときは、PR の題名を `fix:` に書き換えてからマージする
+- minor と patch は `minor-and-patch` の1つの PR にまとめ、ほかの major はパッケージごとの PR にする。`storybook`・`react`・`tailwindcss`・`commitlint` は版をそろえて動くので、major のときだけ一緒に別の PR にする。minor と patch まで分けないのは、グループの数だけ PR と `e2e` が増えるからだ。グループは先に一致したものに入るので、`minor-and-patch` を最後に書く
+- `cooldown` は `default-days` を3日、`semver-major-days` を7日にする。公開直後の版を避け、[pnpm の公開待ち期間](#pnpm-の公開待ち期間)に引っかからないようにする
+- `@babel/core` と `@types/node` の major は `ignore` で止め、手で上げる。`@babel/core` は 8 系にすると React Compiler が既定値付き props の部品を黙って飛ばす（[frontend.md の「全体の形」](frontend.md#全体の形)）。`@types/node` は `.mise.toml` の Node の版に合わせる
+- Dependabot alerts はオンにしている（2026-11-07 に `gh api -X PUT repos/XeicuLy/zubatto-quiz/vulnerability-alerts` で有効にした）。security updates はオフのままにする。`cooldown` が効かないので、公開待ち期間に引っかかりやすい。pnpm 12 の lockfile を依存グラフが読めていることは、`gh api repos/XeicuLy/zubatto-quiz/dependency-graph/sbom --jq '.sbom.packages | length'` の件数で確かめる（2026-11-07 は850件）
 
-- 版を書かないと、`cache_max_age_days`（既定で30日）でキャッシュの鍵が変わるたびに、公開から24時間たった最新の mise に入れ替わる。リポジトリに差分がなくても `ci` と `deploy` で動くものが変わり、PR のレビューも `cooldown` の3日も通らない（2026-11-07 に上流の README で確かめた）
-- `deploy` は `cache: false` にする。`main` への push で動く `ci` と `e2e` は、依存パッケージのコードを動かし、同じ鍵のキャッシュに書き込める。ここで作られたツールを復元すると、そのツールが Cloudflare のトークンを扱うことになる。上流の README も、成果物を公開する job ではキャッシュを復元しないように書いている
-- その代わり、`deploy` は毎回ツールを取り直すので、GitHub やツールの配布元の不調で `Install tools via mise` が止まることがある。トークンを守るほうを選び、この弱点は受け入れる。止まったときは [deploy.md](../runbooks/deploy.md#失敗したとき) のとおり再実行する
+#### pnpm の公開待ち期間
 
-Dependabot は `uses:` だけを更新し、`with.version` は更新しない。mise を上げるときは、手で次のように行う。
+pnpm には、公開から1440分（1日）たっていない版を避ける `minimumReleaseAge` が組み込まれている（[pnpm の文書](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) と手元の 12.11.0 で、2026-11-07 に確かめた）。`pnpm config get minimumReleaseAge` は `undefined` と答えるが、これは「書かれていない」という意味で、組み込みの値は効いている。
 
-1. [mise のリリース](https://github.com/jdx/mise/releases)から、公開から3日以上たった版を選び、リリースノートを読む
-2. `with.version` をすべての workflow で同じ版に直す
-3. `ci` と `e2e` が通ることを PR で確かめる。`deploy` の動きは PR では確かめられないので、マージのあとの最初のデプロイで見る
+`pnpm-workspace.yaml` には、この値も `minimumReleaseAgeExclude` も `trustLockfile` も書かない。値を明示すると `minimumReleaseAgeStrict` の既定が変わり、ほかの2つは守りを素通りする。`dependabot.test.ts` がこの3つを止める。
+
+| 起きること                                          | pnpm の動き                                                                           |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 範囲の指定（`^1.0.0`）で、最新の版が公開から1日以内 | 1つ前の版を選ぶ。何も足されない                                                       |
+| 新しすぎる版を明示する                              | 入れたうえで、`pnpm-workspace.yaml` に `minimumReleaseAgeExclude` を黙って足す        |
+| 除外がないのに、lockfile に新しすぎる版がある       | `pnpm install --frozen-lockfile` が `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` で落ちる |
+
+`cooldown` が効くのは、PR で上げる直接の依存だけだ。lockfile を作り直すときに公開直後の推移的な依存が入ると、3行目のとおり `ci` が落ちる。これは設定では防げない。
+
+#### 更新の PR で読むこと
+
+1. `pnpm-workspace.yaml` が変わっていないこと。`minimumReleaseAgeExclude` が足されていると `dependabot.test.ts` で `ci` が落ちる。その PR はマージせず、1日以上たってから `@dependabot recreate` とコメントして作り直す
+2. `ci` が `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` で落ちたら、除外を足さない。名前の出た版が公開から1日たつのを待ち、`ci` を再実行する
+3. major の PR なら、上流のリリースノートを読む。`react` や `tailwindcss` は、テストが通っても見た目が変わることがある
+4. PR の題名を、日本語の subject に直してからマージする（例: `chore: minor と patch の依存を更新する`）。理由は [action の更新](#action-の更新)の4番と同じ
+5. npm の最初の PR では、`pnpm-lock.yaml` の `importers` の差分で、root だけでなく `apps/*`・`packages/*`・`tools/*` の依存も更新されていることを確かめる。`dependabot.yml` は `main` に入るまで動かないので、マージの前には確かめられない
 
 ## ログ
 
@@ -175,7 +210,7 @@ Dependabot は `uses:` だけを更新し、`with.version` は更新しない。
 | `release-please.test.ts`         | [上の「リリース」](#リリース)のとおり                                                                                                                                                                                                                                                                |
 | `dev-vars-example.test.ts`       | [上の「インフラの管理」](#インフラの管理)のとおり                                                                                                                                                                                                                                                    |
 | `ci-workflow.test.ts`            | `run:` に `github.event.*` や `github.head_ref` を `${{ }}` で埋め込んでいないこと。そうした値は `env:` を通す。`ci` が `pnpm install` より前に `--verify` を動かし、トークンをその step にだけ渡すこと。`--verify` が止めない `uses:` の書き方がないこと（[上の「action の固定」](#action-の固定)） |
-| `dependabot.test.ts`             | [上の「Dependabot での更新」](#dependabot-での更新)のとおり（週に1回、題名は scope のない `ci:`、major を分ける、`cooldown` の下限）                                                                                                                                                                 |
+| `dependabot.test.ts`             | [上の「Dependabot での更新」](#dependabot-での更新)のとおり（週に1回、題名は scope のない `ci:`・`chore:`、major を分ける、グループの順番、`cooldown` の下限、手で上げる major、公開待ち期間を弱める設定がないこと、自動マージがないこと）                                                           |
 | `deploy-workflow.test.ts`        | deploy.yaml と ci.yaml を `yaml` で読み、きっかけ（`release` か、`target` を付けた dispatch）と失敗する job やスクリプトごとに、どのスクリプトが動くかを試す（`scriptsThatRun`）。`production` を使う job が1つだけであること                                                                        |
 | `verify-required-checks.test.ts` | `verify-required-checks.sh` を偽の `gh` と本物の `jq` で、`CI_POLL_SECONDS=0` で動かす                                                                                                                                                                                                               |
 | `oxlint-layers.test.ts`          | 一時フォルダーに `.oxlintrc.json` の写しと、import を1行だけ書いたファイルを置いて oxlint を走らせ、`apps/web/src` の層の柵と `import/no-cycle` が効くこと（[frontend.md の「全体の形」](frontend.md#全体の形)）                                                                                     |
