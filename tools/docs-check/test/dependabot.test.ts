@@ -95,6 +95,11 @@ describe('Dependabot の npm の更新', () => {
     expect(groupOf(name, updateType)).toBe(group);
   });
 
+  it('グループの * は、groupOf が扱える末尾だけに書く', () => {
+    const patterns = Object.values(npm?.groups ?? {}).flatMap((group) => group.patterns ?? []);
+    expect(patterns.filter((pattern) => pattern.slice(0, -1).includes('*'))).toEqual([]);
+  });
+
   it('公開から3日（major は7日）以上たった版だけを PR にする', () => {
     // pnpm の公開待ち期間（1日）より長くする。短いと、直接の依存の新しい版で ci の --frozen-lockfile が落ちる
     expect(npm?.cooldown?.['default-days']).toBeGreaterThanOrEqual(3);
@@ -124,7 +129,27 @@ describe('Dependabot の更新の PR', () => {
     /\.ya?ml$/.test(name),
   );
 
+  // parse でコメントを落としてから調べる。ci.yaml のコメントのような説明の文で落ちないようにする
+  const mergesAutomatically = (workflowYaml: string) =>
+    /gh pr merge|merge --auto|auto-?merge|fetch-metadata|pulls\/[^"]*\/merge|pulls\.merge/i.test(
+      JSON.stringify(parse(workflowYaml)),
+    );
+
+  it.each([
+    ['コメントに書いただけ', '# fetch-metadata は使わない\non: push', false],
+    ['試しのマージの ref', 'env:\n  REF: refs/pull/1/merge', false],
+    ['gh pr merge', 'run: gh pr merge --auto 1', true],
+    ['merge API', 'run: gh api -X PUT repos/o/r/pulls/1/merge', true],
+    ['式を含む merge API', 'run: gh api -X PUT repos/o/r/pulls/${{ env.PR }}/merge', true],
+    ['github-script', 'script: github.rest.pulls.merge({})', true],
+    ['自動マージの action', 'uses: foo/dependabot-auto-merge@v1', true],
+    ['GraphQL の自動マージ', 'run: gh api graphql -f query="enablePullRequestAutoMerge"', true],
+    ['fetch-metadata', 'uses: dependabot/fetch-metadata@v2', true],
+  ])('%s を見分ける', (_, workflowYaml, expected) => {
+    expect(mergesAutomatically(workflowYaml)).toBe(expected);
+  });
+
   it.each(workflows)('%s は自動でマージしない', (name) => {
-    expect(repoFile(`.github/workflows/${name}`)).not.toMatch(/gh pr merge|merge --auto|automerge|fetch-metadata/i);
+    expect(mergesAutomatically(repoFile(`.github/workflows/${name}`))).toBe(false);
   });
 });
