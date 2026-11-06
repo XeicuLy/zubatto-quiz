@@ -45,7 +45,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Install tools via mise
-        uses: jdx/mise-action@v5.1.1
+        uses: jdx/mise-action@v5.2.6
+        with:
+          version: 2026.11.0
 
       # pnpm は mise で入れているので、setup-node の cache は使えない。store の場所は pnpm の版で変わるので、pnpm に聞く
       - name: Get pnpm store path
@@ -90,7 +92,9 @@ jobs:
           persist-credentials: false
 
       - name: Install tools via mise
-        uses: jdx/mise-action@v5.1.1
+        uses: jdx/mise-action@v5.2.6
+        with:
+          version: 2026.11.0
 
       # pnpm は mise で入れているので、setup-node の cache は使えない。store の場所は pnpm の版で変わるので、pnpm に聞く
       - name: Get pnpm store path
@@ -138,7 +142,7 @@ jobs:
       # 落ちたときだけ、トレース（操作ごとの画面と DOM）とレポートを残す。pnpm exec playwright show-trace で開ける
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: playwright-report
           path: |

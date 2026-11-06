@@ -136,6 +136,32 @@ describe('uses: の書き方（すべての workflow）', () => {
   });
 });
 
+describe('mise-action の設定（すべての workflow）', () => {
+  const miseSteps = workflowFiles.flatMap((file) => {
+    const workflow = parse(readRepoFile(`.github/workflows/${file}`)) as Workflow;
+    return Object.entries(workflow.jobs).flatMap(([jobId, job]) =>
+      (job.steps ?? [])
+        .filter(({ uses }) => uses?.startsWith('jdx/mise-action@'))
+        .map((step) => ({ file, jobId, step })),
+    );
+  });
+
+  it('mise 本体の版を固定し、どの job でも同じ版を使う', () => {
+    expect(miseSteps.length).toBeGreaterThan(0);
+    const versions = miseSteps.map(({ step }) => step.with?.version);
+    for (const version of versions) {
+      expect(version).toMatch(/^\d{4}\.\d+\.\d+$/);
+    }
+    expect(new Set(versions).size).toBe(1);
+  });
+
+  it('本番の deploy は、ほかの job が書き込めるキャッシュを読まない', () => {
+    const deploy = miseSteps.filter(({ file, jobId }) => file === 'deploy.yaml' && jobId === 'deploy');
+    expect(deploy).toHaveLength(1);
+    expect(String(deploy[0]?.step.with?.cache)).toBe('false');
+  });
+});
+
 describe('actions.lock の確認（ci.yaml の ci）', () => {
   const steps = stepsOf('ci');
   const install = steps.find(({ run }) => /gh extension install github\/gh-actions-lock/.test(run ?? ''));

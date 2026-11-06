@@ -33,7 +33,9 @@ jobs:
           persist-credentials: false
 
       - name: Install tools via mise
-        uses: jdx/mise-action@v5.1.1
+        uses: jdx/mise-action@v5.2.6
+        with:
+          version: 2026.11.0
 
       - name: Get pnpm store path
         id: pnpm-store

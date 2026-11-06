@@ -120,6 +120,20 @@ action を足す、更新する、または workflow を足すときの手順は
 
 `main` への push でも動くので、上流がタグを動かすと、PR がなくても `main` の `ci` が落ち、`verify-ci` がデプロイを止める。`main` で落ちたときも同じ表で直す。
 
+### mise の版とキャッシュ
+
+`actions.lock` が固定するのは `jdx/mise-action` のコードで、action が動くときに取ってくる mise 本体は固定しない。そのため、mise 本体は `with.version` で固定し、`deploy` ではキャッシュも読まない。どちらも `ci-workflow.test.ts` が確かめる。
+
+- 版を書かないと、`cache_max_age_days`（既定で30日）でキャッシュの鍵が変わるたびに、公開から24時間たった最新の mise に入れ替わる。リポジトリに差分がなくても `ci` と `deploy` で動くものが変わり、PR のレビューも `cooldown` の3日も通らない（2026-11-07 に上流の README で確かめた）
+- `deploy` は `cache: false` にする。`main` への push で動く `ci` と `e2e` は、依存パッケージのコードを動かし、同じ鍵のキャッシュに書き込める。ここで作られたツールを復元すると、そのツールが Cloudflare のトークンを扱うことになる。上流の README も、成果物を公開する job ではキャッシュを復元しないように書いている
+- その代わり、`deploy` は毎回ツールを取り直すので、GitHub やツールの配布元の不調で `Install tools via mise` が止まることがある。トークンを守るほうを選び、この弱点は受け入れる。止まったときは [deploy.md](../runbooks/deploy.md#失敗したとき) のとおり再実行する
+
+Dependabot は `uses:` だけを更新し、`with.version` は更新しない。mise を上げるときは、手で次のように行う。
+
+1. [mise のリリース](https://github.com/jdx/mise/releases)から、公開から3日以上たった版を選び、リリースノートを読む
+2. `with.version` をすべての workflow で同じ版に直す
+3. `ci` と `e2e` が通ることを PR で確かめる。`deploy` の動きは PR では確かめられないので、マージのあとの最初のデプロイで見る
+
 ## Dependabot での更新
 
 action と npm の依存の更新は、Dependabot が週に1回 PR にする（`.github/dependabot.yml`）。自動マージはしない。`.mise.toml`（node・pnpm・shellcheck・uv の版）は Dependabot が読まないので、手で更新する。
@@ -139,6 +153,7 @@ action と npm の依存の更新は、Dependabot が週に1回 PR にする（`
 1. `actions.lock` の差分で、`ref` と `commit` が更新した action の分だけ変わっていること。`owner_id` と `repo_id` が変わっていたら、リポジトリの持ち主が変わった可能性があるので、そのままマージしない
 2. `release-please.yaml` か `deploy.yaml` が使う action なら、上流のリリースノートを読む。必須チェックが通っても、この2つの中での動きは確かめられていない
 3. `ci` の `Verify actions.lock` が `tag-commit-mismatch` か `unreachable-pin` で落ちたら、[上の手順](#ci-で落ちたとき)で理由を確かめる
+4. PR の題名を、日本語の subject に直してからマージする（例: `ci: mise-action と upload-artifact を更新する`）。`commit-message.prefix` で決められるのは `ci` までで、subject は英語のまま届く。`pr-title` の commitlint は subject の言語を見ないので、直さなくても通り、そのまま `main` のコミットになる
 
 ### npm の依存の更新
 
