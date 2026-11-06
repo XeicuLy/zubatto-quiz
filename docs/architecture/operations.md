@@ -183,7 +183,8 @@ pnpm には、公開から1440分（1日）たっていない版を避ける `mi
 1. `pnpm-workspace.yaml` が変わっていないこと。`minimumReleaseAgeExclude` が足されていると `dependabot.test.ts` で `ci` が落ちる。その PR はマージせず、1日以上たってから `@dependabot recreate` とコメントして作り直す
 2. `ci` が `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` で落ちたら、除外を足さない。名前の出た版が公開から1日たつのを待ち、`ci` を再実行する
 3. major の PR なら、上流のリリースノートを読む。`react` や `tailwindcss` は、テストが通っても見た目が変わることがある
-4. npm の最初の PR では、`pnpm-lock.yaml` の `importers` の差分で、root だけでなく `apps/*`・`packages/*`・`tools/*` の依存も更新されていることを確かめる。`dependabot.yml` は `main` に入るまで動かないので、マージの前には確かめられない
+4. PR の題名を、日本語の subject に直してからマージする（例: `chore: minor と patch の依存を更新する`）。理由は [action の更新](#action-の更新)の4番と同じ
+5. npm の最初の PR では、`pnpm-lock.yaml` の `importers` の差分で、root だけでなく `apps/*`・`packages/*`・`tools/*` の依存も更新されていることを確かめる。`dependabot.yml` は `main` に入るまで動かないので、マージの前には確かめられない
 
 ## ログ
 
