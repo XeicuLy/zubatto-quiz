@@ -46,6 +46,8 @@ jobs:
 
       - name: Install tools via mise
         uses: jdx/mise-action@v5.2.6
+        with:
+          version: 2026.11.0
 
       # pnpm は mise で入れているので、setup-node の cache は使えない。store の場所は pnpm の版で変わるので、pnpm に聞く
       - name: Get pnpm store path
@@ -91,6 +93,8 @@ jobs:
 
       - name: Install tools via mise
         uses: jdx/mise-action@v5.2.6
+        with:
+          version: 2026.11.0
 
       # pnpm は mise で入れているので、setup-node の cache は使えない。store の場所は pnpm の版で変わるので、pnpm に聞く
       - name: Get pnpm store path
