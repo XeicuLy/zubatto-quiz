@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.1](https://github.com/XeicuLy/zubatto-quiz/compare/v1.2.0...v1.2.1) (2026-11-07)
+
+
+### 修正
+
+* ログイン前の経路の本文の大きさを制限する ([#266](https://github.com/XeicuLy/zubatto-quiz/issues/266)) ([9d55d7c](https://github.com/XeicuLy/zubatto-quiz/commit/9d55d7c426ca2127cd5f05343b1c7838d48678bd))
+* 依存を更新し、zod と undici の脆弱性を直す ([#259](https://github.com/XeicuLy/zubatto-quiz/issues/259)) ([ab1ae00](https://github.com/XeicuLy/zubatto-quiz/commit/ab1ae0047ff50f156b8c79aedb85c7958425d10f))
+
+
+### 性能
+
+* React Compiler を本番ビルドとテストに入れる ([#249](https://github.com/XeicuLy/zubatto-quiz/issues/249)) ([9be5d37](https://github.com/XeicuLy/zubatto-quiz/commit/9be5d37f084c510ba26badf828c9af5de66bc54f))
+
 ## [1.2.0](https://github.com/XeicuLy/zubatto-quiz/compare/v1.1.0...v1.2.0) (2026-11-03)
 
 
