@@ -2,6 +2,7 @@ import type { FinalRanking as FinalRankingMessage, Revealed, RoomSnapshot } from
 import type { ReactNode, Ref } from 'react';
 
 import type { CurrentQuestion } from '@/realtime/room-store';
+import { TimeBar } from '@/shared/countdown/TimeBar';
 import { useCountdown } from '@/shared/countdown/use-countdown';
 import { AnswerDistribution } from '@/shared/results/AnswerDistribution';
 import { ChoiceNumber, choiceColors } from '@/shared/results/choice-style';
@@ -132,10 +133,8 @@ interface AcceptingStageProps {
  * 受付中だけ作るので、やり直しで出題に戻ると捨てられ、次の受付で数え直す
  */
 function AcceptingStage({ question, choices, questionCount, participantCount, headingRef }: AcceptingStageProps) {
-  const { startedAt, leftMs, nextTickMs } = useCountdown(question.limitMs, question.remainingMs ?? question.limitMs);
+  const { leftMs, bar } = useCountdown(question.limitMs, question.remainingMs ?? question.limitMs);
   const { progress } = question;
-  // 次に描き直すときの残りへ、それまでの時間をかけて縮める。回答者の画面と同じ動き
-  const ratio = startedAt === null ? leftMs / question.limitMs : (leftMs - nextTickMs) / question.limitMs;
 
   return (
     <StageFrame
@@ -163,16 +162,7 @@ function AcceptingStage({ question, choices, questionCount, participantCount, he
           <span className="text-stage-label text-muted-foreground">秒</span>
         </p>
       </div>
-      <div className="h-3 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-        {/* 幅は描くたびに変わるので、クラスではなく style で渡す。React は CSSOM で書くので、CSP の style-src に触れない */}
-        <div
-          className="h-full rounded-full bg-primary transition-[width] ease-linear"
-          style={{
-            width: `${Math.max(0, ratio) * 100}%`,
-            transitionDuration: `${startedAt === null ? 0 : nextTickMs}ms`,
-          }}
-        />
-      </div>
+      <TimeBar {...bar} variant="projector" />
       <ol aria-label="選択肢" className="grid flex-1 grid-cols-1 gap-4 text-choice font-bold md:grid-cols-2">
         {choices.map((choice, index) => (
           <li

@@ -198,6 +198,8 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - 押したらすぐに回答済みとして出し、`answerAccepted` が届いたら時間を置き換える。`player.answer` は `client.send` の真偽値を返し、`false` のときはボタンを押せるままにする
 - 押したボタンは消えるので、`AnsweredList`（`tabIndex={-1}`、名前は「あなたの回答」、回答していなければ「選択肢」）が作られたときに1回だけフォーカスを受け取る。それは `focusList`（`pending !== null`。この画面で押したとき）のときだけで、つなぎ直しや締切のあとには受け取らない。フォーカスした一覧は選んだ選択肢を読み上げないので、読み上げでそれを伝える
 - 残り時間は、ホストの受け付け中のステージと `useCountdown`（`shared/countdown/use-countdown.ts`）を共有する
+- 残り時間の棒は `TimeBar`（`shared/countdown/TimeBar.tsx`）を共有し、`variant` で太さを変える。`TimeBar` は数えず、`useCountdown` の返す `bar`（残りの割合と縮む時間）を受け取るだけにする。`bar` は `timeBarOf`（`shared/countdown/time-bar.ts`）が作る。次に描き直すときの割合へ、それまでの時間をかけて縮めるので、棒は秒の変わり目を待たずになめらかに減る
+- 棒は `components/ui` の Progress（Base UI の `Progress`）にしない。Progress は必ず `role="progressbar"` と `aria-valuenow` を出すが、棒は横の残りの秒数と同じことを言うだけなので `aria-hidden` にしている。また progressbar は値が最大のときを完了（`data-complete`）とみなすので、満タンから減るカウントダウンでは、受付を始めた瞬間が完了になってしまう
 
 ## 結果の画面
 
