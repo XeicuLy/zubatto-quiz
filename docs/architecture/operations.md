@@ -183,9 +183,20 @@ pnpm には、公開から1440分（1日）たっていない版を避ける `mi
 
 1. `pnpm-workspace.yaml` が変わっていないこと。`minimumReleaseAgeExclude` が足されていると `dependabot.test.ts` で `ci` が落ちる。その PR はマージせず、1日以上たってから `@dependabot recreate` とコメントして作り直す
 2. `ci` が `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` で落ちたら、除外を足さない。名前の出た版が公開から1日たつのを待ち、`ci` を再実行する
-3. major の PR なら、上流のリリースノートを読む。`react` や `tailwindcss` は、テストが通っても見た目が変わることがある
-4. PR の題名を、日本語の subject に直してからマージする（例: `chore: minor と patch の依存を更新する`）。理由は [action の更新](#action-の更新)の4番と同じ
-5. npm の最初の PR では、`pnpm-lock.yaml` の `importers` の差分で、root だけでなく `apps/*`・`packages/*`・`tools/*` の依存も更新されていることを確かめる。`dependabot.yml` は `main` に入るまで動かないので、マージの前には確かめられない
+3. `wrangler` を上げる PR は、`ci` の `tsc` が `Types at worker-configuration.d.ts are out of date` で落ちる。`wrangler types --check` は生成ファイルの workerd の版まで比べるのに、Dependabot はこのファイルを作り直さないからだ。PR のブランチで次の2つを動かし、できたファイルをコミットする。手で push すると Dependabot は自動で rebase しなくなるので、`pnpm-lock.yaml` を変えるほかの PR より先にマージする。`ci` は `tsc` で止まり、`test` がまだ動いていないので、push のあとの `ci` まで見る
+
+   ```sh
+   pnpm --filter @zubatto-quiz/api run types
+   pnpm --filter @zubatto-quiz/web run types
+   ```
+
+4. major の PR なら、上流のリリースノートを読む。`react` や `tailwindcss` は、テストが通っても見た目が変わることがある
+5. PR の題名を、日本語の subject に直してからマージする（例: `chore: minor と patch の依存を更新する`）。理由は [action の更新](#action-の更新)の4番と同じ
+6. npm の最初の PR では、`pnpm-lock.yaml` の `importers` の差分で、root だけでなく `apps/*`・`packages/*`・`tools/*` の依存も更新されていることを確かめる。`dependabot.yml` は `main` に入るまで動かないので、マージの前には確かめられない
+
+#### 手で上げるとき
+
+依存は完全固定なので、`pnpm update` だけでは直接の依存の版は動かない。`pnpm update -L` は動くが、`ignore` と `cooldown` は Dependabot の設定なので効かない。すべてを最新にするので、`@babel/core` は 8 系に、`typescript` は 7 系になる（手元の 12.11.0 で、2026-11-07 に確かめた）。Dependabot を待てないものだけを、名前と版を指定して上げる（例: `pnpm -r update zod@4.6.7`）。どれが古いかを見るだけなら `pnpm outdated -r` を使う。
 
 ## ログ
 
