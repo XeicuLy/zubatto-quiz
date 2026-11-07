@@ -1,13 +1,13 @@
 import type { FinalRanking as FinalRankingMessage, Revealed, RoomSnapshot } from '@zubatto-quiz/protocol';
 import type { ReactNode, Ref } from 'react';
 
-import { useAnnouncement } from '@/components/a11y/announce';
 import type { CurrentQuestion } from '@/realtime/room-store';
 import { useCountdown } from '@/shared/countdown/use-countdown';
 import { AnswerDistribution } from '@/shared/results/AnswerDistribution';
 import { ChoiceNumber, choiceColors } from '@/shared/results/choice-style';
 import { FastestCorrect } from '@/shared/results/FastestCorrect';
 import { FinalRanking, StandingsRanking } from '@/shared/results/Ranking';
+import { StatusScreen } from '@/shared/status/StatusScreen';
 
 export interface HostStageProps {
   /** 待機（lobby）は HostLobby が出すので渡さない */
@@ -31,7 +31,7 @@ export interface HostStageProps {
 export function HostStage({ room, question, finalRanking, participantCount, headingRef }: HostStageProps) {
   if (room.phase === 'final') {
     return finalRanking === null ? (
-      <StatusScreen>最終の結果を集計しています</StatusScreen>
+      <StatusScreen variant="projector">最終の結果を集計しています</StatusScreen>
     ) : (
       <main className="flex flex-1 flex-col">
         <FinalRanking ranking={finalRanking} variant="projector" headingRef={headingRef} />
@@ -39,7 +39,7 @@ export function HostStage({ room, question, finalRanking, participantCount, head
     );
   }
   if (question === null) {
-    return <StatusScreen>部屋の様子を読み込んでいます</StatusScreen>;
+    return <StatusScreen variant="projector">部屋の様子を読み込んでいます</StatusScreen>;
   }
   switch (room.phase) {
     case 'question':
@@ -58,7 +58,7 @@ export function HostStage({ room, question, finalRanking, participantCount, head
       );
     case 'revealed':
       return question.revealed === null ? (
-        <StatusScreen>結果を集計しています</StatusScreen>
+        <StatusScreen variant="projector">結果を集計しています</StatusScreen>
       ) : (
         <RevealedStage
           question={question}
@@ -69,7 +69,7 @@ export function HostStage({ room, question, finalRanking, participantCount, head
       );
     case 'fastest':
       return question.fastest === null ? (
-        <StatusScreen>結果を集計しています</StatusScreen>
+        <StatusScreen variant="projector">結果を集計しています</StatusScreen>
       ) : (
         <main className="flex flex-1 flex-col">
           <FastestCorrect
@@ -83,7 +83,7 @@ export function HostStage({ room, question, finalRanking, participantCount, head
       );
     case 'standings':
       return question.standings === null ? (
-        <StatusScreen>結果を集計しています</StatusScreen>
+        <StatusScreen variant="projector">結果を集計しています</StatusScreen>
       ) : (
         <main className="flex flex-1 flex-col">
           <StandingsRanking standings={question.standings} variant="projector" headingRef={headingRef} />
@@ -251,13 +251,3 @@ function StageFrame({ question, questionCount, aside, children }: StageFrameProp
  * キーボードで進めるホストには、読み上げと、Tab で操作の帯へ戻れることで伝わる。focus-target は styles.css にある
  */
 const focusTarget = 'focus-target';
-
-/** 結果が届くまでのつなぎ。画面ごと現れるので role="status" は付けず、読み上げ領域に文を渡す */
-function StatusScreen({ children }: { children: string }) {
-  useAnnouncement(children);
-  return (
-    <main className="flex flex-1 flex-col justify-center p-stage">
-      <p className="text-stage-title font-bold">{children}</p>
-    </main>
-  );
-}

@@ -83,7 +83,10 @@ describe('ホストの待機画面の入口（F1・F3・ADR 0003）', () => {
     stubFakeApi();
     await openHostPage();
 
-    expect(screen.getByRole('status')).toHaveTextContent('部屋につないでいます');
+    expect(screen.getByRole('main')).toHaveTextContent('部屋につないでいます');
+    await waitFor(() => expect(liveRegion('polite')).toHaveTextContent('部屋につないでいます'));
+    // 画面ごと現れるので role="status" を付けず、読み上げ領域に任せる
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('ログインしていなければ、ログイン画面へ移り、接続を開かない（S1）', async () => {

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import type { ConnectionStatus } from '@/realtime/client';
 import { useConnectionAnnouncement } from '@/shared/connection/use-connection-announcement';
 import type { RoomEnd } from '@/shared/results/room-end';
+import { MessageScreen } from '@/shared/status/MessageScreen';
 
 interface HostConnectionNoticeProps {
   connection: ConnectionStatus;
@@ -30,7 +31,11 @@ export function HostConnectionNotice({ connection, closeReason, roomEnd, childre
     return children;
   }
   if (closed !== null) {
-    return <ClosedScreen message={closed} />;
+    return (
+      <MessageScreen variant="projector" title={closed.title} body={closed.body}>
+        <BackToListLink />
+      </MessageScreen>
+    );
   }
   if (connection !== 'reconnecting') {
     return children;
@@ -80,16 +85,6 @@ function closedMessageOf(reason: CloseReason | null): Message {
       title: '接続が閉じました',
       body: 'ページを読み込み直してください。',
     }
-  );
-}
-
-function ClosedScreen({ message }: { message: Message }) {
-  return (
-    <main className="flex min-h-dvh flex-col justify-center gap-4 p-stage">
-      <h1 className="text-stage-title font-bold">{message.title}</h1>
-      <p className="text-stage-label leading-relaxed text-muted-foreground">{message.body}</p>
-      <BackToListLink />
-    </main>
   );
 }
 

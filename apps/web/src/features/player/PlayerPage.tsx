@@ -5,6 +5,8 @@ import { FinalRanking } from '@/shared/results/Ranking';
 import { roomEndOf } from '@/shared/results/room-end';
 import type { SoundPlayer } from '@/shared/sound/sound-player';
 import { SoundToggle } from '@/shared/sound/SoundToggle';
+import { MessageScreen } from '@/shared/status/MessageScreen';
+import { StatusScreen } from '@/shared/status/StatusScreen';
 
 import { ConnectionNotice } from './ConnectionNotice';
 import { JoinForm } from './JoinForm';
@@ -33,19 +35,19 @@ export function PlayerPage({ player, sound }: { player: PlayerRoom; sound: Sound
       );
     case 'full':
       return (
-        <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
-          <h1 className="text-3xl leading-snug font-bold">この部屋は満員です</h1>
-          <p className="mt-4 leading-relaxed text-muted-foreground">
-            1つの部屋に入れるのは{MAX_PARTICIPANTS}人までです。ホストに、別の部屋を作れるか聞いてください。
-          </p>
-        </main>
+        <MessageScreen
+          variant="mobile"
+          title="この部屋は満員です"
+          body={`1つの部屋に入れるのは${MAX_PARTICIPANTS}人までです。ホストに、別の部屋を作れるか聞いてください。`}
+        />
       );
     case 'not_found':
       return (
-        <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
-          <h1 className="text-3xl leading-snug font-bold">部屋が見つかりません</h1>
-          <p className="mt-4 leading-relaxed text-muted-foreground">URL が正しいか、ホストに確かめてください。</p>
-        </main>
+        <MessageScreen
+          variant="mobile"
+          title="部屋が見つかりません"
+          body="URL が正しいか、ホストに確かめてください。"
+        />
       );
     case 'room':
       return <InRoom entry={entry} onAnswer={player.answer} sound={sound} />;
@@ -95,7 +97,7 @@ function RoomScreen({
   const name = me?.name ?? entry.name ?? '';
 
   if (room === null) {
-    return <StatusScreen>部屋に入っています…</StatusScreen>;
+    return <StatusScreen variant="mobile">部屋に入っています…</StatusScreen>;
   }
   if (room.phase === 'lobby') {
     return <WaitingRoom name={name} participants={participants} persisted={entry.persisted} />;
@@ -103,7 +105,7 @@ function RoomScreen({
   if (room.phase === 'final') {
     // つなぎ直したときは、hostReady などのすぐあとに finalRanking が送り直される
     return finalRanking === null ? (
-      <StatusScreen>最終の結果を発表しています</StatusScreen>
+      <StatusScreen variant="mobile">最終の結果を発表しています</StatusScreen>
     ) : (
       <main className="mx-auto min-h-dvh max-w-md px-5 pt-4 pb-24">
         <FinalRanking ranking={finalRanking} variant="mobile" meId={me?.participantId} />
@@ -112,7 +114,7 @@ function RoomScreen({
   }
   if (question === null) {
     // 出題からあとの段階でつなぎ直すと、resumed のすぐあとに今の問題が送り直される
-    return <StatusScreen>部屋に入っています…</StatusScreen>;
+    return <StatusScreen variant="mobile">部屋に入っています…</StatusScreen>;
   }
   if (question.myResult !== null && me !== null) {
     // 締切の集計が届いたら結果を出す。届くまでは QuestionView が締切の表示を続ける
@@ -136,15 +138,5 @@ function RoomScreen({
       name={name}
       onAnswer={onAnswer}
     />
-  );
-}
-
-function StatusScreen({ children }: { children: string }) {
-  return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
-      <p role="status" className="text-lg font-bold">
-        {children}
-      </p>
-    </main>
   );
 }

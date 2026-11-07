@@ -4,6 +4,7 @@ import { useStore } from 'zustand';
 
 import { roomEndOf } from '@/shared/results/room-end';
 import type { SoundPlayer } from '@/shared/sound/sound-player';
+import { StatusScreen } from '@/shared/status/StatusScreen';
 
 import { settleFocus, type Stage, stageAfter } from './host-commands';
 import type { HostRoom } from './host-room';
@@ -80,7 +81,11 @@ function HostScreen({
 
   // 他人の部屋やない部屋は、hostReady が届かずに 4404 で閉じられ、HostConnectionNotice が理由を出す
   if (room === null) {
-    return <StatusScreen>部屋につないでいます…</StatusScreen>;
+    return (
+      <div className="flex min-h-dvh flex-col">
+        <StatusScreen variant="projector">部屋につないでいます…</StatusScreen>
+      </div>
+    );
   }
   return (
     <div className="flex min-h-dvh flex-col">
@@ -102,15 +107,5 @@ function HostScreen({
         <HostControls key={`${room.phase}:${room.questionIndex}`} room={room} onSend={send} sound={sound} />
       )}
     </div>
-  );
-}
-
-function StatusScreen({ children }: { children: string }) {
-  return (
-    <main className="flex min-h-dvh flex-col justify-center p-stage">
-      <p role="status" className="text-stage-title font-bold">
-        {children}
-      </p>
-    </main>
   );
 }
