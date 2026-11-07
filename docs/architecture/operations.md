@@ -162,7 +162,7 @@ action と npm の依存の更新は、Dependabot が週に1回 PR にする（`
 - `commit-message.prefix` は `chore` にし、`include: scope` は書かない。理由は action の `ci` と同じ。`chore` は版を上げないので、更新は次のリリースで本番に届く。脆弱性を直す更新をすぐ本番に出したいときは、PR の題名を `fix:` に書き換えてからマージする
 - minor と patch は `minor-and-patch` の1つの PR にまとめ、ほかの major はパッケージごとの PR にする。`storybook`・`react`・`tailwindcss`・`commitlint` は版をそろえて動くので、major のときだけ一緒に別の PR にする。minor と patch まで分けないのは、グループの数だけ PR と `e2e` が増えるからだ。グループは先に一致したものに入るので、`minor-and-patch` を最後に書く
 - `cooldown` は `default-days` を3日、`semver-major-days` を7日にする。公開直後の版を避け、[pnpm の公開待ち期間](#pnpm-の公開待ち期間)に引っかからないようにする
-- `@babel/core` と `@types/node` の major は `ignore` で止め、手で上げる。`@babel/core` は 8 系にすると React Compiler が既定値付き props の部品を黙って飛ばす（[frontend.md の「全体の形」](frontend.md#全体の形)）。`@types/node` は `.mise.toml` の Node の版に合わせる
+- `@babel/core`・`@types/node`・`typescript` の major は `ignore` で止め、手で上げる。`@babel/core` は 8 系にすると React Compiler が既定値付き props の部品を黙って飛ばす（[frontend.md の「全体の形」](frontend.md#全体の形)）。`@types/node` は `.mise.toml` の Node の版に合わせる。`typescript` は 7.0 に API がなく、新しい API は 7.1 で出る予定なので（[TypeScript の告知](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)で、2026-11-07 に確かめた）、7.1 が出たら `ignore` を外す。このリポジトリの `tsc` と commitlint は 7.0.2 でも動いたので、今の失敗を避けるためではなく、API が整うのを待つための `ignore` だ
 - Dependabot alerts はオンにしている（2026-11-07 に `gh api -X PUT repos/XeicuLy/zubatto-quiz/vulnerability-alerts` で有効にした）。security updates はオフのままにする。`cooldown` が効かないので、公開待ち期間に引っかかりやすい。pnpm 12 の lockfile を依存グラフが読めていることは、`gh api repos/XeicuLy/zubatto-quiz/dependency-graph/sbom --jq '.sbom.packages | length'` の件数で確かめる（2026-11-07 は850件）
 
 #### pnpm の公開待ち期間
