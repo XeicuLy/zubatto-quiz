@@ -36,6 +36,10 @@
             "message": "本番のコードからテストのコードを import しない。"
           },
           {
+            "group": ["**/*.stories", "**/*.stories.*", "@storybook/*", "@storybook/**", "storybook", "storybook/**"],
+            "message": "本番のコードからストーリーと Storybook を import しない。Storybook を読むのは *.stories.* と apps/web/.storybook だけ。"
+          },
+          {
             "group": ["@base-ui/*", "@base-ui/**"],
             "message": "画面は components/ui の部品を使う。Base UI を import するのは apps/web/src/components/ui の中だけ（ADR 0007）。"
           }
@@ -93,6 +97,17 @@
                 "message": "本番のコードからテストのコードを import しない。"
               },
               {
+                "group": [
+                  "**/*.stories",
+                  "**/*.stories.*",
+                  "@storybook/*",
+                  "@storybook/**",
+                  "storybook",
+                  "storybook/**"
+                ],
+                "message": "本番のコードからストーリーと Storybook を import しない。Storybook を読むのは *.stories.* と apps/web/.storybook だけ。"
+              },
+              {
                 "group": ["@base-ui/*", "@base-ui/**"],
                 "message": "画面は components/ui の部品を使う。Base UI を import するのは apps/web/src/components/ui の中だけ（ADR 0007）。"
               }
@@ -135,6 +150,17 @@
               {
                 "group": ["**/test", "**/test/**", "**/*.test", "**/*.test.*", "**/*.spec", "**/*.spec.*"],
                 "message": "本番のコードからテストのコードを import しない。"
+              },
+              {
+                "group": [
+                  "**/*.stories",
+                  "**/*.stories.*",
+                  "@storybook/*",
+                  "@storybook/**",
+                  "storybook",
+                  "storybook/**"
+                ],
+                "message": "本番のコードからストーリーと Storybook を import しない。Storybook を読むのは *.stories.* と apps/web/.storybook だけ。"
               },
               {
                 "group": ["@base-ui/*", "@base-ui/**"],
@@ -185,6 +211,17 @@
                 "message": "本番のコードからテストのコードを import しない。"
               },
               {
+                "group": [
+                  "**/*.stories",
+                  "**/*.stories.*",
+                  "@storybook/*",
+                  "@storybook/**",
+                  "storybook",
+                  "storybook/**"
+                ],
+                "message": "本番のコードからストーリーと Storybook を import しない。Storybook を読むのは *.stories.* と apps/web/.storybook だけ。"
+              },
+              {
                 "group": ["@base-ui/*", "@base-ui/**"],
                 "message": "画面は components/ui の部品を使う。Base UI を import するのは apps/web/src/components/ui の中だけ（ADR 0007）。"
               }
@@ -223,6 +260,17 @@
               {
                 "group": ["**/test", "**/test/**", "**/*.test", "**/*.test.*", "**/*.spec", "**/*.spec.*"],
                 "message": "本番のコードからテストのコードを import しない。"
+              },
+              {
+                "group": [
+                  "**/*.stories",
+                  "**/*.stories.*",
+                  "@storybook/*",
+                  "@storybook/**",
+                  "storybook",
+                  "storybook/**"
+                ],
+                "message": "本番のコードからストーリーと Storybook を import しない。Storybook を読むのは *.stories.* と apps/web/.storybook だけ。"
               }
             ],
             "paths": [
@@ -246,8 +294,18 @@
     },
     {
       // E2E（e2e/ と playwright.config.ts）もテストのコード。@playwright/test は名前が **/test に当たる。
+      // ストーリー（*.stories.*）と Storybook の設定（apps/web/.storybook）も、本番に入らないので同じく外す。
       // 上書きは後に書いたものが勝つので、層の柵より後ろ（最後）に置く
-      "files": ["**/test/**", "**/*.test.*", "**/*.spec.*", "**/vitest.config.*", "e2e/**", "playwright.config.*"],
+      "files": [
+        "**/test/**",
+        "**/*.test.*",
+        "**/*.spec.*",
+        "**/*.stories.*",
+        "apps/web/.storybook/**",
+        "**/vitest.config.*",
+        "e2e/**",
+        "playwright.config.*"
+      ],
       "rules": {
         "no-restricted-imports": "off",
         "import/no-relative-parent-imports": "off"

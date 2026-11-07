@@ -3,9 +3,15 @@ import { fileURLToPath } from 'node:url';
 
 const srcDir = fileURLToPath(new URL('../src/', import.meta.url));
 
-/** src の画面のファイル（テストと自動生成のルート表を除く）を、src からの相対パスで返す */
+/** src の画面のファイル（テスト・ストーリー・自動生成のルート表を除く）を、src からの相対パスで返す */
 export const screenFiles = readdirSync(srcDir, { recursive: true, encoding: 'utf8' })
-  .filter((path) => /\.tsx?$/.test(path) && !/\.test\.tsx?$/.test(path) && !path.endsWith('routeTree.gen.ts'))
+  .filter(
+    (path) =>
+      /\.tsx?$/.test(path) &&
+      !/\.test\.tsx?$/.test(path) &&
+      !/\.stories\.tsx?$/.test(path) &&
+      !path.endsWith('routeTree.gen.ts'),
+  )
   .map((path) => path.replaceAll('\\', '/'))
   .sort();
 

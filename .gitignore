@@ -3,6 +3,9 @@ memo.md
 docs/design/mock/dist/
 # vite build の出力
 dist/
+# storybook build の出力と、失敗したときのログ。公開しない（docs/architecture/frontend.md の Storybook）
+storybook-static/
+*storybook.log
 
 # wrangler のローカルの状態（ローカルの D1・DO のデータなど）
 .wrangler/

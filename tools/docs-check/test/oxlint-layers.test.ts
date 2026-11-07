@@ -9,8 +9,11 @@ import { afterAll, describe, expect, it } from 'vitest';
 const repoPath = (path: string) => fileURLToPath(new URL(`../../../${path}`, import.meta.url));
 
 type Expected = 'blocked' | 'allowed';
-/** from は置き場所（apps/web/src からのフォルダー）、to は import する先。テストのファイル（*.test.ts）にするものは test を true にする */
-type Case = { from: string; to: string; expected: Expected; test?: boolean };
+/**
+ * from は置き場所（apps/web/src からのフォルダー）、to は import する先。
+ * kind は、テストのファイル（*.test.ts）にするものは test、ストーリー（*.stories.ts）にするものは stories にする
+ */
+type Case = { from: string; to: string; expected: Expected; kind?: 'test' | 'stories' };
 
 // 層の向き: routes → features → shared → api・realtime、components/ui は lib だけを読む（docs/architecture/frontend.md）
 const cases: Case[] = [
@@ -47,17 +50,27 @@ const cases: Case[] = [
     { from, to: './helper.test', expected: 'blocked' },
     { from, to: 'cloudflare:test', expected: 'blocked' },
     { from, to: 'better-auth/test', expected: 'blocked' },
+    // ストーリーと Storybook は本番に入れない（docs/architecture/frontend.md の Storybook）
+    { from, to: './button.stories', expected: 'blocked' },
+    { from, to: '@storybook/react-vite', expected: 'blocked' },
+    { from, to: 'storybook/test', expected: 'blocked' },
   ]),
+  // 層の上書きのない場所（lib/ など）は、全体の no-restricted-imports が止める
+  { from: 'lib', to: './tailwind.stories', expected: 'blocked' },
+  { from: 'lib', to: '@storybook/react-vite', expected: 'blocked' },
   ...['features/admin', 'shared/sound', 'api', 'realtime'].map((from): Case => ({
     from,
     to: '@base-ui/react/button',
     expected: 'blocked',
   })),
   // テストのコードは柵の外。テストの上書きが、層の上書きより後ろにあること
-  { from: 'features/admin', to: '@/features/host/host-room', expected: 'allowed', test: true },
-  { from: 'features/host', to: '../../../test/fake-sound', expected: 'allowed', test: true },
-  { from: 'components/ui', to: '../../../test/live-region', expected: 'allowed', test: true },
-  { from: 'components/ui', to: '@/shared/sound/sound-player', expected: 'allowed', test: true },
+  { from: 'features/admin', to: '@/features/host/host-room', expected: 'allowed', kind: 'test' },
+  { from: 'features/host', to: '../../../test/fake-sound', expected: 'allowed', kind: 'test' },
+  { from: 'components/ui', to: '../../../test/live-region', expected: 'allowed', kind: 'test' },
+  { from: 'components/ui', to: '@/shared/sound/sound-player', expected: 'allowed', kind: 'test' },
+  // ストーリーも柵の外。部品の隣に置き、Storybook の型を読む
+  { from: 'components/ui', to: '@storybook/react-vite', expected: 'allowed', kind: 'stories' },
+  { from: 'components/ui', to: './button', expected: 'allowed', kind: 'stories' },
 ];
 
 const workDir = mkdtempSync(join(tmpdir(), 'oxlint-layers-'));
@@ -72,14 +85,16 @@ function writeWorkFile(path: string, source: string) {
 }
 
 /** ケースごとに、import を1行だけ書いたファイルを作る。override の files は設定のある場所から読むので、同じ形に並べる */
-const caseFiles = cases.map(({ test, ...rest }, index) => ({
+const caseFiles = cases.map(({ kind, ...rest }, index) => ({
   ...rest,
-  path: `apps/web/src/${rest.from}/case-${index}${test ? '.test' : ''}.ts`,
+  path: `apps/web/src/${rest.from}/case-${index}${kind ? `.${kind}` : ''}.ts`,
 }));
 writeWorkFile('.oxlintrc.json', readFileSync(repoPath('.oxlintrc.json'), 'utf8'));
 for (const { path, to } of caseFiles) {
   writeWorkFile(path, `import '${to}';\n`);
 }
+// Storybook の設定（apps/web/.storybook）は、Storybook を読む側。本番の柵の外
+writeWorkFile('apps/web/.storybook/preview.tsx', "import '@storybook/react-vite';\n");
 // ./ どうしで読み合う輪
 writeWorkFile('apps/web/src/lib/cycle-a.ts', "import { b } from './cycle-b';\nexport const a = () => b;\n");
 writeWorkFile('apps/web/src/lib/cycle-b.ts', "import { a } from './cycle-a';\nexport const b = () => a;\n");
@@ -107,6 +122,12 @@ describe('.oxlintrc.json の層の柵（apps/web/src）', () => {
   it.for(caseFiles)('$path から $to を import すると $expected', ({ path, expected }) => {
     const restricted = codesOf(path).includes('eslint(no-restricted-imports)');
     expect(restricted ? 'blocked' : 'allowed').toBe(expected);
+  });
+});
+
+describe('.oxlintrc.json の Storybook の設定', () => {
+  it('apps/web/.storybook から @storybook/* を import できる', () => {
+    expect(codesOf('apps/web/.storybook/preview.tsx')).not.toContain('eslint(no-restricted-imports)');
   });
 });
 
