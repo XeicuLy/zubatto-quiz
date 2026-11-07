@@ -70,6 +70,25 @@ describe('/api/auth/* の本文の上限', () => {
     expect(await response.json<{ url: string }>()).toMatchObject({ url: expect.stringContaining('github.com') });
   });
 
+  it('gzip の本文は展開されないので、圧縮で上限をすり抜けても検査まで届かない', async () => {
+    // bodyLimit が数えるのは届いたバイト数。展開されるようになると、この本文は検査まで届き、ここが落ちる
+    const compressed = new Uint8Array(
+      await new Response(
+        new Blob([bodyWithInvalidScopes(300_000)]).stream().pipeThrough(new CompressionStream('gzip')),
+      ).arrayBuffer(),
+    );
+    expect(compressed.length).toBeLessThan(LIMIT_BYTES);
+
+    const response = await exports.default.fetch(SIGN_IN_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: BASE_URL, 'content-encoding': 'gzip' },
+      body: compressed,
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json<{ code: string }>()).toMatchObject({ code: 'BAD_REQUEST' });
+  });
+
   it('本文のないセッションの取得は止めない', async () => {
     const response = await exports.default.fetch(`${BASE_URL}/api/auth/get-session`);
 
