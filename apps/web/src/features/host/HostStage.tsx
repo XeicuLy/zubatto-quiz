@@ -7,7 +7,8 @@ import { useCountdown } from '@/shared/countdown/use-countdown';
 import { AnswerDistribution } from '@/shared/results/AnswerDistribution';
 import { ChoiceNumber, choiceColors } from '@/shared/results/choice-style';
 import { FastestCorrect } from '@/shared/results/FastestCorrect';
-import { FinalRanking, StandingsRanking } from '@/shared/results/Ranking';
+import { FinalRanking } from '@/shared/results/FinalRanking';
+import { StandingsRanking } from '@/shared/results/StandingsRanking';
 import { StatusScreen } from '@/shared/status/StatusScreen';
 
 export interface HostStageProps {

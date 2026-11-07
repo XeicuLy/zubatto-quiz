@@ -4,7 +4,7 @@ import type { CurrentQuestion } from '@/realtime/room-store';
 import { FastestCorrect } from '@/shared/results/FastestCorrect';
 import { MyPosition } from '@/shared/results/MyPosition';
 import { QuestionResult } from '@/shared/results/QuestionResult';
-import { StandingsRanking } from '@/shared/results/Ranking';
+import { StandingsRanking } from '@/shared/results/StandingsRanking';
 
 export interface ResultViewProps {
   question: CurrentQuestion;
