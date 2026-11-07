@@ -202,7 +202,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 ## 結果の画面
 
 - `shared/results/` の `QuestionResult`（回答者の ①）、`MyPosition`、`FastestCorrect`、`Ranking.tsx`（`StandingsRanking`、`FinalRanking`）は、protocol のメッセージを描くだけにする。順位、同点、得点、切り捨てた `elapsedMs` は、どれも DO から来る
-- 共通の部品は `variant: 'projector' | 'mobile'` を受け取り、バリアントごとのクラスの表を省かずに書く。Tailwind はクラス名を文字列のまま探すため
+- 共通の部品は `variant: 'projector' | 'mobile'` を受け取り、バリアントごとのクラスの表を省かずに書く。Tailwind はクラス名を文字列のまま探すため。新しい表は `cva` で書く（`shared/status/`）。oxfmt は `cva` の引数の class を並べ替えるが、定数のオブジェクトに入れた class は並べ替えない
 - `projector` は vw のトークン（`text-stage-*`、`text-timer`、`text-hero`、`p-stage`）を使う。`mobile` は決まった大きさを使い、`md:` のクラスは使わない。PC のブラウザでは、`max-w-md` の列の中でもそれが効いてしまうため
 - `meId` を渡すのは回答者だけで、自分の行を目立たせる
 - 秒は scoring の `formatSeconds` で書き、別の書き方の関数を作らない
@@ -291,6 +291,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - `announce` は領域を空にし、`ANNOUNCE_DELAY_MS`（100 ms）あとに文を入れる。React は同期の2回の set を1回の描画にまとめるので、同じ文がもう一度読まれないため
 - 閉じた画面、最終順位のあとの帯、`replaced` は assertive にし、ほかは polite にする
 - `useConnectionAnnouncement`（`shared/connection/use-connection-announcement.ts`。どちらの接続のお知らせも使う）は、`reconnecting` のあとだけ「つながりました」と言う
+- `shared/status/` の2つの画面は、進行画面と回答者画面で共有し、`variant` で大きさを変える。つなぎの `StatusScreen`（「部屋に入っています…」「結果を集計しています」など）は自分で `useAnnouncement` を呼ぶ。見出しと本文の `MessageScreen`（満員、部屋が見つからない、接続が閉じた）は読み上げを持たない。閉じた画面の文は接続のお知らせが assertive で渡すので、部品でも言うと2回読まれる
 - 回答の時間と「締切になりました」を読み上げるのは `Answering` だけ。締切のあとの分かれ道は `AnswerFooter` を作り直すので、そこで読み上げると2回読まれる
 - テストは `liveRegion(politeness)`（`test/live-region.ts`）で領域を探し、`setup.ts` がテストのたびに `clearAnnouncements()` を呼ぶ
 - Playwright の `getByText` は部分一致なので、領域にも入っている見える文は、`{ exact: true }` か `getByRole('paragraph')` で探す
