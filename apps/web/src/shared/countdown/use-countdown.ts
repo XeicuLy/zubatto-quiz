@@ -1,14 +1,15 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 
 import { answerStartOf, remainingMsAt } from './answer-timer';
+import { timeBarOf, type TimeBarValue } from './time-bar';
 
 export interface Countdown {
   /** 計測の起点（performance.now() の値）。選択肢を描く直前のフレームで決まるまでは null */
   startedAt: number | null;
   /** 締切までの残り。起点が決まるまでは、届いた残りのまま */
   leftMs: number;
-  /** 次に描き直すまでの時間。残り時間の棒を、この時間をかけて縮める */
-  nextTickMs: number;
+  /** 残り時間の棒（TimeBar）に渡す値 */
+  bar: TimeBarValue;
 }
 
 /**
@@ -42,5 +43,5 @@ export function useCountdown(limitMs: number, remainingMs: number): Countdown {
     return () => clearTimeout(timer);
   }, [startedAt, leftMs, nextTickMs]);
 
-  return { startedAt, leftMs, nextTickMs };
+  return { startedAt, leftMs, bar: timeBarOf(limitMs, { startedAt, leftMs, nextTickMs }) };
 }

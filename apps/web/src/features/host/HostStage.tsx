@@ -133,10 +133,8 @@ interface AcceptingStageProps {
  * 受付中だけ作るので、やり直しで出題に戻ると捨てられ、次の受付で数え直す
  */
 function AcceptingStage({ question, choices, questionCount, participantCount, headingRef }: AcceptingStageProps) {
-  const { startedAt, leftMs, nextTickMs } = useCountdown(question.limitMs, question.remainingMs ?? question.limitMs);
+  const { leftMs, bar } = useCountdown(question.limitMs, question.remainingMs ?? question.limitMs);
   const { progress } = question;
-  // 次に描き直すときの残りへ、それまでの時間をかけて縮める。回答者の画面と同じ動き
-  const ratio = startedAt === null ? leftMs / question.limitMs : (leftMs - nextTickMs) / question.limitMs;
 
   return (
     <StageFrame
@@ -164,7 +162,7 @@ function AcceptingStage({ question, choices, questionCount, participantCount, he
           <span className="text-stage-label text-muted-foreground">秒</span>
         </p>
       </div>
-      <TimeBar ratio={ratio} transitionMs={startedAt === null ? 0 : nextTickMs} variant="projector" />
+      <TimeBar {...bar} variant="projector" />
       <ol aria-label="選択肢" className="grid flex-1 grid-cols-1 gap-4 text-choice font-bold md:grid-cols-2">
         {choices.map((choice, index) => (
           <li
