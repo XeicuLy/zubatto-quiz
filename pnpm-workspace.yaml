@@ -3,6 +3,8 @@ packages:
   - 'packages/*'
   - 'tools/*'
 
+saveExact: true
+
 allowBuilds:
   '@parcel/watcher': false
   # どちらも postinstall はプラットフォーム別のバイナリを確かめるだけで、optionalDependencies から入るので走らせなくても動く
