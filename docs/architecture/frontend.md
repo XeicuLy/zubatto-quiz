@@ -230,19 +230,20 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 
 ## ホストの進行とフォーカス
 
-`features/host/` の `HostControls.tsx`、`host-commands.ts`、`HostStage.tsx` にある。
+`features/host/` の `HostControls.tsx`、`host-commands.ts`、`HostStage.tsx` と `stage/` にある。
 
 - `forwardCommandsOf(room)` は、先へ進む操作をボタンの順に並べ、`canSend` が通すものだけを残す。最後のものが主ボタンになる
 - やり直しと終了はいつも出す（やり直しは締切のあとは押せない）。送る前に、その場で確かめる（`role="alertdialog"`）。`window.confirm` は残り時間と接続を止めてしまうので使わない
 - `HostPage` は `HostControls` を `phase:questionIndex` で key にする。そのため、開きかけの確認は段階が変わると残らない
 - 作り直しで押したボタンが消えるので、`HostPage` は `host.send` を包む。送れて、`stageAfter`（protocol の `transition`）が段階か問題が進むと言えば、その行き先のステージを `pendingFocus` に足す。リストにするのは、② の帯では、どちらの返事も来る前に「途中経過」と「次の問題」を押せるため
-- `phase`/`questionIndex` の `useLayoutEffect` が、純粋な関数 `settleFocus` を動かす。新しいステージに合う最後のものまで待っているステージを使い切り、その見出しにフォーカスを当てる（`headingRef`、`tabIndex={-1}`。映すので outline は出さない。結果の部品は `headingRef` を受け取れる）（#111）。最後に合ったものを使うのは、2つのステージが1回の描画にまとまったときと、同じ操作を2回送ったときのため
+- `phase`/`questionIndex` の `useLayoutEffect` が、純粋な関数 `settleFocus` を動かす。新しいステージに合う最後のものまで待っているステージを使い切り、その見出しにフォーカスを当てる（`headingRef`、`tabIndex={-1}`。映すので outline は出さない。出題・受付中・① の見出しは `StageHeading`（`stage/StageFrame.tsx`）の1か所で書き、結果の部品は `headingRef` を受け取れる）（#111）。最後に合ったものを使うのは、2つのステージが1回の描画にまとまったときと、同じ操作を2回送ったときのため
 - 合うものがなければ全部捨てる。こうすると、断られた操作を通ったものと取り違えず、ほかのタブのあとの操作に合ってしまうこともない。締切を過ぎた `retryQuestion` には、`invalid_state` より先に `revealed`（`closeAnsweringIfDue` から）が届く。DO は1つの接続のメッセージを順に処理するので、本当に起きたステージはいつもエラーより先に届き、`error` を扱う必要はない
 - 主ボタンにはフォーカスを当てない。Enter をもう1回押すと、① を飛ばして ② へ進んでしまう
 - alarm での締切、ホストの部屋の予備のタイマー、ほかのタブの操作では、フォーカスを動かさない
 - `reconnecting`/`closed` になったら印を消す。つなぎ直したあとの送り直しでは、ホスト自身の操作とほかのタブの操作を見分けられないため。今は `HostConnectionNotice` の木が変わることで、たまたま `HostScreen` が作り直されるが、それに頼らない
 - 確認は帯の中に `ConfirmDialog` で出す。開いたときに「やめる」にフォーカスを当て、Esc で閉じ、作り直さずに閉じたときは開いたボタンへフォーカスを戻す（`useConfirm`。[UI の部品](#ui-の部品)）
-- `HostStage` は、① を `AnswerDistribution`（`shared/results/`）で描く（映す画面だけなので `variant` はない。棒は回答した人のうちの割合で、回答が0なら `NaN%` にせず棒を描かない。ブラウザは `NaN%` を捨てるため）。②③ と最終順位は T28 の `projector` の部品で描く
+- `HostStage` は段階を振り分けるだけにし、出題・受付中・① は `stage/` の `QuestionStage`・`AcceptingStage`・`RevealedStage` が、問題の番号の帯（`StageFrame`）の中に描く。`AcceptingStage` は `useCountdown` を呼んで残りを数えるだけで、描くのは props だけで見た目が決まる `AcceptingStageView`（ストーリーにするのはこちら）
+- ① は `AnswerDistribution`（`shared/results/`）で描く（映す画面だけなので `variant` はない。棒は回答した人のうちの割合で、回答が0なら `NaN%` にせず棒を描かない。ブラウザは `NaN%` を捨てるため）。②③ と最終順位は T28 の `projector` の部品で描く
 - 選択肢の色（省かずに書く）と `ChoiceNumber` は `shared/results/choice-style.tsx` にあり、受け付け中のステージと ① で共有する
 
 ## 締切の予備のタイマー
