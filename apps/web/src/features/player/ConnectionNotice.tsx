@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import type { ConnectionStatus } from '@/realtime/client';
 import { useConnectionAnnouncement } from '@/shared/connection/use-connection-announcement';
 import type { RoomEnd } from '@/shared/results/room-end';
+import { MessageScreen } from '@/shared/status/MessageScreen';
 
 interface ConnectionNoticeProps {
   connection: ConnectionStatus;
@@ -26,7 +27,7 @@ export function ConnectionNotice({ connection, closeReason, roomEnd, children }:
   useConnectionAnnouncement({ connection, reconnecting: reconnectingMessage, closed });
 
   if (closed !== null && roomEnd !== 'after_final') {
-    return <ClosedScreen message={closed} />;
+    return <MessageScreen variant="mobile" title={closed.title} body={closed.body} />;
   }
   if (connection !== 'reconnecting') {
     // つながっているときと同じ並びで返し、終わっても中身を作り直さない。作り直すと、優勝の出てくるアニメーションがもう一度流れる
@@ -108,14 +109,5 @@ function closedMessageOf(reason: CloseReason | null, roomEnd: RoomEnd | null): M
       title: '接続が閉じました',
       body: 'ページを読み込み直してください。',
     }
-  );
-}
-
-function ClosedScreen({ message }: { message: Message }) {
-  return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 pb-24">
-      <h1 className="text-3xl leading-snug font-bold">{message.title}</h1>
-      <p className="mt-4 leading-relaxed text-muted-foreground">{message.body}</p>
-    </main>
   );
 }
