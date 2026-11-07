@@ -8,6 +8,12 @@
 /* テストに書いた class 名（cn や トークンを確かめる表）を、本番の CSS に入れない */
 @source not '../test';
 @source not './**/*.test.{ts,tsx}';
+/*
+ * ストーリーと Storybook の設定の class 名も入れない。Tailwind は @source がなくても apps/web の下を読むので、.storybook も外す。
+ * Storybook は .storybook/preview.css で、この2つを足し直して読む
+ */
+@source not './**/*.stories.{ts,tsx}';
+@source not '../.storybook';
 
 /*
  * フォントは Google Fonts ではなく同じオリジンから配る。CSP の font-src・style-src を 'self' のままにできる。

@@ -1,0 +1,10 @@
+/*
+ * Storybook だけが読む CSS の入口。本番と同じ styles.css に、ストーリーと .storybook の class を足す。
+ * styles.css は @source not でストーリーと .storybook を外し、本番の CSS に入れない。
+ * 外したものは、ファイルのグロブで @source し直すと読まれる（フォルダー（'./'）で足し直しても戻らない。2026-11-07 に Tailwind 4.3.4 で確かめた）
+ */
+
+@import '../src/styles.css';
+
+@source '../src/**/*.stories.{ts,tsx}';
+@source './*.tsx';

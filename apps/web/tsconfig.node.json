@@ -1,10 +1,18 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    // vite.config.ts・vitest.config.ts・react-compiler.ts と、ファイルを読むテスト（test/*.test.ts）は node の上で動く
+    // vite.config.ts・vitest.config.ts・react-compiler.ts と Storybook の設定（.storybook の main.ts・vite.config.ts）と、
+    // ファイルを読むテスト（test/*.test.ts）は node の上で動く
     "types": ["node"],
     // test/*.test.ts が src を @/ で読む（ADR 0007）。tsconfig.app.json と同じにする
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "react-compiler.ts", "test/**/*.test.ts"]
+  "include": [
+    "vite.config.ts",
+    "vitest.config.ts",
+    "react-compiler.ts",
+    ".storybook/main.ts",
+    ".storybook/vite.config.ts",
+    "test/**/*.test.ts"
+  ]
 }
