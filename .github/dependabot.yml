@@ -37,6 +37,9 @@ updates:
       # .mise.toml の Node の版に合わせて、手で上げる
       - dependency-name: '@types/node'
         update-types: [version-update:semver-major]
+      # 7.0 には API がない。7.1 が出たら、この ignore を外す
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
     # 先に一致したグループに入るので、minor-and-patch は最後に書く
     groups:
       # 版をそろえるものは、major のときだけ一緒に別の PR にする

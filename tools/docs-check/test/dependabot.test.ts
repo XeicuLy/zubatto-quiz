@@ -106,12 +106,14 @@ describe('Dependabot の npm の更新', () => {
     expect(npm?.cooldown?.['semver-major-days']).toBeGreaterThanOrEqual(7);
   });
 
-  it('手で上げる2つは、major の PR を作らない', () => {
+  it('手で上げる3つは、major の PR を作らない', () => {
     expect(npm?.ignore).toEqual([
       // 8 系では、React Compiler が既定値付き props の部品を黙って飛ばす
       { 'dependency-name': '@babel/core', 'update-types': ['version-update:semver-major'] },
       // .mise.toml の Node の版に合わせる
       { 'dependency-name': '@types/node', 'update-types': ['version-update:semver-major'] },
+      // 7.0 には API がない。7.1 が出たら、この ignore を外す
+      { 'dependency-name': 'typescript', 'update-types': ['version-update:semver-major'] },
     ]);
   });
 
