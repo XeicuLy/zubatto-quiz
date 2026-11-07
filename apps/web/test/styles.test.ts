@@ -213,6 +213,9 @@ describe('全体に効くフォーカスリング（ADR 0007）', () => {
     const rule = (await buildCss(['focus-target'])).match(/\.focus-target:focus \{([^}]*)\}/)?.[1];
 
     expect(rule).toContain('outline-style: none');
-    expect(rule).toContain('--tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(0px + var(--tw-ring-offset-width))');
+    // カンマのあとの空白は Tailwind の版で変わる。どちらも「代わりの値は空」で意味は同じ
+    expect(rule).toMatch(
+      /--tw-ring-shadow: var\(--tw-ring-inset, ?\) 0 0 0 calc\(0px \+ var\(--tw-ring-offset-width\)\)/,
+    );
   });
 });
