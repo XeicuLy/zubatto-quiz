@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 
 import { createAuth } from './auth/create-auth';
 import { questionSetRoutes } from './routes/question-sets';
@@ -12,6 +13,10 @@ export { RoomDurableObject } from './room/room-do';
 const app = new Hono<{ Bindings: Env }>().basePath('/api');
 
 app.get('/health', (c) => c.json({ ok: true }));
+
+// ログイン前に届く経路なので、Better Auth が本文を検査する前に大きさで止める。上限のない配列の検査は、不正な要素の数だけ CPU とメモリを使う。
+// 画面が送る本文は数百バイトで、GitHub のコールバックは GET なので本文がない
+app.use('/auth/*', bodyLimit({ maxSize: 4 * 1024 }));
 
 // GitHub のログイン・コールバック・ログアウト・セッションの取得（ADR 0003）。Origin の確認は Better Auth 自身が baseURL で行う
 app.on(['GET', 'POST'], '/auth/*', (c) => createAuth(c.env).handler(c.req.raw));
