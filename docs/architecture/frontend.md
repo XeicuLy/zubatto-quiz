@@ -203,7 +203,8 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 
 ## 結果の画面
 
-- `shared/results/` の `QuestionResult`（回答者の ①）、`MyPosition`、`FastestCorrect`、`Ranking.tsx`（`StandingsRanking`、`FinalRanking`）は、protocol のメッセージを描くだけにする。順位、同点、得点、切り捨てた `elapsedMs` は、どれも DO から来る
+- `shared/results/` の `QuestionResult`（回答者の ①）、`MyPosition`、`FastestCorrect`、`StandingsRanking`、`FinalRanking` は、protocol のメッセージを描くだけにする。順位、同点、得点、切り捨てた `elapsedMs` は、どれも DO から来る
+- 画面は `StandingsRanking.tsx` と `FinalRanking.tsx` を直接読む（再 export だけの入口は置かない）。`FinalRanking` の2位から下の行は `RankRow` にし、`variant` と `emphasis`（2位と3位の札の `podium`、4位から下の行の `rest`）と `isMe` を受けて、クラスを自分で決める。呼ぶ側にクラスの文字列を渡させない。3つの部品とも、`variant` ごとのクラスは `cva` で書き、共通のクラスは `cva` の最初の引数に入れる。順位と点の字体（投影だけ `font-numeral`）は `RankRow.tsx` の `numeralVariants` を3つの部品で共有する
 - 共通の部品は `variant: 'projector' | 'mobile'` を受け取り、バリアントごとのクラスの表を省かずに書く。Tailwind はクラス名を文字列のまま探すため。新しい表は `cva` で書く（`shared/status/`）。oxfmt は `cva` の引数の class を並べ替えるが、定数のオブジェクトに入れた class は並べ替えない
 - `projector` は vw のトークン（`text-stage-*`、`text-timer`、`text-hero`、`p-stage`）を使う。`mobile` は決まった大きさを使い、`md:` のクラスは使わない。PC のブラウザでは、`max-w-md` の列の中でもそれが効いてしまうため
 - `meId` を渡すのは回答者だけで、自分の行を目立たせる

@@ -3,7 +3,8 @@ import type { Ref } from 'react';
 
 import type { CurrentQuestion } from '@/realtime/room-store';
 import { FastestCorrect } from '@/shared/results/FastestCorrect';
-import { FinalRanking, StandingsRanking } from '@/shared/results/Ranking';
+import { FinalRanking } from '@/shared/results/FinalRanking';
+import { StandingsRanking } from '@/shared/results/StandingsRanking';
 import { StatusScreen } from '@/shared/status/StatusScreen';
 
 import { AcceptingStage } from './stage/AcceptingStage';
