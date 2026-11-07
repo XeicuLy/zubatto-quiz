@@ -5,6 +5,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { useAnnouncement } from '@/components/a11y/announce';
 import type { CurrentQuestion } from '@/realtime/room-store';
 import { elapsedMsAt, remainingMsAt } from '@/shared/countdown/answer-timer';
+import { TimeBar } from '@/shared/countdown/TimeBar';
 import { useCountdown } from '@/shared/countdown/use-countdown';
 
 import { AnswerButtons } from './AnswerButtons';
@@ -120,8 +121,8 @@ function Answering({ question, choices, questionCount, onAnswer }: AnsweringProp
       // 次に描き直すときの残りへ、それまでの時間をかけて縮める。棒は秒の変わり目を待たずに、なめらかに減る
       progress={
         startedAt === null
-          ? { ratio: leftMs / limitMs }
-          : { ratio: (leftMs - nextTickMs) / limitMs, overMs: nextTickMs }
+          ? { ratio: leftMs / limitMs, transitionMs: 0 }
+          : { ratio: (leftMs - nextTickMs) / limitMs, transitionMs: nextTickMs }
       }
     >
       <AnswerButtons
@@ -141,8 +142,8 @@ interface QuestionFrameProps {
   questionCount: number;
   /** ヘッダーの右に出すもの */
   aside?: ReactNode;
-  /** 残り時間の棒。受付中だけ渡す。ratio（0〜1）へ overMs ミリ秒かけて縮める */
-  progress?: { ratio: number; overMs?: number };
+  /** 残り時間の棒。受付中だけ渡す。ratio（0〜1）へ transitionMs ミリ秒かけて縮める */
+  progress?: { ratio: number; transitionMs: number };
   children: ReactNode;
 }
 
@@ -157,12 +158,8 @@ function QuestionFrame({ question, questionCount, aside, progress, children }: Q
         {aside}
       </header>
       {progress !== undefined && (
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-          {/* 幅は描くたびに変わるので、クラスではなく style で渡す。React は CSSOM で書くので、CSP の style-src に触れない */}
-          <div
-            className="h-full rounded-full bg-primary transition-[width] ease-linear"
-            style={{ width: `${Math.max(0, progress.ratio) * 100}%`, transitionDuration: `${progress.overMs ?? 0}ms` }}
-          />
+        <div className="mt-2">
+          <TimeBar ratio={progress.ratio} transitionMs={progress.transitionMs} variant="mobile" />
         </div>
       )}
       <h1 className="mt-5 text-2xl leading-relaxed font-bold text-phrase whitespace-pre-line">{question.text}</h1>
