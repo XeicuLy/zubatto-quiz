@@ -51,6 +51,7 @@ flowchart LR
 | 1つの画面だけで使う部品                       | その `features/<画面>/` の中                                                                                                |
 | 2つ以上の feature で使う部品・フック          | `shared/<名前>/`。feature 同士は読み合わないので、使う側が増えたらここへ移す                                                |
 | ボタンやカードなどの見た目の部品              | `components/ui/`。shadcn の部品を手で写す（[UI の部品](../../../docs/architecture/frontend.md#ui-の部品)）                  |
+| 部品のストーリー（Storybook）                 | 部品の隣の `<部品>.stories.tsx`（[Storybook](../../../docs/architecture/frontend.md#storybook)）                            |
 | `cn` やページタイトルのような層によらない道具 | `lib/`                                                                                                                      |
 | メッセージや HTTP の形                        | `apps/web` には置かず [packages/protocol](../../../packages/protocol/src/)。Go のバックエンドとも同じ形を使う               |
 | 点数・順位・秒の書き方                        | `apps/web` には置かず [packages/scoring](../../../packages/scoring/src/)                                                    |

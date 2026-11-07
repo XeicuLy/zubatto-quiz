@@ -20,7 +20,7 @@
   | `api/`・`realtime/` | `features/`、`shared/`、`components/`、`routes/` |
   | `components/ui`     | `lib/` と `components/ui` のほかのすべて         |
   - 2つの feature で使うものは `shared/` へ移す。feature の中は `./` で読む。feature の中にフォルダーを作ると `@/features/<自分>/…` も止まるので、そのときは feature ごとの上書きに分ける
-  - 上書きは全体の `no-restricted-imports` を丸ごと置き換えるので、層の上書きには、全体の禁止（テストのコード・`@base-ui/*`・`paths`）を書き写している。全体を直したら、4つの上書きも直す。上書きは後に書いたものが勝つので、テストのコードを外す上書きは最後に置く
+  - 上書きは全体の `no-restricted-imports` を丸ごと置き換えるので、層の上書きには、全体の禁止（テストのコード・ストーリーと Storybook・`@base-ui/*`・`paths`）を書き写している。全体を直したら、4つの上書きも直す。上書きは後に書いたものが勝つので、テストのコードを外す上書きは最後に置く
   - `import/no-cycle` はリポジトリ全体で、読み合うモジュールを止める。`@/` も tsconfig の `paths` で解いてたどる
   - どれも `tools/docs-check/test/oxlint-layers.test.ts` が、一時フォルダーに設定の写しとわざと違反するファイルを置いて oxlint を走らせ、確かめる
 
@@ -128,6 +128,31 @@
 - `pending`（一覧で消しているあいだ）は、両方のボタンを押せなくし、Esc も受けない。`disabled` 属性ではなく Base UI の `focusableWhenDisabled` で `aria-disabled` にする。`disabled` 属性だと、押したボタンからフォーカスが `body` へ落ち、失敗したときに居場所がなくなるため。薄く見せるのは `aria-disabled:opacity-50`（Tailwind の `disabled:` は `:disabled` を見るので効かない）
 - 閉じたときのフォーカスの戻し方は2つある。開いたボタンと置き換えて出すとき（ホストの帯、一覧の行）は、`useConfirm` を使う。`open(which, ref)` で開いたボタンの ref を覚え、閉じて描き直したあとに、その ref が指す新しいボタンへ戻す。開いたボタンが残るとき（編集画面の「問題セットの一覧に戻る」）は、`ConfirmDialog` が開く前の `document.activeElement` を覚えていて、閉じたときにまだ画面にあれば戻す。置き換えるときは、開いたボタンがクリックと同じ描画で外されるので、覚えた要素は `body` になり、2つがぶつかることはない
 - `useConfirm` は、作り直した直後には何も開いていないので、作っただけではフォーカスを動かさない。ホストの帯は段階ごとに key で作り直し、フォーカスは `HostPage` が見出しへ移す
+
+## Storybook
+
+props だけで見た目が決まる表示部品を、Storybook の autodocs（props の表とストーリーの一覧）で目録にする。手元で起動して見るもので、公開しない。振る舞いは部品のテストと E2E で確かめ、ストーリーは見た目の目録と煙テストにとどめる。play 関数、`@storybook/addon-vitest`、`@storybook/addon-a11y` は入れない。
+
+- 起動は次のどちらか。`storybook:build` は `apps/web/storybook-static/` に書き出す（gitignore してある）
+
+  ```sh
+  pnpm --filter @zubatto-quiz/web run storybook
+  ```
+
+  ```sh
+  pnpm --filter @zubatto-quiz/web run storybook:build
+  ```
+
+- ストーリーは部品の隣に `<部品>.stories.tsx` として置く（`components/ui/button.stories.tsx`）。書き方は CSF 3 で、`const meta = { component } satisfies Meta<typeof 部品>` と `StoryObj<typeof meta>` を使う。`preview.tsx` が全体に `tags: ['autodocs']` を付けるので、ストーリーごとには書かない
+- `.storybook/main.ts` は `viteConfigPath` で `.storybook/vite.config.ts` を読み、`apps/web/vite.config.ts` は読まない。Cloudflare のプラグインが画面と API の Worker を立ち上げ、ルーターのプラグインが `src/routeTree.gen.ts` を書き換えるため。別の設定には、部品を描くのに要る `react()`・`reactCompiler()`・`tailwindcss()` と `resolve.tsconfigPaths` だけを写す。`react()` と `reactCompiler()` の順は本番と同じにし、本番と同じ変換のコードを見る。利用状況の送信（telemetry）は `core.disableTelemetry` で切っている
+- 面（明るい・暗い）は、ツールバーの「面」（`globals.surface`、`admin` か `stage`）で切り替える。`preview.tsx` のデコレータが、`stage` のときだけストーリーを `.stage` の箱で包み、背景と文字の色を付ける。部品は面を variant に持たないので（[UI の部品](#ui-の部品)）、暗い面で見せたいストーリーはストーリーの中で包まず、`globals: { surface: 'stage' }` を書く
+- ストーリーは本番に入れない。次の3か所で止める
+  - CSS: `src/styles.css` の `@source not` で、`*.stories.{ts,tsx}` と `.storybook` を外す。Tailwind は `@source` がなくても `apps/web` の下を読むので、`.storybook` も外さないと、デコレータの class が本番の CSS に入る（2026-11-07 に、外す前の `vite build` で確かめた）。Storybook は `.storybook/preview.css` から読み、そこで `styles.css` を import してから、2つを `@source` で足し直す。足し直すときはファイルのグロブ（`'./*.tsx'`）で書く。フォルダー（`'./'`）で書くと、外したものは戻らない（Tailwind 4.3.4）
+  - import: `.oxlintrc.json` の `no-restricted-imports` が、本番のコードから `*.stories.*`・`@storybook/*`・`storybook` を読むのを止める。全体と層の上書きの両方に書き、`*.stories.*` と `apps/web/.storybook/**` は、テストのコードと同じく最後の上書きで柵から外す（`tools/docs-check/test/oxlint-layers.test.ts` が確かめる）
+  - 画面のファイルの一覧: `test/screen-files.ts` はストーリーを外す。部品の使い方の例を、`font-roles.test.ts`・`color-roles.test.ts` が画面の class の使い方として数えないようにする（`test/screen-files.test.ts` が確かめる）
+- 本番に入っていないことは、ストーリーと `preview.tsx` にだけある class（`mt-[1234px]` など）を一時的に足して `vite build` と `storybook:build` を動かし、`dist/client` に出ず `storybook-static` の CSS に出ることで確かめた（2026-11-07）。CI でのビルドの確認は別にする（#235）
+- `test/stories.test.tsx` が煙テスト。`import.meta.glob` で `src` のすべてのストーリーを読み、`setProjectAnnotations(preview)` で Storybook と同じデコレータと globals を当てて、jsdom に1回ずつ描く。描くときに例外を投げないこと、デコレータの箱の中が空でないこと、`globals.surface` が `stage` のものだけが `.stage` の中に描かれることを確かめる。`make check` に入る
+- 型は、`.storybook/main.ts`・`vite.config.ts` を `tsconfig.node.json`、ブラウザで描く `.storybook/preview.tsx` と `test/stories.test.tsx` を `tsconfig.app.json` で確かめる
 
 ## 部屋の WebSocket
 
