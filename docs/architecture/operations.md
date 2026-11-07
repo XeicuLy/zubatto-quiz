@@ -157,6 +157,7 @@ action と npm の依存の更新は、Dependabot が週に1回 PR にする（`
 
 ### npm の依存の更新
 
+- 依存はすべて完全固定にする。`pnpm add` が `^` を付けないよう、`pnpm-workspace.yaml` に `saveExact: true` を書く。pnpm 11 からは `.npmrc` の認証とレジストリ以外の設定を読まないので、`.npmrc` の `save-exact=true` は効かない（[pnpm の文書](https://pnpm.io/settings) と手元の 12.11.0 で、2026-11-07 に確かめた）。`saveExact` が効くのは `pnpm add` だけなので、手で書いた範囲の指定は `pnpm-exact-versions.test.ts` が止める
 - `directory` は `/` だけにする。`pnpm-lock.yaml` は root に1つだけで、pnpm は `.mise.toml` と同じ 12 系まで Dependabot が対応している（[GitHub の文書](https://docs.github.com/en/code-security/dependabot/ecosystems-supported-by-dependabot/supported-ecosystems-and-repositories)で、2026-11-07 に確かめた）
 - `commit-message.prefix` は `chore` にし、`include: scope` は書かない。理由は action の `ci` と同じ。`chore` は版を上げないので、更新は次のリリースで本番に届く。脆弱性を直す更新をすぐ本番に出したいときは、PR の題名を `fix:` に書き換えてからマージする
 - minor と patch は `minor-and-patch` の1つの PR にまとめ、ほかの major はパッケージごとの PR にする。`storybook`・`react`・`tailwindcss`・`commitlint` は版をそろえて動くので、major のときだけ一緒に別の PR にする。minor と patch まで分けないのは、グループの数だけ PR と `e2e` が増えるからだ。グループは先に一致したものに入るので、`minor-and-patch` を最後に書く

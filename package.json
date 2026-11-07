@@ -21,19 +21,19 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
-    "@commitlint/cli": "^21.2.3",
-    "@commitlint/config-conventional": "^21.2.3",
-    "@commitlint/types": "^21.2.3",
+    "@commitlint/cli": "21.2.3",
+    "@commitlint/config-conventional": "21.2.3",
+    "@commitlint/types": "21.2.3",
     "@playwright/test": "1.63.0",
     "@tailwindcss/cli": "4.3.3",
-    "@types/node": "^24.13.6",
+    "@types/node": "24.19.1",
     "@zubatto-quiz/protocol": "workspace:*",
-    "consola": "^3.4.2",
-    "husky": "^9.1.7",
-    "oxfmt": "^0.68.0",
+    "consola": "3.4.2",
+    "husky": "9.1.7",
+    "oxfmt": "0.68.0",
     "oxlint": "1.87.0",
     "tailwindcss": "4.3.3",
-    "typescript": "^6.0.3",
+    "typescript": "6.0.3",
     "vitest": "4.1.11"
   }
 }
