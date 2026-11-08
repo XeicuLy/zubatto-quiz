@@ -9,7 +9,7 @@ import { cn } from '@/lib/tailwind';
  * ひな形から、次のものを外した。
  * - CardHeader・CardTitle などの小部品: 中身の見出しは画面ごとに要素（p・h1）も大きさも違うので、画面が書く
  * - ring-1 ring-foreground/10 の枠: 枠は border-2 にし、色を variant で選ぶ
- * - rounded-xl・py-(--card-spacing)・text-sm: 角は rounded-panel、余白は p-5 にし、文字の大きさは中身に任せる
+ * - rounded-xl・py-(--card-spacing)・文字の大きさ: 角は rounded-panel、余白は p-5 にし、文字の大きさは中身に任せる
  * - overflow-hidden と img の class: 画像を入れない
  * role（誤りの知らせなら role="alert"）は、画面が渡す
  */

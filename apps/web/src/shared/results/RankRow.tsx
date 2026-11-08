@@ -63,5 +63,5 @@ export function RankRow({ entry, variant, emphasis, isMe }: RankRowProps) {
 
 /** 自分の行に付ける印。色を変えた行の上に置くので、行の色を反転させる */
 export function MeChip() {
-  return <span className="shrink-0 rounded-full bg-primary-foreground px-2 text-xs text-primary">あなた</span>;
+  return <span className="shrink-0 rounded-full bg-primary-foreground px-2 text-note text-primary">あなた</span>;
 }

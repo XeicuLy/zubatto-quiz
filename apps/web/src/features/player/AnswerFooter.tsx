@@ -22,9 +22,9 @@ export function AnswerFooter({ answer, limitMs, closed }: AnswerFooterProps) {
       {answer !== null && (
         <>
           <p className="text-muted-foreground">回答までの時間</p>
-          <p className="text-6xl font-bold tabular-nums">
+          <p className="text-display font-bold tabular-nums">
             {secondsOf(answer.elapsedMs, limitMs)}
-            <span className="ml-1 text-2xl">秒</span>
+            <span className="ml-1 text-heading">秒</span>
           </p>
         </>
       )}

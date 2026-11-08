@@ -22,7 +22,7 @@ const titleVariants = cva('font-bold focus-target', {
   variants: {
     variant: {
       projector: 'text-stage-title',
-      mobile: 'text-2xl',
+      mobile: 'text-title',
     },
   },
 });
@@ -31,7 +31,7 @@ const subVariants = cva('text-muted-foreground', {
   variants: {
     variant: {
       projector: 'text-stage-label',
-      mobile: 'text-sm',
+      mobile: 'text-note',
     },
   },
 });
@@ -63,7 +63,7 @@ const winnerLabelVariants = cva('font-bold', {
   variants: {
     variant: {
       projector: 'text-stage-title',
-      mobile: 'text-lg',
+      mobile: 'text-heading',
     },
   },
 });
@@ -73,7 +73,7 @@ const winnerNameVariants = cva('font-bold', {
   variants: {
     variant: {
       projector: 'text-question',
-      mobile: 'text-3xl',
+      mobile: 'text-title',
     },
     part: {
       name: 'name-wrap',
@@ -86,7 +86,7 @@ const unitVariants = cva('ml-2', {
   variants: {
     variant: {
       projector: 'text-stage-title',
-      mobile: 'text-lg',
+      mobile: 'text-heading',
     },
   },
 });
@@ -95,7 +95,7 @@ const podiumVariants = cva('grid grid-cols-1 content-start gap-2', {
   variants: {
     variant: {
       projector: 'text-stage-title',
-      mobile: 'text-lg',
+      mobile: 'text-heading',
     },
   },
 });
@@ -105,7 +105,7 @@ const restVariants = cva('', {
     variant: {
       // 投影では2列にして、人数が多くても1画面に収める。columns は人数によらず、左の列から縦に流す
       projector: 'gap-x-stage text-stage-label md:columns-2',
-      mobile: 'text-base',
+      mobile: 'text-body',
     },
   },
 });
@@ -151,7 +151,7 @@ export function FinalRanking({ ranking, variant, meId, headingRef }: FinalRankin
                 <p className={winnerNameVariants({ variant, part: 'name' })}>
                   {entry.name}
                   {entry.participantId === meId && (
-                    <span className="ml-3 inline-block rounded-full bg-spotlight-foreground px-2 align-middle text-xs font-bold text-spotlight">
+                    <span className="ml-3 inline-block rounded-full bg-spotlight-foreground px-2 align-middle text-note font-bold text-spotlight">
                       あなた
                     </span>
                   )}

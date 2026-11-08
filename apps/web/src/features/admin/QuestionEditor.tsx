@@ -41,7 +41,7 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
       className={`rounded-panel bg-card p-5 ${hasError ? 'border-2 border-destructive' : 'border border-border'}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <h2 id={`${id}-heading`} className="text-xl font-bold">
+        <h2 id={`${id}-heading`} className="text-heading font-bold">
           第{number}問
         </h2>
         {/* 間はボタンの左右の余白（px-4）でとる。gap を足すと、下線の文字どうしが離れすぎる。
@@ -122,7 +122,7 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
                     className="flex-1"
                   />
                   <label
-                    className={`flex shrink-0 items-center gap-1.5 text-sm ${question.correctIndex === choiceIndex ? 'font-bold' : ''}`}
+                    className={`flex shrink-0 items-center gap-1.5 text-note ${question.correctIndex === choiceIndex ? 'font-bold' : ''}`}
                   >
                     <input
                       type="radio"
@@ -162,7 +162,7 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
             選択肢を足す
           </Button>
         ) : (
-          <p className="mt-3 text-sm text-muted-foreground">選択肢は{MAX_CHOICES}つまでです</p>
+          <p className="mt-3 text-note text-muted-foreground">選択肢は{MAX_CHOICES}つまでです</p>
         )}
       </fieldset>
 

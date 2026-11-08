@@ -67,7 +67,7 @@ function RoomEndedBanner() {
     <div className="mx-auto max-w-md px-5 pt-4">
       <div className="rounded-panel border-2 border-border bg-card px-4 py-3">
         <p className="font-bold">{message.title}</p>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{message.body}</p>
+        <p className="mt-1 text-note text-muted-foreground">{message.body}</p>
       </div>
     </div>
   );

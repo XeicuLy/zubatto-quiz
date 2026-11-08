@@ -45,7 +45,7 @@ export function goalOf(position: PlayerPosition): Goal | null {
  */
 export function MyPosition({ position, totalScore, remainingMaxPoints, remainingQuestions }: MyPositionProps) {
   const remaining = remainingQuestions > 0 && (
-    <p className="mt-3 text-sm font-bold">
+    <p className="mt-3 text-note font-bold">
       残り{remainingQuestions}問で、最大 <span className="tabular-nums">{formatPoints(remainingMaxPoints)}</span>
       点 取れます
     </p>
@@ -57,7 +57,7 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
         className="mt-8 rounded-panel border-2 border-dashed border-border p-5 text-center"
         aria-label="あなたの位置"
       >
-        <p className="text-lg font-bold">ここからの順位は、最終発表まで伏せています</p>
+        <p className="text-heading font-bold">ここからの順位は、最終発表まで伏せています</p>
         {remaining}
       </section>
     );
@@ -67,7 +67,7 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
   const rank = position.kind === 'leader' ? 1 : position.kind === 'podium' ? position.rank : null;
   const total = (
     <>
-      <span className="text-base font-bold text-foreground tabular-nums">{formatPoints(totalScore)}</span>点
+      <span className="text-body font-bold text-foreground tabular-nums">{formatPoints(totalScore)}</span>点
     </>
   );
 
@@ -75,9 +75,9 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
     <section className="mt-8 rounded-panel bg-card p-5" aria-label="あなたの位置">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         {rank !== null && (
-          <p className="text-4xl font-bold tabular-nums">
+          <p className="text-display font-bold tabular-nums">
             {rank}
-            <span className="ml-1 text-lg">位</span>
+            <span className="ml-1 text-heading">位</span>
           </p>
         )}
         {position.rankUp > 0 && (
@@ -89,13 +89,13 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
         )}
       </div>
       {goal !== null && (
-        <p className="mt-2 text-lg font-bold">
+        <p className="mt-2 text-heading font-bold">
           {goal.label} <span className="tabular-nums">{formatPoints(goal.points)}</span>点
         </p>
       )}
       {position.kind === 'chasing' ? (
         <>
-          <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm text-muted-foreground">
+          <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3 text-note text-muted-foreground">
             <div>
               <dt>合計</dt>
               <dd>{total}</dd>
@@ -103,7 +103,7 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
             <div>
               <dt>トップとの差</dt>
               <dd>
-                <span className="text-base font-bold text-foreground tabular-nums">
+                <span className="text-body font-bold text-foreground tabular-nums">
                   {formatPoints(position.gapToTop)}
                 </span>
                 点
@@ -113,7 +113,7 @@ export function MyPosition({ position, totalScore, remainingMaxPoints, remaining
           {remaining}
         </>
       ) : (
-        <p className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">合計 {total}</p>
+        <p className="mt-3 border-t border-border pt-3 text-note text-muted-foreground">合計 {total}</p>
       )}
     </section>
   );

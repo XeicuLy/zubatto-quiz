@@ -64,7 +64,7 @@ export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
         <Link to="/admin" className="font-bold underline focus-visible:outline-2 focus-visible:outline-ring">
           問題セットの一覧に戻る
         </Link>
-        <h1 className="mt-6 text-3xl font-bold">問題セットの編集</h1>
+        <h1 className="mt-6 text-title font-bold">問題セットの編集</h1>
 
         <Field label="問題セットの名前" error={errors.title} className="mt-cluster">
           {/* 一覧やホストの画面に出る名前なので、問題の入力欄より大きく太く出す */}
@@ -98,7 +98,7 @@ export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
             問題を足す
           </Button>
         ) : (
-          <p className="mt-6 text-center text-sm text-muted-foreground">問題は{MAX_QUESTIONS}問までです</p>
+          <p className="mt-6 text-center text-note text-muted-foreground">問題は{MAX_QUESTIONS}問までです</p>
         )}
       </main>
 
@@ -140,14 +140,14 @@ interface SaveStatusProps {
 function SaveStatus({ errorSummary, save, dirty }: SaveStatusProps) {
   if (errorSummary !== null) {
     return (
-      <p role="alert" className="text-sm font-bold text-destructive">
+      <p role="alert" className="text-body font-bold text-destructive">
         {errorSummary}
       </p>
     );
   }
   if (save.isPending) {
     return (
-      <p role="status" className="text-sm text-muted-foreground">
+      <p role="status" className="text-note text-muted-foreground">
         保存しています…
       </p>
     );
@@ -156,11 +156,11 @@ function SaveStatus({ errorSummary, save, dirty }: SaveStatusProps) {
     return <SaveError error={save.error} />;
   }
   if (dirty) {
-    return <p className="text-sm text-muted-foreground">保存していない変更があります</p>;
+    return <p className="text-note text-muted-foreground">保存していない変更があります</p>;
   }
   if (save.isSuccess) {
     return (
-      <p role="status" className="text-sm font-bold">
+      <p role="status" className="text-note font-bold">
         保存しました
       </p>
     );
@@ -172,7 +172,7 @@ function SaveError({ error }: { error: Error }) {
   if (error instanceof ApiError && error.status === 401) {
     // この画面でログインし直すと、GitHub へ移るあいだに下書きが消える。別のタブでログインすれば Cookie が共有される
     return (
-      <p role="alert" className="text-sm font-bold text-destructive">
+      <p role="alert" className="text-body font-bold text-destructive">
         ログインが切れました。
         <a href="/login" target="_blank" rel="noopener" className="underline">
           別のタブでログインし直して
@@ -183,13 +183,13 @@ function SaveError({ error }: { error: Error }) {
   }
   if (error instanceof ApiError && error.status === 404) {
     return (
-      <p role="alert" className="text-sm font-bold text-destructive">
+      <p role="alert" className="text-body font-bold text-destructive">
         この問題セットは消されているため、保存できません。
       </p>
     );
   }
   return (
-    <p role="alert" className="text-sm font-bold text-destructive">
+    <p role="alert" className="text-body font-bold text-destructive">
       保存できませんでした。もう一度押してください。
     </p>
   );

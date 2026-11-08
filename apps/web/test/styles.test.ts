@@ -135,7 +135,10 @@ function focusVisibleRuleOf(css: string): string {
 describe('文字の大きさと行間の段（デジタル庁デザインシステムの値を手本にする）', () => {
   it.each([
     // [名前, 大きさ, 行間, 字間, 手本にしたトークン]
+    ['verdict', '4rem', '1.4', '0', 'Dsp-64B-140'],
+    ['display', '3rem', '1.2', '0', 'Dsp-48B-140 を1行で出す'],
     ['title', '1.75rem', '1.5', '0.01em', 'Std-28B-150'],
+    ['lead', '1.5rem', '1.5', '0.02em', 'Std-24B-150'],
     ['heading', '1.25rem', '1.5', '0.02em', 'Std-20B-150'],
     ['body', '1rem', '1.7', '0.02em', 'Std-16N-170'],
     ['note', '0.875rem', '1.5', '0.02em', '14px の付随情報'],

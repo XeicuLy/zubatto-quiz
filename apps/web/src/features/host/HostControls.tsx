@@ -79,7 +79,7 @@ export function HostControls({ room, onSend, sound }: HostControlsProps) {
             </Button>
             <SoundToggle sound={sound} variant="link" size="sm" />
           </div>
-          {hint !== null && <p className="text-sm text-muted-foreground lg:ml-auto">{hint}</p>}
+          {hint !== null && <p className="text-note text-muted-foreground lg:ml-auto">{hint}</p>}
           {forward.length > 0 && (
             <div className={`flex w-full flex-wrap gap-3 lg:w-auto ${hint === null ? 'lg:ml-auto' : ''}`}>
               {forward.map((command, index) => (

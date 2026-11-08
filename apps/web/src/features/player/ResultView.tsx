@@ -25,8 +25,8 @@ export function ResultView({ question, myResult, phase, questionCount, meId }: R
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
       <header className="flex items-center justify-between gap-4 border-b border-border pb-3">
-        <p className="shrink-0 text-lg font-bold">
-          第{question.questionIndex + 1}問 <span className="text-sm text-muted-foreground">/ {questionCount}</span>
+        <p className="shrink-0 text-heading font-bold">
+          第{question.questionIndex + 1}問 <span className="text-note text-muted-foreground">/ {questionCount}</span>
         </p>
         <p className="shrink-0 text-muted-foreground">締め切りました</p>
       </header>

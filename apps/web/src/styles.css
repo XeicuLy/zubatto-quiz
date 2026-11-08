@@ -77,11 +77,22 @@
   /*
    * 文字の大きさの段。管理画面と回答者画面で使い、大きさは text-lg などではなく役割の名前で選ぶ。
    * 値はデジタル庁デザインシステムのタイポグラフィ（2026-08-05 更新）を手本にした。括弧の中が手本のトークン。
-   * 1つの class で、大きさ・行間・字間がそろって決まる（字間は 26px 以下で 2%）
+   * 1つの class で、大きさ・行間・字間がそろって決まる（字間は 26px 以下で 2%）。
+   * 投影でない画面には text-2xl のような大きさの名前を書かない（test/text-roles.test.ts が止める）
    */
+  --text-verdict: 4rem; /* 回答者の ① の正誤（Dsp-64B-140） */
+  --text-verdict--line-height: 1.4;
+  --text-verdict--letter-spacing: 0;
+  /* 1行で大きく見せるもの（入口のロゴ、回答までの秒数、この問題の得点、自分の順位）。手本の 140% では1行の上下が空きすぎるので 120% にした（Dsp-48B-140） */
+  --text-display: 3rem;
+  --text-display--line-height: 1.2;
+  --text-display--letter-spacing: 0;
   --text-title: 1.75rem; /* ページの見出し（Std-28B-150） */
   --text-title--line-height: 1.5;
   --text-title--letter-spacing: 0.01em;
+  --text-lead: 1.5rem; /* 回答者画面の問題文と、文の中で大きく見せる数・選択肢の番号（Std-24B-150） */
+  --text-lead--line-height: 1.5;
+  --text-lead--letter-spacing: 0.02em;
   --text-heading: 1.25rem; /* 節の見出し（Std-20B-150） */
   --text-heading--line-height: 1.5;
   --text-heading--letter-spacing: 0.02em;
@@ -173,7 +184,7 @@
   }
 }
 
-/* 日本語の見出しを文節で改行する（「ジャンル／は？」のような泣き別れを防ぐ）。問題文と選択肢に使う */
+/* 日本語の見出しを文節で改行する（「ジャンル／は？」のような泣き別れを防ぐ）。問題文と選択肢、狭い枠で折れる見出し（待機画面）に使う */
 @utility text-phrase {
   word-break: auto-phrase;
 }

@@ -41,7 +41,7 @@ export function QuestionView({ question, phase, questionCount, name, onAnswer }:
         questionCount={questionCount}
         text={question.text}
         aside={
-          <p className="name-clip min-w-0 rounded-full bg-secondary px-3 py-1 text-sm" title={name}>
+          <p className="name-clip min-w-0 rounded-full bg-secondary px-3 py-1 text-note" title={name}>
             {name}
           </p>
         }
@@ -93,7 +93,7 @@ function Answering({ question, choices, questionCount, onAnswer }: AnsweringProp
       text={question.text}
       aside={
         <p className="shrink-0 font-bold">
-          残り <span className="text-2xl tabular-nums">{remainingSeconds}</span> 秒
+          残り <span className="text-lead tabular-nums">{remainingSeconds}</span> 秒
         </p>
       }
       progress={bar}

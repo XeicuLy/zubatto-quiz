@@ -36,7 +36,7 @@ export function AnswerButtons({ choices, chosen, onChoose, focusList = false }: 
           key={index}
           type="button"
           onClick={() => onChoose(index)}
-          className={`flex max-h-40 min-h-16 flex-1 items-center gap-4 rounded-panel px-4 py-3 text-left text-xl font-bold shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-ring active:translate-y-1.5 active:shadow-none ${panelColors[index].panel}`}
+          className={`flex max-h-40 min-h-16 flex-1 items-center gap-4 rounded-panel px-4 py-3 text-left text-heading font-bold shadow-panel focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-ring active:translate-y-1.5 active:shadow-none ${panelColors[index].panel}`}
         >
           <ChoiceNumber index={index} className={panelColors[index].badge} />
           <span className="min-w-0 wrap-anywhere">{choice}</span>
@@ -71,16 +71,16 @@ function AnsweredList({ choices, chosen, focus }: { choices: string[]; chosen: n
         index === chosen ? (
           <li
             key={index}
-            className={`flex items-center gap-4 rounded-panel px-4 py-3 text-xl font-bold ring-4 ring-foreground ring-offset-4 ring-offset-background ${panelColors[index].panel}`}
+            className={`flex items-center gap-4 rounded-panel px-4 py-3 text-heading font-bold ring-4 ring-foreground ring-offset-4 ring-offset-background ${panelColors[index].panel}`}
           >
             <ChoiceNumber index={index} className={panelColors[index].badge} />
             <span className="min-w-0 wrap-anywhere">{choice}</span>
-            <span className="ml-auto shrink-0 text-base">あなたの回答</span>
+            <span className="ml-auto shrink-0 text-label">あなたの回答</span>
           </li>
         ) : (
           <li
             key={index}
-            className="flex items-center gap-4 rounded-panel bg-muted px-4 py-3 text-xl font-bold text-muted-foreground opacity-60"
+            className="flex items-center gap-4 rounded-panel bg-muted px-4 py-3 text-heading font-bold text-muted-foreground opacity-60"
           >
             <ChoiceNumber index={index} className="bg-background" />
             <span className="min-w-0 wrap-anywhere">{choice}</span>
@@ -93,7 +93,7 @@ function AnsweredList({ choices, chosen, focus }: { choices: string[]; chosen: n
 
 function ChoiceNumber({ index, className }: { index: number; className: string }) {
   return (
-    <span className={`grid size-11 shrink-0 place-items-center rounded-full text-2xl font-bold ${className}`}>
+    <span className={`grid size-11 shrink-0 place-items-center rounded-full text-lead font-bold ${className}`}>
       {index + 1}
     </span>
   );

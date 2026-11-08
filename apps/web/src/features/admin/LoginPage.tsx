@@ -36,26 +36,26 @@ export function LoginPage({ error }: LoginPageProps) {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-16">
-      <p className="font-logo text-4xl">ズバクイ</p>
-      <h1 className="mt-2 text-xl font-bold">ホストの管理画面</h1>
+      <p className="font-logo text-display">ズバクイ</p>
+      <h1 className="mt-2 text-heading font-bold">ホストの管理画面</h1>
 
       {denied ? (
         <Card variant="destructive" role="alert" className="mt-8">
           <p className="font-bold text-phrase text-destructive">このアカウントはホストとして登録されていません</p>
-          <p className="mt-2 leading-relaxed">
+          <p className="mt-2 text-body">
             ホストになるには、開発者に GitHub のアカウントを伝えて、許可リストに入れてもらってください。
           </p>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-2 text-note text-muted-foreground">
             別のアカウントでログインするときは、先に GitHub でそのアカウントに切り替えてください。
           </p>
         </Card>
       ) : error !== undefined || startFailed ? (
         <Card variant="destructive" role="alert" className="mt-8">
           <p className="font-bold text-destructive">ログインできませんでした</p>
-          <p className="mt-2 leading-relaxed">少し待ってから、もう一度ログインしてください。</p>
+          <p className="mt-2 text-body">少し待ってから、もう一度ログインしてください。</p>
         </Card>
       ) : (
-        <p className="mt-6 leading-relaxed text-muted-foreground">
+        <p className="mt-6 text-body text-muted-foreground">
           問題セットを作り、部屋を作って進行します。ホストとして登録された GitHub アカウントでログインしてください。
         </p>
       )}
@@ -64,7 +64,7 @@ export function LoginPage({ error }: LoginPageProps) {
         <GitHubMark />
         {denied ? '別のアカウントでログイン' : 'GitHub でログイン'}
       </Button>
-      <p className="mt-6 text-sm text-muted-foreground">
+      <p className="mt-6 text-note text-muted-foreground">
         クイズに答えるだけなら、ログインは要りません。ホストから届いた URL を開いてください。
       </p>
     </main>

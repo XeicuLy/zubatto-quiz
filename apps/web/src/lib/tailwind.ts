@@ -10,7 +10,10 @@ export const cn = createCn({
   extend: {
     theme: {
       text: [
+        'verdict',
+        'display',
         'title',
+        'lead',
         'heading',
         'body',
         'note',

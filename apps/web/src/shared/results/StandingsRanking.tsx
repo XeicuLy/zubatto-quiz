@@ -22,7 +22,7 @@ const titleVariants = cva('font-bold focus-target', {
   variants: {
     variant: {
       projector: 'text-stage-title',
-      mobile: 'text-xl',
+      mobile: 'text-heading',
     },
   },
 });
@@ -31,7 +31,7 @@ const subVariants = cva('text-muted-foreground', {
   variants: {
     variant: {
       projector: 'text-stage-label',
-      mobile: 'text-sm',
+      mobile: 'text-note',
     },
   },
 });
@@ -41,7 +41,7 @@ const tableVariants = cva('w-full table-fixed border-separate border-spacing-y-1
   variants: {
     variant: {
       projector: 'text-stage-label',
-      mobile: 'text-sm',
+      mobile: 'text-note',
     },
   },
 });
