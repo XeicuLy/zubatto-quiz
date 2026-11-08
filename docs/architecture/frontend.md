@@ -63,7 +63,8 @@
 
 - 字体は2つ。飾り文字の Dela Gothic One は、投影の数字・順位の `font-numeral` とロゴの `font-logo` だけに使う。ほかは本文の M PLUS 1 で、見出しは `font-bold` で太くする。入力欄は親の字体を受け継ぐので、ラベルに飾り文字を付けると入力と字体がずれる。`font-numeral` は数字だけを包み、「第」「問」「秒」「位」「点」「人」などの単位と記号は外の `font-bold`（M PLUS 1）で出す。`shared/results/` の部品は、variant の対応表で投影のときだけ `font-numeral` を渡す。`test/font-roles.test.ts` が、使ってよいファイルを確かめる
 - Dela Gothic One は太さ 400 しかなく、`font-bold` の中ではブラウザが字を太らせて潰す。`@layer base` の `html { font-synthesis-weight: none }` がこれを止める。M PLUS 1 は可変フォントで本物の太さを持つので、影響しない
-- 文字の大きさは役割で選ぶ。`text-title`/`heading`/`body`/`note`/`label`（どれも大きさ・行の高さ・字間をまとめて決める）を使い、`text-lg` は使わない。vw の `text-stage-*`/`p-stage` のトークンは、プロジェクターに映す画面だけで使う
+- 文字の大きさは役割で選ぶ。`text-verdict`/`display`/`title`/`lead`/`heading`/`body`/`note`/`label`（どれも大きさ・行の高さ・字間をまとめて決める）を使い、`text-lg` は使わない。行の高さはトークンが決めるので、`leading-*` を重ねない。どの役割をどこで使うかは [docs/design/README.md](../design/README.md#文字) の表にある。`test/text-roles.test.ts` が、画面のファイル（テストとストーリーを除く）に `text-xs`〜`text-9xl` がないことを確かめる。正規表現は class の切れ目で区切るので、`text-stage-label` などの役割の名前には当たらず、`md:text-xl` や `text-xl/7` には当たる。コメントの中の文字にも当たるので、コメントでも大きさの名前は書かない。vw の `text-stage-*`/`p-stage` のトークンは、プロジェクターに映す画面だけで使う
+- 足した3つの段は、`text-2xl` より大きかった場所から決めた（#272）。`text-verdict`（64px）は ① の正誤だけ、`text-display`（48px）は1行の大きな数とロゴ、`text-lead`（24px）は回答者画面の問題文と文の中の数。`text-display` は1行で出すので、手本の 140% では上下が空きすぎ、120% にした
 - 余白は、ものどうしの関係で名前を付ける。`related`/`item`/`cluster`/`section`（8/16/24/64 px）。`--spacing-md` のような大きさの名前は足さない。足すと `max-w-md` がそれを読んでしまう
 - `@layer base` の `:focus-visible` が、`--ring` の 4 px の outline を 2 px 離して描き、その間を `--color-focus`（Yellow-300）の `ring-2` で埋める。この ring は Tailwind の影の変数を通るので、`shadow-panel` と重ねられる
 - スクリプトだけでフォーカスを当てる要素（ホストの操作のあとの、映している見出し）には `focus-target` を使う。`outline-none` では黄色の ring が残るため

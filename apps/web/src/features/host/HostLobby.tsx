@@ -27,7 +27,7 @@ export function HostLobby({ room, participants, joinUrl }: HostLobbyProps) {
         <div className="flex flex-col gap-4 self-start">
           <JoinUrlCard joinUrl={joinUrl} />
           {/* F2: ホストも同じ URL から回答者として入れる。この画面は進行に使うので、別のタブで開く */}
-          <p className="text-sm leading-relaxed text-muted-foreground">
+          <p className="text-note text-muted-foreground">
             ホストも回答者として遊ぶときは、別のタブで参加用の URL
             を開き、名前を入れてください。このタブは進行に使います。
             <a
@@ -64,7 +64,7 @@ export function HostLobby({ room, participants, joinUrl }: HostLobbyProps) {
 
       <footer className="border-t border-border pt-4">
         {/* ADR 0002: 部屋は作ったときの問題セットを写して使う */}
-        <p className="max-w-[60ch] text-sm leading-relaxed text-muted-foreground">
+        <p className="max-w-[60ch] text-note text-muted-foreground">
           部屋を作ったあとに問題セットを編集しても、この部屋には反映されません。直したいときは、部屋を作り直してください。
         </p>
       </footer>

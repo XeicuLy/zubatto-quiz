@@ -41,7 +41,7 @@ function QuestionSetLoadError({ error }: ErrorComponentProps) {
           <>
             {/* 他人のセットも、ないセットと同じに見せる（S1） */}
             <h1 className="font-bold text-destructive">問題セットが見つかりません</h1>
-            <p className="mt-2 text-sm text-muted-foreground">消されたか、URL が違います。</p>
+            <p className="mt-2 text-note text-muted-foreground">消されたか、URL が違います。</p>
             <Link to="/admin" className="mt-3 inline-block font-bold underline">
               問題セットの一覧に戻る
             </Link>

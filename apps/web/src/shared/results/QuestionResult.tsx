@@ -20,26 +20,26 @@ export function QuestionResult({ result, choices }: QuestionResultProps) {
     <section className="mt-8 text-center" aria-label="この問題の結果">
       {result.answer === null ? (
         <>
-          <h2 className="text-6xl font-bold text-muted-foreground">時間切れ</h2>
-          <p className="mt-4 text-lg">正解は {correctChoice}</p>
+          <h2 className="text-verdict font-bold text-muted-foreground">時間切れ</h2>
+          <p className="mt-4 text-heading">正解は {correctChoice}</p>
         </>
       ) : result.correct ? (
         <>
-          <h2 className="text-7xl font-bold text-correct">○ 正解</h2>
-          <p className="mt-3 text-lg wrap-anywhere">{correctChoice}</p>
+          <h2 className="text-verdict font-bold text-correct">○ 正解</h2>
+          <p className="mt-3 text-heading wrap-anywhere">{correctChoice}</p>
         </>
       ) : (
         <>
-          <h2 className="text-7xl font-bold text-muted-foreground">× 不正解</h2>
-          <p className="mt-3 text-lg wrap-anywhere">正解は {correctChoice}</p>
+          <h2 className="text-verdict font-bold text-muted-foreground">× 不正解</h2>
+          <p className="mt-3 text-heading wrap-anywhere">正解は {correctChoice}</p>
           <p className="mt-1 wrap-anywhere text-muted-foreground">
             あなたの回答: {choiceLabel(result.answer.choiceIndex, choices)}
           </p>
         </>
       )}
-      <p className="mt-4 text-5xl font-bold tabular-nums">
+      <p className="mt-4 text-display font-bold tabular-nums">
         +{formatPoints(result.points)}
-        <span className="ml-1 text-xl">点</span>
+        <span className="ml-1 text-heading">点</span>
       </p>
       {result.bonusPoints > 0 && (
         <p className="mt-2 inline-block rounded-full bg-choice-4 px-4 py-1 font-bold text-choice-4-foreground">

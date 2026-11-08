@@ -121,23 +121,25 @@ function FastestCard({ fastest }: { fastest: FastestRevealed }) {
       className={`mt-6 rounded-panel border-2 px-4 py-3 ${none ? 'border-border' : 'border-spotlight'}`}
     >
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className={`shrink-0 text-sm font-bold ${none ? 'text-muted-foreground' : 'text-spotlight'}`}>最速正解</h2>
-        <p className="text-xs text-muted-foreground">{countsOf(fastest)}</p>
+        <h2 className={`shrink-0 text-note font-bold ${none ? 'text-muted-foreground' : 'text-spotlight'}`}>
+          最速正解
+        </h2>
+        <p className="text-note text-muted-foreground">{countsOf(fastest)}</p>
       </header>
       {none ? (
         <p className="mt-2 font-bold">正解者なし</p>
       ) : (
         <ol aria-label="最速の3人" className="mt-2 grid grid-cols-1 gap-1">
           {fastest.fastest.map((answer, index) => (
-            <li key={answer.participantId} className={`flex items-baseline gap-3 ${index === 0 ? 'text-xl' : ''}`}>
-              <span className="w-[1.2em] shrink-0 text-sm font-bold text-muted-foreground">{index + 1}</span>
+            <li key={answer.participantId} className={`flex items-baseline gap-3 ${index === 0 ? 'text-heading' : ''}`}>
+              <span className="w-[1.2em] shrink-0 text-note font-bold text-muted-foreground">{index + 1}</span>
               <FastAnswerRow answer={answer} nameClassName="font-bold" numeralClassName="font-bold" />
             </li>
           ))}
         </ol>
       )}
       {climber !== null && (
-        <div className="mt-3 border-t border-border pt-2 text-sm">
+        <div className="mt-3 border-t border-border pt-2 text-note">
           <p className="text-muted-foreground">この問題で一番順位を上げた人</p>
           <ClimberRow climber={climber} nameClassName="font-bold" numeralClassName="font-bold" />
         </div>

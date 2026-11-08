@@ -19,16 +19,16 @@ const titleVariants = cva('font-bold', {
   variants: {
     variant: {
       projector: 'text-stage-title',
-      mobile: 'text-3xl leading-snug',
+      mobile: 'text-title',
     },
   },
 });
 
-const bodyVariants = cva('leading-relaxed text-muted-foreground', {
+const bodyVariants = cva('text-muted-foreground', {
   variants: {
     variant: {
-      projector: 'text-stage-label',
-      mobile: '',
+      projector: 'text-stage-label leading-relaxed',
+      mobile: 'text-body',
     },
   },
 });

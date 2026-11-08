@@ -34,8 +34,8 @@ export function AdminLayout({ host }: AdminLayoutProps) {
     <div className="min-h-dvh bg-background font-sans text-foreground antialiased">
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-5 py-3">
-          <p className="shrink-0 font-logo text-xl">ズバクイ</p>
-          <div className="flex min-w-0 items-center gap-3 text-sm">
+          <p className="shrink-0 font-logo text-heading">ズバクイ</p>
+          <div className="flex min-w-0 items-center gap-3 text-note">
             <p className="name-clip text-muted-foreground" title={host.name}>
               {host.name}
             </p>
@@ -50,7 +50,7 @@ export function AdminLayout({ host }: AdminLayoutProps) {
           </div>
         </div>
         {signOutFailed && (
-          <p role="alert" className="mx-auto max-w-4xl px-5 pb-3 text-sm font-bold text-destructive">
+          <p role="alert" className="mx-auto max-w-4xl px-5 pb-3 text-body font-bold text-destructive">
             ログアウトできませんでした。もう一度押してください。
           </p>
         )}

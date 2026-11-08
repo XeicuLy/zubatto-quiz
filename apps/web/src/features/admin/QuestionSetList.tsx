@@ -23,10 +23,10 @@ export function QuestionSetList() {
   return (
     <main className="mx-auto max-w-4xl px-5 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-3xl font-bold">問題セット</h1>
+        <h1 className="text-title font-bold">問題セット</h1>
         {sets.data !== undefined && sets.data.length > 0 && <CreateButton align="end" />}
       </div>
-      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+      <p className="mt-3 text-note text-muted-foreground">
         部屋は、作った時点の問題セットを使います。部屋を作ったあとに編集しても、その部屋には反映されません。
       </p>
 
@@ -36,7 +36,7 @@ export function QuestionSetList() {
         <LoadError error={sets.error} retry={() => void sets.refetch()} />
       ) : sets.data.length === 0 ? (
         <div className="mt-8 rounded-panel border-2 border-dashed border-border p-10 text-center">
-          <p className="text-lg font-bold">まだ問題セットがありません</p>
+          <p className="text-heading font-bold">まだ問題セットがありません</p>
           <p className="mt-2 text-muted-foreground">問題セットを作ると、そこから部屋を作れます。</p>
           <div className="mt-6">
             <CreateButton align="center" />
@@ -78,7 +78,7 @@ function CreateButton({ align }: { align: keyof typeof createButtonAlign }) {
         問題セットを作る
       </Button>
       {create.isError && (
-        <p role="alert" className="text-sm font-bold text-destructive">
+        <p role="alert" className="text-body font-bold text-destructive">
           問題セットを作れませんでした。もう一度押してください。
         </p>
       )}
@@ -99,8 +99,8 @@ function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
   return (
     <li className="flex flex-wrap items-center gap-x-6 gap-y-3 p-5">
       <div className="min-w-0 flex-1 basis-56">
-        <h2 className="text-lg font-bold wrap-anywhere">{set.title}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h2 className="text-heading font-bold wrap-anywhere">{set.title}</h2>
+        <p className="mt-1 text-note text-muted-foreground">
           {set.questionCount}問 / {updatedDate.format(new Date(set.updatedAt))}に更新
         </p>
       </div>
@@ -139,7 +139,7 @@ function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
         </div>
       )}
       {remove.isError && !(remove.error instanceof ApiError && remove.error.status === 404) && (
-        <p role="alert" className="w-full text-sm font-bold text-destructive">
+        <p role="alert" className="w-full text-body font-bold text-destructive">
           消せませんでした。もう一度押してください。
         </p>
       )}

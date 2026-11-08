@@ -21,8 +21,8 @@ export function QuestionFrame({ questionIndex, questionCount, text, aside, progr
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
       <header className="flex items-center justify-between gap-4 border-b border-border pb-3">
-        <p className="shrink-0 text-lg font-bold">
-          第{questionIndex + 1}問 <span className="text-sm text-muted-foreground">/ {questionCount}</span>
+        <p className="shrink-0 text-heading font-bold">
+          第{questionIndex + 1}問 <span className="text-note text-muted-foreground">/ {questionCount}</span>
         </p>
         {aside}
       </header>
@@ -31,7 +31,7 @@ export function QuestionFrame({ questionIndex, questionCount, text, aside, progr
           <TimeBar {...progress} variant="mobile" />
         </div>
       )}
-      <h1 className="mt-5 text-2xl leading-relaxed font-bold text-phrase whitespace-pre-line">{text}</h1>
+      <h1 className="mt-5 text-lead font-bold text-phrase whitespace-pre-line">{text}</h1>
       {children}
     </main>
   );

@@ -22,7 +22,7 @@ const textVariants = cva('font-bold', {
   variants: {
     variant: {
       projector: 'text-stage-title',
-      mobile: 'text-lg',
+      mobile: 'text-heading',
     },
   },
 });
