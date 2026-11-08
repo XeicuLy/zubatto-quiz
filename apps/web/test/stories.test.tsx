@@ -1,21 +1,20 @@
-import { composeStories, setProjectAnnotations, type Meta, type StoryObj } from '@storybook/react-vite';
+import { composeStories, setProjectAnnotations } from '@storybook/react-vite';
 import { beforeAll, describe, expect, it, onTestFinished } from 'vitest';
 
 import preview from '../.storybook/preview';
+import { storyFiles } from './story-files';
 
 /**
  * ストーリーの煙テスト。src のすべてのストーリーを、Storybook と同じ設定（preview のデコレータと globals）で jsdom に1回ずつ描く。
- * 見た目や振る舞いは確かめない。部品のテストと E2E に任せ、ここでは描けなくなったストーリーと面の取り違えだけを見つける
+ * 見た目や振る舞いは確かめない。部品のテストと E2E に任せ、ここでは描けなくなったストーリーと面の取り違えだけを見つける。
+ * 読むファイルの一覧が、いま src にあるものとそろうことは story-files.test.ts が確かめる
  */
 const annotations = setProjectAnnotations(preview);
 beforeAll(annotations.beforeAll);
 
-/** stories のファイルの形（CSF 3）。default が meta で、ほかの名前付きの export がストーリー */
-type StoriesFile = { default: Meta; [name: string]: StoryObj | Meta };
+const files = await Promise.all(Object.entries(storyFiles).map(async ([path, load]) => ({ path, file: await load() })));
 
-const files = import.meta.glob<StoriesFile>('../src/**/*.stories.tsx', { eager: true });
-
-const stories = Object.entries(files).flatMap(([path, file]) =>
+const stories = files.flatMap(({ path, file }) =>
   Object.entries(composeStories(file)).map(([name, Story]) => ({ path: path.replace('../src/', ''), name, Story })),
 );
 
