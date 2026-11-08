@@ -151,7 +151,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
   - CSS: `src/styles.css` の `@source not` で、`*.stories.{ts,tsx}` と `.storybook` を外す。Tailwind は `@source` がなくても `apps/web` の下を読むので、`.storybook` も外さないと、デコレータの class が本番の CSS に入る（2026-11-07 に、外す前の `vite build` で確かめた）。Storybook は `.storybook/preview.css` から読み、そこで `styles.css` を import してから、2つを `@source` で足し直す。足し直すときはファイルのグロブ（`'./*.tsx'`）で書く。フォルダー（`'./'`）で書くと、外したものは戻らない（Tailwind 4.3.4）
   - import: `.oxlintrc.json` の `no-restricted-imports` が、本番のコードから `*.stories.*`・`@storybook/*`・`storybook` を読むのを止める。全体と層の上書きの両方に書き、`*.stories.*` と `apps/web/.storybook/**` は、テストのコードと同じく最後の上書きで柵から外す（`tools/docs-check/test/oxlint-layers.test.ts` が確かめる）
   - 画面のファイルの一覧: `test/screen-files.ts` はストーリーを外す。部品の使い方の例を、`font-roles.test.ts`・`color-roles.test.ts` が画面の class の使い方として数えないようにする（`test/screen-files.test.ts` が確かめる）
-- 本番に入っていないことは、ストーリーと `preview.tsx` にだけある class（`mt-[1234px]` など）を一時的に足して `vite build` と `storybook:build` を動かし、`dist/client` に出ず `storybook-static` の CSS に出ることで確かめた（2026-11-07）。CI でのビルドの確認は別にする（#235）
+- 本番に入っていないことは、ストーリーと `preview.tsx` にだけある class（`mt-[1234px]` など）を一時的に足して `vite build` と `storybook:build` を動かし、`dist/client` に出ず `storybook-static` の CSS に出ることで確かめた（2026-11-07）。CI では `storybook.yaml` がビルドを確かめる。必須のチェックではない（[operations.md の「ルールセット」](operations.md#ルールセット)）
 - `test/stories.test.tsx` が煙テスト。`import.meta.glob` で `src` のすべてのストーリーを読み、`setProjectAnnotations(preview)` で Storybook と同じデコレータと globals を当てて、jsdom に1回ずつ描く。描くときに例外を投げないこと、デコレータの箱の中が空でないこと、`globals.surface` が `stage` のものだけが `.stage` の中に描かれることを確かめる。`make check` に入る
 - 型は、`.storybook/main.ts`・`vite.config.ts` を `tsconfig.node.json`、ブラウザで描く `.storybook/preview.tsx` と `test/stories.test.tsx` を `tsconfig.app.json` で確かめる
 
