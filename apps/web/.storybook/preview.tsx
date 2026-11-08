@@ -47,6 +47,22 @@ const preview: Preview = {
   parameters: {
     // 余白はデコレータの箱が持つ
     layout: 'fullscreen',
+    // 画面の大きさ。variant のある部品は、ストーリーの globals で variant に合う方を選ぶ（globals: { viewport: { value: 'mobile' } }）。
+    // docs のページはストーリーをページの中に描くので、大きさは当たらない
+    viewport: {
+      options: {
+        mobile: {
+          name: '回答者画面（スマホの縦向き 390×844）',
+          styles: { width: '390px', height: '844px' },
+          type: 'mobile',
+        },
+        projector: {
+          name: '進行画面（投影 1920×1080）',
+          styles: { width: '1920px', height: '1080px' },
+          type: 'desktop',
+        },
+      },
+    },
   },
 };
 
