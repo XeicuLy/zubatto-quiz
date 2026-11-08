@@ -3,6 +3,7 @@ import type { CloseReason } from '@zubatto-quiz/protocol';
 import type { ReactNode } from 'react';
 
 import type { ConnectionStatus } from '@/realtime/client';
+import { ReconnectingOverlay } from '@/shared/connection/ReconnectingOverlay';
 import { useConnectionAnnouncement } from '@/shared/connection/use-connection-announcement';
 import type { RoomEnd } from '@/shared/results/room-end';
 import { MessageScreen } from '@/shared/status/MessageScreen';
@@ -18,7 +19,7 @@ interface HostConnectionNoticeProps {
 
 /**
  * 進行画面の接続の状態（A1）。回答者の ConnectionNotice と同じ形で、投影しても読める大きさにする。
- * つなぎ直しているあいだは中身を薄くして押せなくし、上に帯を重ねる。
+ * つなぎ直しているあいだは中身を薄くして押せなくし、上に帯を重ねる（ReconnectingOverlay の projector）。
  * ホストには X1 の置き換えも名前の入力もないので、つなぎ直さずに閉じるのは、ほぼ部屋が終わったときか、部屋が見つからないときだけ。
  * 最終ランキングのあとに部屋が終わったときは、映している最終ランキングを残す。操作の帯の代わりの HostEndedBar は HostPage が出す（#97）
  * 読み上げは、HostEndedBar の分もここから __root の Announcer に渡す。見える帯や画面には role="status" を付けない
@@ -41,20 +42,9 @@ export function HostConnectionNotice({ connection, closeReason, roomEnd, childre
     return children;
   }
   return (
-    <div className="relative">
-      <div className="opacity-40" inert>
-        {children}
-      </div>
-      <div className="absolute inset-x-0 top-0 p-stage">
-        <div className="flex items-center gap-3 rounded-panel bg-alert px-5 py-4 text-stage-label font-bold text-alert-foreground shadow-panel">
-          <span
-            className="size-[1.2em] shrink-0 rounded-full border-3 border-alert-foreground border-t-transparent motion-safe:animate-spin"
-            aria-hidden="true"
-          />
-          <p>{reconnectingMessage}</p>
-        </div>
-      </div>
-    </div>
+    <ReconnectingOverlay variant="projector" message={reconnectingMessage}>
+      {children}
+    </ReconnectingOverlay>
   );
 }
 

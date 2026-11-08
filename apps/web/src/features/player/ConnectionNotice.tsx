@@ -2,6 +2,7 @@ import type { CloseReason } from '@zubatto-quiz/protocol';
 import type { ReactNode } from 'react';
 
 import type { ConnectionStatus } from '@/realtime/client';
+import { ReconnectingOverlay } from '@/shared/connection/ReconnectingOverlay';
 import { useConnectionAnnouncement } from '@/shared/connection/use-connection-announcement';
 import type { RoomEnd } from '@/shared/results/room-end';
 import { MessageScreen } from '@/shared/status/MessageScreen';
@@ -17,7 +18,7 @@ interface ConnectionNoticeProps {
 
 /**
  * 接続の状態を画面に出す（A1・ADR 0004）。
- * つなぎ直しているあいだは中身を薄くして押せなくし、上に「再接続中」を重ねる。
+ * つなぎ直しているあいだは中身を薄くして押せなくし、上に「再接続中」を重ねる（ReconnectingOverlay。ホストと同じ形）。
  * つなぎ直さずに閉じたら、中身の代わりに理由を出す。名前の入力に戻す閉じ方（resume_failed など）は、ここに来る前に player-room が扱う。
  * 最終ランキングのあとに部屋が終わったときだけは、中身（最終ランキング）を残し、上に終わったことを出す（#97）
  * 見える知らせには role="status" を付けない。箱と中身が同時に現れると読まれないので、読み上げは __root の Announcer に文を渡す
@@ -39,20 +40,9 @@ export function ConnectionNotice({ connection, closeReason, roomEnd, children }:
     );
   }
   return (
-    <div className="relative">
-      <div className="opacity-40" inert>
-        {children}
-      </div>
-      <div className="absolute inset-x-0 top-0 mx-auto max-w-md px-3 pt-3">
-        <div className="flex items-center gap-3 rounded-panel bg-alert px-4 py-3 font-bold text-alert-foreground shadow-panel">
-          <span
-            className="size-5 shrink-0 rounded-full border-3 border-alert-foreground border-t-transparent motion-safe:animate-spin"
-            aria-hidden="true"
-          />
-          <p>{reconnectingMessage}</p>
-        </div>
-      </div>
-    </div>
+    <ReconnectingOverlay variant="mobile" message={reconnectingMessage}>
+      {children}
+    </ReconnectingOverlay>
   );
 }
 

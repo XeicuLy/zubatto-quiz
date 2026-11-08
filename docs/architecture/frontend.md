@@ -297,6 +297,8 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - `announce` は領域を空にし、`ANNOUNCE_DELAY_MS`（100 ms）あとに文を入れる。React は同期の2回の set を1回の描画にまとめるので、同じ文がもう一度読まれないため
 - 閉じた画面、最終順位のあとの帯、`replaced` は assertive にし、ほかは polite にする
 - `useConnectionAnnouncement`（`shared/connection/use-connection-announcement.ts`。どちらの接続のお知らせも使う）は、`reconnecting` のあとだけ「つながりました」と言う
+- つなぎ直しているあいだの重ね表示は、`ReconnectingOverlay`（`shared/connection/ReconnectingOverlay.tsx`）を2つのお知らせで共有し、`variant` で大きさを変える。中身を `inert` の箱に入れて薄くし、上に回る印と文の帯を重ねる。文は呼ぶ側が渡し（ホストには「進行の操作は、つながってからできます」が付く）、部品は `role="status"` も読み上げも持たない。同じ文は `useConnectionAnnouncement` が渡す
+- `ConnectionNotice`（回答者）と `HostConnectionNotice`（ホスト）は1つにしない。閉じたときの文が相手ごとに違い（回答者は `replaced` と部屋の終わり方3通り、ホストは `room_not_found` と一覧へ戻るリンク）、最終ランキングのあとの扱いも違う（回答者は中身の上に帯を出し、ホストは `HostPage` が操作の帯を `HostEndedBar` に差し替える）。1つにすると、ホストかどうかの分かれ道が部品の中に増えるので、見た目が同じ重ね表示だけを部品にした
 - `shared/status/` の2つの画面は、進行画面と回答者画面で共有し、`variant` で大きさを変える。つなぎの `StatusScreen`（「部屋に入っています…」「結果を集計しています」など）は自分で `useAnnouncement` を呼ぶ。見出しと本文の `MessageScreen`（満員、部屋が見つからない、接続が閉じた）は読み上げを持たない。閉じた画面の文は接続のお知らせが assertive で渡すので、部品でも言うと2回読まれる
 - 回答の時間と「締切になりました」を読み上げるのは `Answering` だけ。文は `AnswerFooter.tsx` の `answerAnnouncementOf` が、見える知らせと同じ中身で作る。締切のあとの分かれ道は `AnswerFooter` を作り直すので、そこで読み上げると2回読まれる
 - テストは `liveRegion(politeness)`（`test/live-region.ts`）で領域を探し、`setup.ts` がテストのたびに `clearAnnouncements()` を呼ぶ
