@@ -18,6 +18,10 @@ workflows:
     '.github/workflows/release-please.yaml':
         - 'actions/create-github-app-token@v3.3.0'
         - 'googleapis/release-please-action@v5.0.0'
+    '.github/workflows/storybook.yaml':
+        - 'actions/cache@v6.1.0'
+        - 'actions/checkout@v7.0.1'
+        - 'jdx/mise-action@v5.2.6'
 dependencies:
     'actions/cache@v6.1.0':
         ref: 'v6.1.0'

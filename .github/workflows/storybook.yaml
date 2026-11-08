@@ -1,0 +1,58 @@
+name: Storybook
+
+# 部品の目録（Storybook）のビルドが通るかを確かめる。煙テスト（apps/web/test/stories.test.tsx）は描画を見るが、
+# .storybook の設定やビルドの破れまでは見つけられない。公開はしないので、書き出した storybook-static は残さない
+on:
+  pull_request:
+    branches:
+      - main
+  # 別々に通った2つの PR が合わさって壊れたときに、main で気づけるようにする
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # main のルールセットの必須のチェックには入れない。仕様書のビルドの不調で、本番の修正の PR まで止めないため。
+  # job 名を ci・e2e・pr-title と同じにしない（同じ名前のチェックが2つになり、main-ruleset.test.ts が落ちる）。secrets もトークンも使わない
+  storybook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@v5.2.6
+        with:
+          version: 2026.11.0
+
+      # pnpm は mise で入れているので、setup-node の cache は使えない。store の場所は pnpm の版で変わるので、pnpm に聞く
+      - name: Get pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      # 鍵は ci.yaml と同じなので、main の ci が作った store を使える
+      - name: Cache pnpm store
+        uses: actions/cache@v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: '0'
+
+      - name: Build Storybook
+        run: pnpm --filter @zubatto-quiz/web run storybook:build

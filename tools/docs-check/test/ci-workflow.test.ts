@@ -15,15 +15,24 @@ type Step = {
   env?: Record<string, string>;
   'timeout-minutes'?: number;
 };
-type Job = { uses?: string; env?: Record<string, string>; 'timeout-minutes'?: number; steps?: Step[] };
-type Workflow = { env?: Record<string, string>; jobs: Record<string, Job> };
+type Job = {
+  name?: string;
+  uses?: string;
+  permissions?: Record<string, string>;
+  env?: Record<string, string>;
+  'timeout-minutes'?: number;
+  steps?: Step[];
+};
+type Workflow = { permissions?: Record<string, string>; env?: Record<string, string>; jobs: Record<string, Job> };
 
 const ciWorkflow = parse(readRepoFile('.github/workflows/ci.yaml')) as Workflow;
+const storybookText = readRepoFile('.github/workflows/storybook.yaml');
+const storybookWorkflow = parse(storybookText) as Workflow;
 const workflowFiles = readdirSync(new URL('../../../.github/workflows/', import.meta.url)).filter((file) =>
   /\.ya?ml$/.test(file),
 );
 
-const stepsOf = (jobId: string) => ciWorkflow.jobs[jobId]?.steps ?? [];
+const stepsOf = (jobId: string, workflow = ciWorkflow) => workflow.jobs[jobId]?.steps ?? [];
 const cacheSteps = (steps: Step[]) => steps.filter(({ uses }) => uses?.startsWith('actions/cache@'));
 const indexOfRun = (steps: Step[], pattern: RegExp) => steps.findIndex(({ run }) => pattern.test(run ?? ''));
 
@@ -204,9 +213,13 @@ describe('actions.lock の確認（ci.yaml の ci）', () => {
   });
 });
 
-describe('pnpm の store のキャッシュ（ci.yaml）', () => {
-  it.each(['ci', 'e2e'])('%s の job は、lockfile の hash を鍵にして、pnpm install の前に store を戻す', (jobId) => {
-    const steps = stepsOf(jobId);
+describe('pnpm の store のキャッシュ（ci.yaml・storybook.yaml）', () => {
+  it.each([
+    ['ci', ciWorkflow],
+    ['e2e', ciWorkflow],
+    ['storybook', storybookWorkflow],
+  ])('%s の job は、lockfile の hash を鍵にして、pnpm install の前に store を戻す', (jobId, workflow) => {
+    const steps = stepsOf(jobId, workflow);
     const [cache, ...rest] = cacheSteps(steps).filter(({ with: options }) => options?.key?.includes('pnpm'));
     expect(rest).toEqual([]);
     expect(cache?.with?.key).toContain("hashFiles('pnpm-lock.yaml')");
@@ -217,6 +230,39 @@ describe('pnpm の store のキャッシュ（ci.yaml）', () => {
     // step の出力は、それより後ろの step からしか読めない
     expect(steps.indexOf(storePath ?? {})).toBeLessThan(steps.indexOf(cache ?? {}));
     expect(steps.indexOf(cache ?? {})).toBeLessThan(indexOfRun(steps, /^pnpm install --frozen-lockfile$/));
+  });
+});
+
+describe('Storybook のビルド（storybook.yaml）', () => {
+  const ruleset = JSON.parse(readRepoFile('docs/runbooks/main-ruleset.json')) as {
+    rules: { type: string; parameters?: { required_status_checks?: { context: string }[] } }[];
+  };
+  const requiredChecks = ruleset.rules
+    .flatMap(({ parameters }) => parameters?.required_status_checks ?? [])
+    .map(({ context }) => context);
+
+  it('job は storybook の1つで、main のルールセットの必須のチェックに入れない', () => {
+    // 仕様書のビルドが不調でも、本番の修正の PR を止めない。チェックの名前は name: がなければ job ID になる
+    expect(Object.keys(storybookWorkflow.jobs)).toEqual(['storybook']);
+    expect(storybookWorkflow.jobs.storybook?.name).toBeUndefined();
+    expect(requiredChecks.length).toBeGreaterThan(0);
+    expect(requiredChecks).not.toContain('storybook');
+  });
+
+  it('secrets もトークンも読まず、権限は contents: read だけにする', () => {
+    // 依存パッケージのコードを動かす job なので、読めるものを持たせない
+    expect(storybookText).not.toMatch(/\bsecrets\.|\bgithub\.token\b/);
+    expect(storybookWorkflow.permissions).toEqual({ contents: 'read' });
+    expect(storybookWorkflow.jobs.storybook?.permissions).toBeUndefined();
+    const checkout = stepsOf('storybook', storybookWorkflow).find(({ uses }) => uses?.startsWith('actions/checkout@'));
+    expect(String(checkout?.with?.['persist-credentials'])).toBe('false');
+  });
+
+  it('pnpm install のあとで storybook:build を動かす', () => {
+    const steps = stepsOf('storybook', storybookWorkflow);
+    const install = indexOfRun(steps, /^pnpm install --frozen-lockfile$/);
+    expect(install).toBeGreaterThanOrEqual(0);
+    expect(indexOfRun(steps, /^pnpm --filter @zubatto-quiz\/web run storybook:build$/)).toBeGreaterThan(install);
   });
 });
 
