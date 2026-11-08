@@ -23,7 +23,7 @@ const panelColors = [
   { panel: 'bg-choice-4 text-choice-4-foreground', badge: 'bg-background/15' },
 ] as const;
 
-/** 1回押したら選び直せない。二度押しを止めるのは、送る側（QuestionView）の役目 */
+/** 1回押したら選び直せない。二度押しを止めるのは、送る側（useAnswerPress）の役目 */
 export function AnswerButtons({ choices, chosen, onChoose, focusList = false }: AnswerButtonsProps) {
   if (onChoose === undefined) {
     return <AnsweredList choices={choices} chosen={chosen} focus={focusList} />;

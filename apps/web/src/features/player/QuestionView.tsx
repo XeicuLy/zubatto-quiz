@@ -1,17 +1,13 @@
 import type { Answer, RoomPhase } from '@zubatto-quiz/protocol';
-import { formatSeconds, normalizeElapsedMs } from '@zubatto-quiz/scoring';
-import { useRef, useState, type ReactNode } from 'react';
 
 import { useAnnouncement } from '@/components/a11y/announce';
 import type { CurrentQuestion } from '@/realtime/room-store';
-import { elapsedMsAt, remainingMsAt } from '@/shared/countdown/answer-timer';
-import type { TimeBarValue } from '@/shared/countdown/time-bar';
-import { TimeBar } from '@/shared/countdown/TimeBar';
 import { useCountdown } from '@/shared/countdown/use-countdown';
 
 import { AnswerButtons } from './AnswerButtons';
-
-type MyAnswer = NonNullable<CurrentQuestion['answer']>;
+import { AnswerFooter, answerAnnouncementOf } from './AnswerFooter';
+import { QuestionFrame } from './QuestionFrame';
+import { useAnswerPress } from './use-answer-press';
 
 export interface QuestionViewProps {
   question: CurrentQuestion;
@@ -41,8 +37,9 @@ export function QuestionView({ question, phase, questionCount, name, onAnswer }:
   if (phase === 'question' || phase === 'accepting') {
     return (
       <QuestionFrame
-        question={question}
+        questionIndex={question.questionIndex}
         questionCount={questionCount}
+        text={question.text}
         aside={
           <p className="name-clip min-w-0 rounded-full bg-secondary px-3 py-1 text-sm" title={name}>
             {name}
@@ -59,7 +56,7 @@ export function QuestionView({ question, phase, questionCount, name, onAnswer }:
     );
   }
   return (
-    <QuestionFrame question={question} questionCount={questionCount}>
+    <QuestionFrame questionIndex={question.questionIndex} questionCount={questionCount} text={question.text}>
       {question.choices !== null && (
         <AnswerButtons choices={question.choices} chosen={question.answer?.choiceIndex ?? null} />
       )}
@@ -75,15 +72,12 @@ interface AnsweringProps {
   onAnswer: QuestionViewProps['onAnswer'];
 }
 
-/** 受付中。表示の瞬間を起点に時間を測り、1回だけ送る（P2・F10） */
+/** 受付中。残りを数え、押下は useAnswerPress に任せる（P2・F10） */
 function Answering({ question, choices, questionCount, onAnswer }: AnsweringProps) {
   const { questionId, limitMs } = question;
   // 選択肢を描く直前のフレームを起点に数える。回答時間も同じ起点から測る（P2）
   const { startedAt, leftMs, bar } = useCountdown(limitMs, question.remainingMs ?? limitMs);
-  /** 押した瞬間に出す回答。answerAccepted が届いたら、そちらを使う */
-  const [pending, setPending] = useState<MyAnswer | null>(null);
-  /** 二度押しの印。state は次の描画まで変わらないので、同じフレームの2回目の押下を止めるには ref が要る */
-  const sent = useRef(false);
+  const { press, pending } = useAnswerPress({ questionId, limitMs, startedAt, onAnswer });
 
   const remainingSeconds = Math.ceil(leftMs / 1000);
   const answer = question.answer ?? pending;
@@ -92,28 +86,11 @@ function Answering({ question, choices, questionCount, onAnswer }: AnsweringProp
   // 読み上げは受付中のここだけで渡す。締切のあとの画面は作り直されるので、そこでも渡すと「締切になりました」が2回読まれる
   useAnnouncement(answerAnnouncementOf(answer, choices, limitMs, closed));
 
-  function choose(choiceIndex: number) {
-    if (sent.current || startedAt === null) {
-      return;
-    }
-    const pressedAt = performance.now();
-    // 最後の描き直しのあとで締切を過ぎていたら送らない。送っても not_accepting で断られる
-    if (remainingMsAt(startedAt, limitMs, pressedAt) === 0) {
-      return;
-    }
-    const mine = { choiceIndex, elapsedMs: elapsedMsAt(startedAt, pressedAt) };
-    // 接続が開いていなければ送れていないので、印を付けずに押し直せるままにする
-    if (!onAnswer({ questionId, ...mine })) {
-      return;
-    }
-    sent.current = true;
-    setPending(mine);
-  }
-
   return (
     <QuestionFrame
-      question={question}
+      questionIndex={question.questionIndex}
       questionCount={questionCount}
+      text={question.text}
       aside={
         <p className="shrink-0 font-bold">
           残り <span className="text-2xl tabular-nums">{remainingSeconds}</span> 秒
@@ -124,87 +101,11 @@ function Answering({ question, choices, questionCount, onAnswer }: AnsweringProp
       <AnswerButtons
         choices={choices}
         chosen={answer?.choiceIndex ?? null}
-        onChoose={answer === null && !closed ? choose : undefined}
+        onChoose={answer === null && !closed ? press : undefined}
         // 押したボタンが消えるので、一覧へフォーカスを移す。つなぎ直して届いた回答（question.answer）では動かさない
         focusList={pending !== null}
       />
       {(answer !== null || closed) && <AnswerFooter answer={answer} limitMs={limitMs} closed={closed} />}
     </QuestionFrame>
   );
-}
-
-interface QuestionFrameProps {
-  question: CurrentQuestion;
-  questionCount: number;
-  /** ヘッダーの右に出すもの */
-  aside?: ReactNode;
-  /** 残り時間の棒。受付中だけ渡す */
-  progress?: TimeBarValue;
-  children: ReactNode;
-}
-
-/** 問題の番号・問題文と、その下の中身。問題文は文字のまま出し、ホストの入れた改行だけを whitespace-pre-line で残す（F5） */
-function QuestionFrame({ question, questionCount, aside, progress, children }: QuestionFrameProps) {
-  return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-4 pb-24">
-      <header className="flex items-center justify-between gap-4 border-b border-border pb-3">
-        <p className="shrink-0 text-lg font-bold">
-          第{question.questionIndex + 1}問 <span className="text-sm text-muted-foreground">/ {questionCount}</span>
-        </p>
-        {aside}
-      </header>
-      {progress !== undefined && (
-        <div className="mt-2">
-          <TimeBar {...progress} variant="mobile" />
-        </div>
-      )}
-      <h1 className="mt-5 text-2xl leading-relaxed font-bold text-phrase whitespace-pre-line">{question.text}</h1>
-      {children}
-    </main>
-  );
-}
-
-/**
- * 回答済みと締切の知らせ。時間はサーバーと同じく0.01秒単位に切り捨てて出す。
- * 押したときに箱ごと現れるので role="status" は付けず、読み上げは Answering が answerAnnouncementOf の文を渡す
- */
-function AnswerFooter({ answer, limitMs, closed }: { answer: MyAnswer | null; limitMs: number; closed: boolean }) {
-  return (
-    <div className="mt-auto pt-8 text-center">
-      {answer !== null && (
-        <>
-          <p className="text-muted-foreground">回答までの時間</p>
-          <p className="text-6xl font-bold tabular-nums">
-            {secondsOf(answer, limitMs)}
-            <span className="ml-1 text-2xl">秒</span>
-          </p>
-        </>
-      )}
-      <p className="mt-4 font-bold text-muted-foreground">{closed ? '締切になりました' : '締切を待っています'}</p>
-    </div>
-  );
-}
-
-/**
- * AnswerFooter と同じことを読み上げる文。締切になったら、時間はもう読んだので締切だけを言う。
- * フォーカスの移った一覧では名前と項目数しか読まれないので、選んだものもここで言う
- */
-function answerAnnouncementOf(
-  answer: MyAnswer | null,
-  choices: string[],
-  limitMs: number,
-  closed: boolean,
-): string | null {
-  if (closed) {
-    return '締切になりました';
-  }
-  if (answer === null) {
-    return null;
-  }
-  const { choiceIndex } = answer;
-  return `${choiceIndex + 1}番「${choices[choiceIndex]}」で回答しました。回答までの時間 ${secondsOf(answer, limitMs)}秒。締切を待っています`;
-}
-
-function secondsOf(answer: MyAnswer, limitMs: number): string {
-  return formatSeconds(normalizeElapsedMs(answer.elapsedMs, limitMs));
 }

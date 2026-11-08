@@ -191,7 +191,9 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 ## 回答の画面
 
 - `PlayerPage` は、`lobby` では `WaitingRoom` を、`question` からは `QuestionView`（`questionId` を key にする）を、`myResult` が届くまで出す。そのあとは `ResultView` が引き継ぐ（[結果の画面](#結果の画面)）
-- `features/player/QuestionView.tsx` の中の `Answering` は、`accepting` の間だけある。そのため、`retryQuestion`（同じ `questionId` で `question` へ戻る）で、2回押しを防ぐ ref と始まりの時刻が捨てられる
+- `features/player/QuestionView.tsx` は段階を振り分けるだけにする。問題の番号と問題文は `QuestionFrame`、回答までの時間と締切の知らせは `AnswerFooter` が、props だけで描く
+- `QuestionView.tsx` の中の `Answering` は、`accepting` の間だけある。`useCountdown` で残りを数え、押したときの計測と2回押しの防止は `useAnswerPress`（`use-answer-press.ts`）に任せる。`Answering` ごと作り直されるので、`retryQuestion`（同じ `questionId` で `question` へ戻る）で、2回押しを防ぐ ref と始まりの時刻が捨てられる
+- `useAnswerPress` は、押した時刻（`performance.now()`）をイベントの中でだけ読む。`useCountdown` の `startedAt` が決まる前と締切のあとは送らない。2回押しは ref で止める。state は次の描画まで変わらないので、同じフレームの2回目を止められないため
 - 始まりの時刻は、`useLayoutEffect` から頼んだ `requestAnimationFrame` の中で取り、`limitMs - remainingMs` だけ前にずらす。こうすると、問題の途中でつなぎ直した回答者も、本当の始まりから測れる
 - `shared/countdown/answer-timer.ts` の `elapsedMsAt` は、ms の単位で切り捨てる。サーバーは 0.01 s で切り捨てるので、四捨五入すると 1009.6 ms が 1.01 s になってしまう
 - 残り時間は、`setTimeout` で1秒の切れ目ごとに描き直す。こうすると、遅れることのある DO の alarm を待たずに、0 ちょうどでボタンを閉じられる
@@ -296,7 +298,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - 閉じた画面、最終順位のあとの帯、`replaced` は assertive にし、ほかは polite にする
 - `useConnectionAnnouncement`（`shared/connection/use-connection-announcement.ts`。どちらの接続のお知らせも使う）は、`reconnecting` のあとだけ「つながりました」と言う
 - `shared/status/` の2つの画面は、進行画面と回答者画面で共有し、`variant` で大きさを変える。つなぎの `StatusScreen`（「部屋に入っています…」「結果を集計しています」など）は自分で `useAnnouncement` を呼ぶ。見出しと本文の `MessageScreen`（満員、部屋が見つからない、接続が閉じた）は読み上げを持たない。閉じた画面の文は接続のお知らせが assertive で渡すので、部品でも言うと2回読まれる
-- 回答の時間と「締切になりました」を読み上げるのは `Answering` だけ。締切のあとの分かれ道は `AnswerFooter` を作り直すので、そこで読み上げると2回読まれる
+- 回答の時間と「締切になりました」を読み上げるのは `Answering` だけ。文は `AnswerFooter.tsx` の `answerAnnouncementOf` が、見える知らせと同じ中身で作る。締切のあとの分かれ道は `AnswerFooter` を作り直すので、そこで読み上げると2回読まれる
 - テストは `liveRegion(politeness)`（`test/live-region.ts`）で領域を探し、`setup.ts` がテストのたびに `clearAnnouncements()` を呼ぶ
 - Playwright の `getByText` は部分一致なので、領域にも入っている見える文は、`{ exact: true }` か `getByRole('paragraph')` で探す
 
