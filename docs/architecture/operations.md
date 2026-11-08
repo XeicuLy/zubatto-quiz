@@ -6,7 +6,7 @@
 
 ## インフラの管理
 
-- インフラの設定は `wrangler.jsonc` だけで書く（ADR 0005）。Worker、DO の `new_sqlite_classes` のマイグレーション、D1 の binding がここにある。Terraform は、Go へ移すまで入れない
+- インフラの設定は `wrangler.jsonc` だけで書く（ADR 0005）。Worker、DO の `new_sqlite_classes` のマイグレーション、D1 の binding がここにある。本番は Cloudflare に残すので（ADR 0008）、本番には Terraform を入れない。Terraform は Go 版の練習用の環境（本番と別の GCP プロジェクト）だけで使う
 - 設定で表せないものは、`docs/runbooks/` の runbook に書く。GitHub の OAuth App（手元用と本番用）、シークレット、ホストの許可リスト、使用量の確かめ方と止め方、main と `v*` のタグのルールセット。シークレット・テーブル・コマンド・CI の job 名など、runbook に関わるものを変えたら、同じ変更で runbook も直す
 - シークレットは `wrangler secret put` で入れる。`secrets.required` があると、シークレットのない Worker の最初のデプロイは止まる。そこで本番では、先に `secret put` で空の Worker を作ってからデプロイする。こうすると、デプロイの workflow はアプリのシークレットを持たずに済む。順番と理由は [secrets.md の「はじめて入れるとき」](../runbooks/secrets.md#はじめて入れるとき)にある。Worker を消すとシークレットも消えるが、D1 は残る
 - `wrangler secret put`・`secret list` には `--env=""` を付けて、`wrangler.jsonc` の先頭の設定を選ぶ。付けないと、`env.e2e` があるので警告が出る（`d1 execute` は警告しない）。値をパイプで渡すと末尾の空白が削られるので、`BETTER_AUTH_SECRET` は `openssl rand -base64 32` からパイプで入れ、画面に出さない（[secrets.md の「本番: wrangler secret put」](../runbooks/secrets.md#本番-wrangler-secret-put)）

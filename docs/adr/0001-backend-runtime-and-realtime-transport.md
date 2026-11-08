@@ -63,4 +63,4 @@ accepted
 - 対応事項: O2 のリハーサルで、5部屋 × 50接続の負荷をかけ、P1（1秒以内）と P3（取りこぼしなし）を実測する
 - 対応事項: DB の選定とホストの見分け方の ADR では、DO の SQLite を A3 の保存先の候補として扱う
 - 対応事項: 忘年会のあと、Go + Cloud Run + Terraform への置き換えを別の ADR で決め、この ADR を superseded にする。その ADR では、max-instances を超えたときの同期方式、60分ごとの再接続、課金の自動停止（予算通知 + Pub/Sub）を検討する。あわせて、フロントも Cloud Run に乗せるかを検討する
-  - ADR 0008（proposed）で、本番は Cloudflare に残し、Go 版は Cloud Run の練習用の環境で確かめる案にした。0008 が accepted になったら、この置き換えの計画は 0008 に置き換わる
+  - この置き換えの計画は ADR 0008（accepted）で置き換えた。本番の移行は行わず、Go 版は Cloud Run の練習用の環境で作って確かめる（本番を切り替えるかは、そこで確かめたあと別の ADR で決め直す）。本番の HTTP API の作りは ADR 0011 を見る
