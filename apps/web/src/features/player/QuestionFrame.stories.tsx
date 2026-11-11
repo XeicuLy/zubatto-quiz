@@ -3,6 +3,7 @@ import { fn } from 'storybook/test';
 
 import { AnswerButtons } from './AnswerButtons';
 import { AnswerFooter } from './AnswerFooter';
+import { ChoicePlaceholder } from './ChoicePlaceholder';
 import { QuestionFrame } from './QuestionFrame';
 
 const choices = ['演歌', 'アニソン', '洋楽ロック', '童謡'];
@@ -44,7 +45,10 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** 受付の前。ヘッダーの右に自分の名前を出し、選択肢はまだ出さない（P2）。長い名前は1行で省略する */
+/**
+ * 受付の前。選択肢はまだ届かないので（P2）、ボタンの出る場所に点線の枠（ChoicePlaceholder）を出す。
+ * ヘッダーの右には自分の名前を出し、長い名前は1行で省略する
+ */
 export const BeforeAccepting: Story = {
   args: {
     aside: (
@@ -53,9 +57,7 @@ export const BeforeAccepting: Story = {
       </p>
     ),
     progress: undefined,
-    children: (
-      <p className="mt-8 text-center font-bold text-muted-foreground">選択肢は、ホストが受付を始めると出ます</p>
-    ),
+    children: <ChoicePlaceholder />,
   },
 };
 

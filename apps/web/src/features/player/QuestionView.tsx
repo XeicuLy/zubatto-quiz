@@ -6,6 +6,7 @@ import { useCountdown } from '@/shared/countdown/use-countdown';
 
 import { AnswerButtons } from './AnswerButtons';
 import { AnswerFooter, answerAnnouncementOf } from './AnswerFooter';
+import { ChoicePlaceholder } from './ChoicePlaceholder';
 import { QuestionFrame } from './QuestionFrame';
 import { useAnswerPress } from './use-answer-press';
 
@@ -46,12 +47,7 @@ export function QuestionView({ question, phase, questionCount, name, onAnswer }:
           </p>
         }
       >
-        <div className="mt-8 flex flex-1 flex-col gap-3" aria-hidden="true">
-          {[0, 1, 2, 3].map((slot) => (
-            <div key={slot} className="flex-1 rounded-panel border-2 border-dashed border-border" />
-          ))}
-        </div>
-        <p className="mt-4 text-center font-bold text-muted-foreground">選択肢は、ホストが受付を始めると出ます</p>
+        <ChoicePlaceholder />
       </QuestionFrame>
     );
   }
