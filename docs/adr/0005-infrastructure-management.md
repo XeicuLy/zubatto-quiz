@@ -104,6 +104,7 @@ ADR 0001〜0004 で、基盤は Cloudflare Workers + Durable Objects（Free プ�
 - 対応事項: 本番の前後に、ダッシュボードで Workers と D1 の使用量を見る手順を README に書き、O2 のリハーサルで使用量の目安を測る
 - 対応事項: 将来 Workers Paid に上げるときは、そのときに予算アラートを設定する
 - 対応事項: Go + Cloud Run への置き換えの ADR で、Terraform の導入（state の置き場所、GCP の予算通知、Cloudflare 側も Terraform に寄せるか）を決める
+  - ADR 0008 で、本番は Cloudflare に残すと決めた。本番は wrangler の設定ファイルのまま管理し、Terraform は Go 版の練習用の環境（本番と別の GCP プロジェクト）だけで使う
 - 対応事項: エラーのログを7日間残す（O1）方法は、次のとおりにする。料金と保存期間は、2026-10-11 時点の公式ドキュメント（context7 経由）で確かめた
   - Workers Logs を、Free プランのまま使う
     - 2026-11-30 までの Workers Logs は、Free では1日20万件まで・3日しか残らず、O1 を満たさない

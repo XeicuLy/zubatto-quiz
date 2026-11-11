@@ -6,7 +6,7 @@
 
 ## 全体の形
 
-- 最初の版は、すべて TypeScript で Cloudflare の無料プランの上に作る。最初の本番のあとで、バックエンドを Go と Cloud Run（Terraform）で作り直す（[ADR 0001](../adr/0001-backend-runtime-and-realtime-transport.md)）。そのため、画面が頼るものにバックエンドの基盤の事情を持ち込まない。とくに **WebSocket の JSON メッセージの仕様は基盤に依存させず、画面とバックエンドで同じものを使う**。こうしておけば、作り直しで画面に手を入れずに済む
+- すべて TypeScript で Cloudflare の無料プランの上に作り（[ADR 0001](../adr/0001-backend-runtime-and-realtime-transport.md)）、本番はこのまま続ける。Go 版は本番と別の練習用の環境として Cloud Run（Terraform）で作り、接続先を切り替えて契約テストで確かめる（[ADR 0008](../adr/0008-go-migration-hosting.md)）。そのため、画面が頼るものにバックエンドの基盤の事情を持ち込まない。とくに **WebSocket の JSON メッセージの仕様は基盤に依存させず、画面とバックエンドで同じものを使う**。こうしておけば、接続先を Go 版に替えても画面に手を入れずに済む
 - Hono の Worker が1つと、**部屋ごとに1つの Durable Object（DO）** で動かす。DO は WebSocket Hibernation API と DO の SQLite を使い、部屋の状態・得点・回答の唯一の正本になる。ポーリングや SSE は使わない
 - Worker は2つに分ける（[ADR 0006](../adr/0006-spa-and-api-worker-layout.md)）。`apps/web` は SPA を静的アセットとして配り、`/api/*` を Service binding で `apps/api`（Hono・DO・Better Auth）へ転送する。ブラウザからは1つのオリジンに見えるので、CORS も `crossSubDomainCookies` も使わない。API と WebSocket のパスは、すべて `/api/` の下に置く
 - `@/*` は `apps/api/src/*` を指す（ADR 0007）。`tsconfig.json` の `paths` に書き、vitest は `resolve.tsconfigPaths: true` で、wrangler（esbuild）は設定なしでそれを読む。E2E では `apps/web` の Vite が API の Worker（`test/e2e-entry.ts`）も作るが、これも import する側に近い tsconfig を読むので、API の `@/` は API の `src/` を指す。`../` を使わないきまりは [frontend.md](frontend.md#全体の形) と同じ
@@ -96,11 +96,11 @@
 
 ## メッセージの形
 
-`packages/protocol` に、WebSocket のメッセージ、close code、問題セットの形、HTTP のリクエストと応答の形（`src/http/`）の zod スキーマを置く。画面は Hono RPC ではなく、このスキーマで HTTP API を呼ぶ。そのため画面は Hono に頼らない。
+`packages/protocol` に、WebSocket のメッセージ、close code、問題セットの形、HTTP のリクエストと応答の形（`src/http/`）の zod スキーマを置く。画面は Hono RPC ではなく、このスキーマで HTTP API を呼ぶ。そのため画面は Hono に頼らない。`hc` の型は TypeScript のサーバーの型なので、接続先を Go 版に替えると実物とずれる。zod の検証なら、どちらのサーバーにも同じように効く（[ADR 0011](../adr/0011-hono-api-contract.md)）。
 
 - 部屋の DO は、受け取ったものを `decodeClientMessage` で decode し、`encodeServerMessage` を通して送る。どちらも知らない項目を取り除くので、紛れ込んだ `participantId`・`correctIndex`・`rank` が外へ出ることはない
 - サーバーのメッセージに足す項目には `.default()` を付ける（`myResult.bonusPoints` は `.default(0)`）。こうすると、`web` だけをデプロイしても、新しい画面が古い API のメッセージを捨てない（[deploy.md の「何が動くか」](../runbooks/deploy.md#何が動くか)）。`ws.schema.json` は出力の形で書くので、その項目はそこでは必須のまま残る。DO はメッセージを出力の型（`MyResult`）で作るので、その項目を落とすこともできない
-- `schema/ws.schema.json` は生成したもので、Go で作り直すときの正本になる。スキーマを変えたら次を動かす。ファイルが古いとテストが落ちる
+- `schema/ws.schema.json` は生成したもので、Go 版を作るときの正本になる。スキーマを変えたら次を動かす。ファイルが古いとテストが落ちる
 
   ```sh
   pnpm --filter @zubatto-quiz/protocol run schema
@@ -109,7 +109,7 @@
 - `schema/openapi.json`（OpenAPI 3.1、`src/openapi.ts`）は、HTTP API（`/api/question-sets` と `POST /api/rooms`）の同じもので、同じ `schema` スクリプトで書き、同じように確かめる。リクエストの本文は `toDef(schema, 'input')`、応答は `'output'` で書く。OpenAPI 3.1 は zod の JSON Schema 2020-12 をそのまま受け取る
 - ルートのステータスコードを変えたら、その `responses` と `openapi.test.ts` の表も直す。`csrf()` の 403 と、JSON として読めない本文の 400 は `text/plain` になる。JSON Schema で書けない条件（`.refine()`、`.trim()`）は、`.meta({ description })` か `info.description` に書く
 - テストは、コミットしたファイルに `@readme/openapi-parser` の `validate` をかける。`validate` は `$ref` をその場で解決して書き換えるので、呼ぶたびにファイルを読み直す
-- `@hono/zod-openapi` も Swagger UI も Worker には入れない。手元では、リポジトリの直下で次を動かし、1つの HTML ファイルにして見る。CLI v2 の `preview` は Redocly のプロジェクト用で、1つのファイルは開けない（2.57.0 で 2026-10-18 に確かめた）
+- `@hono/zod-openapi` も Swagger UI も Worker には入れない（[ADR 0011](../adr/0011-hono-api-contract.md)）。手元では、リポジトリの直下で次を動かし、1つの HTML ファイルにして見る。CLI v2 の `preview` は Redocly のプロジェクト用で、1つのファイルは開けない（2.57.0 で 2026-10-18 に確かめた）
 
   ```sh
   pnpm dlx --package=@redocly/cli@<ver> redocly build-docs packages/protocol/schema/openapi.json -o .playwright-mcp/openapi.html

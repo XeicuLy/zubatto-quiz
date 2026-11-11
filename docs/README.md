@@ -20,7 +20,7 @@
 | [CONTRIBUTING.md](../CONTRIBUTING.md)                                                                                  | コントリビュートの方針、PR の題名とコミットメッセージの形                                                                                                 |
 | [CLAUDE.md](../CLAUDE.md)                                                                                              | コードを書くときに守る約束とコマンド。Claude Code が読むが、人が読んでもよい                                                                              |
 | [plan.md](../plan.md)                                                                                                  | 最初の大まかな案。要件定義書や ADR と食い違うところは、そちらが正しい                                                                                     |
-| [ws.schema.json](../packages/protocol/schema/ws.schema.json)・[openapi.json](../packages/protocol/schema/openapi.json) | WebSocket のメッセージと HTTP API の形。`packages/protocol` の zod から作る。Go へ移すときの正本                                                          |
+| [ws.schema.json](../packages/protocol/schema/ws.schema.json)・[openapi.json](../packages/protocol/schema/openapi.json) | WebSocket のメッセージと HTTP API の形。`packages/protocol` の zod から作る。Go 版も同じファイルで確かめる正本（ADR 0008）                                |
 | [CHANGELOG.md](../CHANGELOG.md)                                                                                        | 版ごとの変更。release-please が書く（ADR 0009）                                                                                                           |
 | [tools/docs-check/](../tools/docs-check/)                                                                              | 文書のリンク・コマンド・設定が、リポジトリの今の形とずれていないかを確かめるテスト                                                                        |
 
@@ -30,7 +30,7 @@
 
 1. [README.md](../README.md) で、ズバクイが何で、どこで動くかをつかむ
 2. [要件定義書](requirements/zubatto-quiz.md)の「機能要件」と「スコアの計算」で、何ができて、点がどう決まるかを知る
-3. [ADR 0001](adr/0001-backend-runtime-and-realtime-transport.md) で、部屋ごとの Durable Object と WebSocket を選んだ理由を読む
+3. [ADR 0001](adr/0001-backend-runtime-and-realtime-transport.md) で、部屋ごとの Durable Object と WebSocket を選んだ理由を読む。本番を Cloudflare に残し、Go 版を練習用の環境で作ることにした理由は [ADR 0008](adr/0008-go-migration-hosting.md) にある
 4. [ADR 0006](adr/0006-spa-and-api-worker-layout.md) で、画面の Worker と API の Worker の分け方を読む
 5. [design/README.md](design/README.md) の「1問の流れ」で、出題から ①②③ までの画面の進み方を見る
 
@@ -39,7 +39,7 @@
 1. [CONTRIBUTING.md](../CONTRIBUTING.md) で、進め方と PR の題名の形を知る
 2. [README.md の「開発環境を作る」](../README.md#開発環境を作る)のとおりに、手元で動かす
 3. [CLAUDE.md](../CLAUDE.md) で、触る場所の約束を読む。破ると安全（S1〜S4）や同時に起きる処理の正しさが崩れるものが多い。約束の理由と、コードのどこで守っているかは、バックエンドなら [architecture/backend.md](architecture/backend.md)、画面なら [architecture/frontend.md](architecture/frontend.md)、テストなら [architecture/testing.md](architecture/testing.md) にある
-4. 触る場所に関わる ADR を、下の一覧から読む。部屋と WebSocket なら 0001・0003・0004、問題セットなら 0002、画面なら 0006・0007、CI とリリースなら 0005・0009・0010
+4. 触る場所に関わる ADR を、下の一覧から読む。部屋と WebSocket なら 0001・0003・0004・0008、問題セットと HTTP API なら 0002・0011、画面なら 0006・0007、CI とリリースなら 0005・0009・0010
 5. メッセージや HTTP API の形を変えるときは、[ws.schema.json](../packages/protocol/schema/ws.schema.json) と [openapi.json](../packages/protocol/schema/openapi.json) も作り直す（作り方は [backend.md の「メッセージの形」](architecture/backend.md#メッセージの形)にある）
 
 ### 本番を運用する人
@@ -54,18 +54,19 @@
 
 状態は各 ADR の Status と同じ言葉で書く。`accepted` は決まって、今もそのとおりに作っているもの。
 
-| 番号                                                        | 決めたこと                                                                                                    | 状態                                                           |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| [0001](adr/0001-backend-runtime-and-realtime-transport.md)  | バックエンドは Hono と Cloudflare Workers・Durable Objects で WebSocket を使い、あとで Go と Cloud Run へ移す | accepted（置き換えの計画を ADR 0008 で見直している）           |
-| [0002](adr/0002-question-set-storage-and-room-handoff.md)   | 問題セットは D1 に持ち主ごとに置き、部屋を作るときに部屋の DO へ写す                                          | accepted                                                       |
-| [0003](adr/0003-host-identification-and-host-connection.md) | ホストは GitHub ログインと許可リストで見分け、進行操作はホスト用の入口の接続からだけ受け付ける                | accepted                                                       |
-| [0004](adr/0004-player-identification-and-reconnection.md)  | 回答者は participantId と端末が作る秘密で見分け、秘密は localStorage に置いて最初のメッセージで送る           | accepted                                                       |
-| [0005](adr/0005-infrastructure-management.md)               | インフラは wrangler の設定ファイルで管理し、Terraform は Go へ移すときに入れる                                | accepted（デプロイを動かすきっかけを ADR 0010 で変えた）       |
-| [0006](adr/0006-spa-and-api-worker-layout.md)               | 画面の Worker と API の Worker に分け、`/api/*` を Service binding で転送して同じオリジンにする               | accepted                                                       |
-| [0007](adr/0007-ui-components-approach.md)                  | UI 部品は shadcn/ui の Base UI 版で作り、役割トークンは shadcn の名前にそろえる                               | accepted                                                       |
-| [0008](adr/0008-go-migration-hosting.md)                    | 本番の API は Cloudflare に残し、Go 版は Cloud Run の練習用の環境で作って確かめる                             | proposed                                                       |
-| [0009](adr/0009-release-versioning-and-tagging.md)          | 版と CHANGELOG は release-please のリリース PR で決め、本番には承認してからデプロイする                       | accepted（タグのルールセットと承認の回数を ADR 0010 で変えた） |
-| [0010](adr/0010-deploy-on-release.md)                       | 本番のデプロイは Release をきっかけに動かし、タグのコミットを1回の承認で出す                                  | accepted                                                       |
+| 番号                                                        | 決めたこと                                                                                                    | 状態                                                                                           |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [0001](adr/0001-backend-runtime-and-realtime-transport.md)  | バックエンドは Hono と Cloudflare Workers・Durable Objects で WebSocket を使い、あとで Go と Cloud Run へ移す | accepted（置き換えの計画を ADR 0008 で置き換えた）                                             |
+| [0002](adr/0002-question-set-storage-and-room-handoff.md)   | 問題セットは D1 に持ち主ごとに置き、部屋を作るときに部屋の DO へ写す                                          | accepted                                                                                       |
+| [0003](adr/0003-host-identification-and-host-connection.md) | ホストは GitHub ログインと許可リストで見分け、進行操作はホスト用の入口の接続からだけ受け付ける                | accepted                                                                                       |
+| [0004](adr/0004-player-identification-and-reconnection.md)  | 回答者は participantId と端末が作る秘密で見分け、秘密は localStorage に置いて最初のメッセージで送る           | accepted                                                                                       |
+| [0005](adr/0005-infrastructure-management.md)               | インフラは wrangler の設定ファイルで管理し、Terraform は Go へ移すときに入れる                                | accepted（デプロイを動かすきっかけを ADR 0010 で、Terraform を入れる場所を ADR 0008 で変えた） |
+| [0006](adr/0006-spa-and-api-worker-layout.md)               | 画面の Worker と API の Worker に分け、`/api/*` を Service binding で転送して同じオリジンにする               | accepted                                                                                       |
+| [0007](adr/0007-ui-components-approach.md)                  | UI 部品は shadcn/ui の Base UI 版で作り、役割トークンは shadcn の名前にそろえる                               | accepted                                                                                       |
+| [0008](adr/0008-go-migration-hosting.md)                    | 本番の API は Cloudflare に残し、Go 版は Cloud Run の練習用の環境で作って確かめる                             | accepted                                                                                       |
+| [0009](adr/0009-release-versioning-and-tagging.md)          | 版と CHANGELOG は release-please のリリース PR で決め、本番には承認してからデプロイする                       | accepted（タグのルールセットと承認の回数を ADR 0010 で変えた）                                 |
+| [0010](adr/0010-deploy-on-release.md)                       | 本番のデプロイは Release をきっかけに動かし、タグのコミットを1回の承認で出す                                  | accepted                                                                                       |
+| [0011](adr/0011-hono-api-contract.md)                       | HTTP API は fetch + protocol の zod で呼ぶ今の形を保ち、Hono の RPC と zod-openapi は使わない                 | accepted                                                                                       |
 
 ## 用語集
 

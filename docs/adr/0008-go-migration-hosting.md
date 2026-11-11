@@ -2,9 +2,9 @@
 
 ## Status
 
-proposed
+accepted
 
-イベントのあとに見直し、accepted にする。
+イベントのあとに見直す予定だったが、本番のバックエンドを Hono で続ける前提で HTTP API の作りを決めるため（ADR 0011）、2026-11-08 に accepted にした。
 
 ## Context
 
@@ -101,3 +101,4 @@ K1 と K3 を、同じ見方で比べた（K1 は J2・N2 を組み合わせた�
 - 対応事項: 練習用の環境は、本番と別の GCP プロジェクトに Terraform で建てる。min-instances は 0 にし、予算アラートを付け、すぐ消す手順を書く。本番の利用者とデータはつながない
 - 対応事項: 本番を Go 版へ切り替えるかを別の ADR で決め直すのは、練習用の環境で次をすべて確かめたあと。① 契約テストがすべて通る ② Cloud Run の上で O2 のリハーサル（ホストを含めて255本の WebSocket）を行い、P1・P3・P4 を満たす ③ 60分の上限で切れても、画面に「再接続中」を出さずに続けられる方法がある ④ 2台に分かれても、1人1回（S4）と全員への配信（P1）が崩れない ⑤ C1・C3 に収まる
 - 対応事項: イベントのあとにこの ADR を accepted にする。そのとき、ADR 0001 の「Go + Cloud Run へ置き換える」をこの ADR で置き換えたと書き、ADR 0005（Terraform を入れる時期）、`CLAUDE.md`、`docs/architecture/backend.md`・`operations.md` の「Go へ移す」の書き方を直す
+  - 2026-11-08 に accepted にし、ここに挙げた文書を直した。本番の HTTP API で Hono の RPC と zod-openapi を使わず、今の形を保つことは ADR 0011 で決めた

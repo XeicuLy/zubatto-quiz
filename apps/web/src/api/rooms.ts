@@ -1,4 +1,4 @@
-import { createRoomResponseSchema, type CreateRoomResponse } from '@zubatto-quiz/protocol';
+import { createRoomResponseSchema, type CreateRoomRequest, type CreateRoomResponse } from '@zubatto-quiz/protocol';
 
 import { request } from './request';
 
@@ -8,6 +8,7 @@ import { request } from './request';
  * やり直すと部屋が2つできるので、useMutation の既定のまま、失敗してもやり直さない
  */
 export async function createRoom(questionSetId: string): Promise<CreateRoomResponse> {
-  const response = await request('POST', '/api/rooms', { questionSetId });
+  // request() の本文は unknown なので、ここで protocol の型を付ける。要求の形が変わったら tsc が落ちる（ADR 0011）
+  const response = await request('POST', '/api/rooms', { questionSetId } satisfies CreateRoomRequest);
   return createRoomResponseSchema.parse(await response.json());
 }
