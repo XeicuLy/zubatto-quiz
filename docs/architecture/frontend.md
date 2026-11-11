@@ -150,6 +150,9 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - 画面の大きさは、`preview.tsx` の `parameters.viewport.options` に名前で並べる。`variant` を持つ部品は、`mobile`（回答者画面、390×844）か `projector`（進行画面の投影、1920×1080）を `globals: { viewport: { value: 'mobile', isRotated: false } }` で選ぶ。docs のページはストーリーをページの中に描くので、大きさは当たらない
 - 描いたときにフォーカスを動かす部品（`ConfirmDialog` など）は、meta に `parameters: { docs: { story: { inline: false, height } } }` を書き、docs のページではストーリーごとに iframe で描く。ページの中に並べると、最後のストーリーがフォーカスを取り、docs のページが下まで流れる（2026-11-08 に Storybook 10.6.6 で確かめた）。`height` は、いちばん高いストーリーが iframe に収まる値にする
 - ストーリーに渡す順位・秒数・点は、部屋の DO が送る形（protocol の型）の固定の値で書き、ストーリーの中では数えない。データは部品のテストと共有せず、ストーリーごとに書く。テストは期待する文とデータが近くにある方が読みやすく、ストーリーは見せたい状態（長い名前、同点、0件など）に合わせて足せるため
+- 残り時間を数える部品は、数える外側と描く内側に分けてあり（`AcceptingStage` と `AcceptingStageView`）、ストーリーは内側に `leftMs` と `bar` を固定の値で渡す。棒の `transitionMs` は0にして止める
+- ストアを受け取る部品（`HostControls` の `sound`）には、ストーリーの中で `zustand/vanilla` の `createStore` で状態を止めたストアを作り、メソッドは `storybook/test` の `fn()` にして渡す。本物（`createSoundPlayer`）は AudioContext と localStorage で状態が変わり、絵が決まらないため
+- 描いたあとにフォーカスを動かす props（`AnswerButtons` の `focusList`）は、ストーリーでは渡さない。フォーカスと読み上げは部品のテストと E2E で確かめる
 - ストーリーは本番に入れない。次の3か所で止める
   - CSS: `src/styles.css` の `@source not` で、`*.stories.{ts,tsx}` と `.storybook` を外す。Tailwind は `@source` がなくても `apps/web` の下を読むので、`.storybook` も外さないと、デコレータの class が本番の CSS に入る（2026-11-07 に、外す前の `vite build` で確かめた）。Storybook は `.storybook/preview.css` から読み、そこで `styles.css` を import してから、2つを `@source` で足し直す。足し直すときはファイルのグロブ（`'./*.tsx'`）で書く。フォルダー（`'./'`）で書くと、外したものは戻らない（Tailwind 4.3.4）
   - import: `.oxlintrc.json` の `no-restricted-imports` が、本番のコードから `*.stories.*`・`@storybook/*`・`storybook` を読むのを止める。全体と層の上書きの両方に書き、`*.stories.*` と `apps/web/.storybook/**` は、テストのコードと同じく最後の上書きで柵から外す（`tools/docs-check/test/oxlint-layers.test.ts` が確かめる）
