@@ -25,20 +25,26 @@ const IMAGES_DIR = fileURLToPath(new URL('../../apps/web/src/features/guide/imag
 const TITLE = 'ズバクイ体験会';
 /**
  * correct は正解の番号（0から）。締切はホストが「いま締め切る」で行うので、制限時間は長めにする。
- * 最後の2問は回答者の順位を伏せる（F15）ので、撮る第1問がそこに入らないよう3問にする
+ * 第1問は2択にする。編集画面の画像（1280×800）に、名前から制限時間までの欄が収まる
  */
 const QUESTIONS = [
-  { text: '日本でいちばん高い山は？', choices: ['富士山', '北岳', '奥穂高岳', '槍ヶ岳'], correct: 0 },
   { text: '1 + 1 は？', choices: ['1', '2'], correct: 1 },
+  { text: '日本でいちばん高い山は？', choices: ['富士山', '北岳', '奥穂高岳', '槍ヶ岳'], correct: 0 },
   { text: '晴れた日の空の色は？', choices: ['赤', '青', '緑', '黄'], correct: 1 },
+  { text: '日本の首都は？', choices: ['大阪', '東京', '京都'], correct: 1 },
 ] as const;
+/**
+ * 遊ぶ画面を撮る問題（0から）。選択肢の4色が並ぶ4択にする。
+ * 最後の2問は回答者の順位を伏せる（F15）ので、そこに入らない問題にする
+ */
+const SHOT_QUESTION = 1;
 const LIMIT_SECONDS = '60';
 
 /** 回答者と、問題ごとに押す選択肢。たろうはいつも正解し、撮るのはたろうの画面 */
 const PLAYERS = [
-  { name: 'たろう', picks: [0, 1, 1] },
-  { name: 'はなこ', picks: [1, 1, 3] },
-  { name: 'じろう', picks: [0, 0, 1] },
+  { name: 'たろう', picks: [1, 0, 1, 1] },
+  { name: 'はなこ', picks: [1, 1, 3, 1] },
+  { name: 'じろう', picks: [0, 0, 1, 2] },
 ] as const;
 
 const deviceOf = new Map([...hostSteps, ...playerSteps].map((step) => [step.image, step.device]));
@@ -101,7 +107,9 @@ test('使い方の画像を撮る', async ({ browser }) => {
     await host.page.getByRole('button', { name: '問題を足す' }).click();
     await fillQuestion(host.page, index);
   }
-  await host.page.evaluate('window.scrollTo(0, 0)');
+  // 見出しを上端に寄せる。上の「一覧に戻る」を外すと、名前から第1問の制限時間までが、下の保存のバーより上に収まる。
+  // ルートの tsconfig には DOM の型がないので、ブラウザで走らせる式は文字列で渡す
+  await host.page.evaluate("document.querySelector('h1').scrollIntoView()");
   await shot(host.page, 'host-edit-set');
   await host.page.getByRole('button', { name: '保存する' }).click();
   await expect(host.page.getByText('保存しました')).toBeVisible();
@@ -137,11 +145,11 @@ test('使い方の画像を撮る', async ({ browser }) => {
   await shot(taro, 'player-waiting');
 
   for (const [index, question] of QUESTIONS.entries()) {
-    const first = index === 0;
+    const shooting = index === SHOT_QUESTION;
     await host.page.getByRole('button', { name: `第${index + 1}問を出す` }).click();
     await host.page.getByRole('button', { name: '受付を始める' }).click();
     await expect(choiceButton(taro, 0, question.choices[0])).toBeVisible();
-    if (first) {
+    if (shooting) {
       await shot(taro, 'player-answering');
     }
 
@@ -151,7 +159,7 @@ test('使い方の画像を撮る', async ({ browser }) => {
       const page = players[playerIndex]!.page;
       await choiceButton(page, pick, question.choices[pick]!).click();
       await expect(page.getByText('締切を待っています', { exact: true })).toBeVisible();
-      if (first && playerIndex === PLAYERS.length - 2) {
+      if (shooting && playerIndex === PLAYERS.length - 2) {
         await expect(host.page.getByText(`${PLAYERS.length - 1}/ ${PLAYERS.length} 人`)).toBeVisible();
         await shot(host.page, 'host-answering');
       }
@@ -160,7 +168,7 @@ test('使い方の画像を撮る', async ({ browser }) => {
     await host.page.getByRole('button', { name: 'いま締め切る' }).click();
     await expect(host.page.getByRole('list', { name: '回答の分布' })).toBeVisible();
     await expect(taro.getByRole('region', { name: 'この問題の結果' })).toBeVisible();
-    if (first) {
+    if (shooting) {
       await expect(taro.getByRole('region', { name: 'あなたの位置' })).toBeVisible();
       await shot(host.page, 'host-reveal');
       await shot(taro, 'player-result');
