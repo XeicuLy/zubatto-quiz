@@ -22,13 +22,19 @@ const e2e = new Hono<{ Bindings: Env }>();
 /**
  * 新しいホストを作り、そのログイン Cookie を返す。返す形は Playwright の context.addCookies にそのまま渡せる。
  * 呼ぶたびに別のホストにして、前の回の問題セットが見えないようにする。
- * セッションは本番と同じ Better Auth の設定で作るので、許可リストの確認（session.create.before）も通る
+ * セッションは本番と同じ Better Auth の設定で作るので、許可リストの確認（session.create.before）も通る。
+ * 本文に { name } を渡すと、その名前にする（管理画面の右上に出る。使い方の画像に ID を写さない）。渡さなければ ID を名前にする
  */
 e2e.post(E2E_LOGIN_PATH, async (c) => {
   const db = createDb(c.env.DB);
   const userId = crypto.randomUUID();
   const githubUserId = crypto.randomUUID();
-  await insertGithubUser(db, { userId, githubUserId });
+  const body: unknown = await c.req.json().catch(() => ({}));
+  const name =
+    typeof body === 'object' && body !== null && 'name' in body && typeof body.name === 'string'
+      ? body.name
+      : undefined;
+  await insertGithubUser(db, { userId, githubUserId, name });
   await allowGithubUser(db, githubUserId);
 
   const { test } = await createTestAuth(c.env);

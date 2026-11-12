@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
+import { Route as GuideRouteImport } from './routes/guide'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as RRoomIdRouteImport } from './routes/r/$roomId'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRouteRoute = AdminRouteRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuideRoute = GuideRouteImport.update({
+  id: '/guide',
+  path: '/guide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -56,6 +62,7 @@ const RoomsRoomIdHostRoute = RoomsRoomIdHostRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
+  '/guide': typeof GuideRoute
   '/login': typeof LoginRoute
   '/r/$roomId': typeof RRoomIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/guide': typeof GuideRoute
   '/login': typeof LoginRoute
   '/r/$roomId': typeof RRoomIdRoute
   '/admin': typeof AdminIndexRoute
@@ -74,6 +82,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
+  '/guide': typeof GuideRoute
   '/login': typeof LoginRoute
   '/r/$roomId': typeof RRoomIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/guide'
     | '/login'
     | '/r/$roomId'
     | '/admin/'
@@ -93,6 +103,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/guide'
     | '/login'
     | '/r/$roomId'
     | '/admin'
@@ -102,6 +113,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/guide'
     | '/login'
     | '/r/$roomId'
     | '/admin/'
@@ -112,6 +124,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
+  GuideRoute: typeof GuideRoute
   LoginRoute: typeof LoginRoute
   RRoomIdRoute: typeof RRoomIdRoute
   RoomsRoomIdHostRoute: typeof RoomsRoomIdHostRoute
@@ -131,6 +144,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guide': {
+      id: '/guide'
+      path: '/guide'
+      fullPath: '/guide'
+      preLoaderRoute: typeof GuideRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -188,6 +208,7 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRouteRoute: AdminRouteRouteWithChildren,
+  GuideRoute: GuideRoute,
   LoginRoute: LoginRoute,
   RRoomIdRoute: RRoomIdRoute,
   RoomsRoomIdHostRoute: RoomsRoomIdHostRoute,

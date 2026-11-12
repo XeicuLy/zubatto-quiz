@@ -23,6 +23,7 @@ describe('画面の経路', () => {
   // タイトルに部屋の ID や名前を入れない（S3）
   it.each([
     ['/', 'ズバクイ', 'ズバクイ'],
+    ['/guide', '使い方', '使い方 | ズバクイ'],
     ['/admin', 'ホストの管理画面', 'ログイン | ズバクイ'],
     [`/rooms/${'a'.repeat(64)}/host`, 'ホストの管理画面', 'ログイン | ズバクイ'],
     [`/r/${'a'.repeat(64)}`, 'ズバッとクイズ', 'クイズに参加 | ズバクイ'],
@@ -31,6 +32,12 @@ describe('画面の経路', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument();
     await waitFor(() => expect(document.title).toBe(title));
+  });
+
+  it('トップから、使い方のページへ進める', async () => {
+    await renderAt('/');
+
+    expect(await screen.findByRole('link', { name: '使い方を見る' })).toHaveAttribute('href', '/guide');
   });
 
   it('知らない経路を開くと、日本語で「ページが見つかりません」と出す（SC3）', async () => {

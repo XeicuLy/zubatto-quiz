@@ -13,6 +13,7 @@
     "lint": "oxlint --deny-warnings && shellcheck .github/scripts/*.sh",
     "test": "vitest run",
     "e2e": "playwright test",
+    "guide:shots": "playwright test --config e2e/guide-screenshots/playwright.config.ts",
     "db:migrate:remote": "pnpm --filter @zubatto-quiz/api run db:migrate:remote",
     "deploy:api": "pnpm --filter @zubatto-quiz/api run deploy",
     "deploy:web": "pnpm --filter @zubatto-quiz/web run deploy",

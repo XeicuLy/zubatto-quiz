@@ -4,10 +4,11 @@ import { describe, expect, it } from 'vitest';
 import { filesUsing } from './screen-files';
 
 describe('飾り文字（Dela Gothic One）を使う場所', () => {
-  it('ロゴ（font-logo）は、アプリの名前を出す4画面だけ', () => {
+  it('ロゴ（font-logo）は、アプリの名前を出す5画面だけ', () => {
     expect(filesUsing('font-logo')).toEqual([
       'features/admin/AdminLayout.tsx',
       'features/admin/LoginPage.tsx',
+      'features/guide/GuidePage.tsx',
       'features/player/JoinForm.tsx',
       'routes/index.tsx',
     ]);

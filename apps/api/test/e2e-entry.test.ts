@@ -18,8 +18,13 @@ beforeEach(async () => {
 const request = (path: string, init?: RequestInit) => e2e.request(`${ORIGIN}${path}`, init, env);
 
 /** E2E 用のログインを呼び、返ってきた Cookie を、ブラウザが付けるのと同じ Cookie ヘッダーにする */
-async function login(): Promise<string> {
-  const response = await request(E2E_LOGIN_PATH, { method: 'POST' });
+async function login(body?: { name: string }): Promise<string> {
+  const response = await request(
+    E2E_LOGIN_PATH,
+    body === undefined
+      ? { method: 'POST' }
+      : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) },
+  );
   expect(response.status).toBe(200);
   const { cookies } = await response.json<{ cookies: { name: string; value: string }[] }>();
   return cookies.map(({ name, value }) => `${name}=${value}`).join('; ');
@@ -48,6 +53,20 @@ describe('E2E 用のログインの入口（ADR 0003）', () => {
     const response = await request('/api/question-sets', { headers: { cookie: second } });
 
     expect(await response.json()).toEqual({ questionSets: [] });
+  });
+
+  // 使い方の画像（e2e/guide-screenshots/capture.ts）は、管理画面の右上に写る名前を ID でなくする
+  it('名前を渡すと、その名前のホストになる。渡さなければ ID が名前になる', async () => {
+    const named = await login({ name: 'ホスト' });
+    const unnamed = await login();
+
+    const nameOf = async (cookie: string) => {
+      const response = await request('/api/auth/get-session', { headers: { cookie } });
+      return (await response.json<{ user: { id: string; name: string } }>()).user;
+    };
+    expect((await nameOf(named)).name).toBe('ホスト');
+    const { id, name } = await nameOf(unnamed);
+    expect(name).toBe(id);
   });
 
   it('本番の経路もそのまま通る', async () => {
