@@ -73,6 +73,17 @@ test('参加フォーム・回答中・ホストのロビーと進行に、WCAG 
   await playerContext.close();
 });
 
+// 使い方のページは、スマホと PC の幅で並びが変わる（スマホの画像の幅など）ので、両方で調べる
+for (const viewport of [PHONE, PROJECTOR]) {
+  test(`使い方のページに、${viewport.width}×${viewport.height} で WCAG 2 の A と AA の違反がない`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/guide');
+    await expect(page.getByRole('heading', { level: 1, name: '使い方' })).toBeVisible();
+
+    expect(await a11yViolations(page)).toEqual([]);
+  });
+}
+
 // 上の「違反がない」が空振りしていないことを確かめる。違反を起こせば、ちゃんと集まる
 test('名前のないボタンを入れると、違反として集まる', async ({ page }) => {
   await page.goto('/');

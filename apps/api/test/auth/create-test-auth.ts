@@ -19,8 +19,11 @@ export async function createTestAuth(env: Env) {
  * GitHub でログインしたことのあるホストを、Better Auth が作るのと同じ形で D1 に入れる。
  * testUtils の saveUser は validateUserInfo を通り、テストからは拒否されるので、drizzle で直接入れる。
  */
-export async function insertGithubUser(db: Db, { userId, githubUserId }: { userId: string; githubUserId: string }) {
-  await db.insert(user).values({ id: userId, name: userId, email: `${userId}@example.com` });
+export async function insertGithubUser(
+  db: Db,
+  { userId, githubUserId, name = userId }: { userId: string; githubUserId: string; name?: string },
+) {
+  await db.insert(user).values({ id: userId, name, email: `${userId}@example.com` });
   await db.insert(account).values({ id: `${userId}-github`, userId, providerId: 'github', accountId: githubUserId });
 }
 

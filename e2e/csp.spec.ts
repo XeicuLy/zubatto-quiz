@@ -23,3 +23,20 @@ test('ルートのタイトルを HeadContent が出しても、CSP の違反は
   expect(await page.locator('script:not([src]), style').count()).toBe(0);
   expect(violations).toEqual([]);
 });
+
+// 使い方の画像は、同じオリジンのハッシュ付きの URL で配る（assetsInlineLimit: 0）。data: に埋め込むと default-src 'self' に止められる
+test('使い方のページは、画像をすべて同じオリジンから読み込み、CSP の違反を出さない', async ({ context, page }) => {
+  const violations = collectCspViolations(context);
+  await page.goto('/guide');
+  await expect(page).toHaveTitle('使い方 | ズバクイ');
+
+  const images = await page.getByRole('img').all();
+  expect(images.length).toBeGreaterThan(0);
+  for (const image of images) {
+    expect(await image.getAttribute('src')).toMatch(/^\/assets\/[^/]+\.png$/);
+    // loading="lazy" なので、見える所まで送ってから読めたかを見る。読めなければ naturalWidth は 0 のまま
+    await image.scrollIntoViewIfNeeded();
+    await expect(image).toHaveJSProperty('naturalWidth', Number(await image.getAttribute('width')));
+  }
+  expect(violations).toEqual([]);
+});

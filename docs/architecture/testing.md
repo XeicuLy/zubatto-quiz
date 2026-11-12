@@ -41,19 +41,19 @@
 
 - Better Auth の `testUtils` のプラグインは、テスト専用の auth（`test/auth/create-test-auth.ts`）にだけ入れる（[backend.md の「ホストの認証」](backend.md#ホストの認証)）
 - テスト用のログインの入口は、本番の入口には入れない。実行時の環境変数で閉じておく形でも入れない。本番のバンドルに入口のコードが入っていれば、環境変数の入れ間違いがそのまま、誰でもホストになれる入口になる。本番の入口のファイルから import されない、テスト専用の入口にだけ置く（[ADR 0003](../adr/0003-host-identification-and-host-connection.md) の対応事項）
-- E2E は、別の入口のファイル `apps/api/test/e2e-entry.ts` を使う。本番の `app` を import し、`POST /api/e2e/login`（パスは `test/e2e-login-path.ts`）だけを足す。この入口は、呼ぶたびに新しいホスト（`user`・`account`・許可リストの行）を作り、`testUtils` の `getCookies` の結果を返す。Playwright の `context.addCookies` にそのまま渡せる。セッションは本物の `session.create.before` を通る
+- E2E は、別の入口のファイル `apps/api/test/e2e-entry.ts` を使う。本番の `app` を import し、`POST /api/e2e/login`（パスは `test/e2e-login-path.ts`）だけを足す。この入口は、呼ぶたびに新しいホスト（`user`・`account`・許可リストの行）を作り（名前は本文の `name`、なければ ID）、`testUtils` の `getCookies` の結果を返す。Playwright の `context.addCookies` にそのまま渡せる。セッションは本物の `session.create.before` を通る
 - `apps/api/vitest.bundle.config.ts`（project `api-bundle`、node、`test/bundle/`）は、両方の env で `wrangler deploy --dry-run` を動かし、本番のバンドルにそのパスがなく、E2E のバンドルにはあることを確かめる。両方を見るので、パスの打ち間違いでテストが通ってしまうことはない。Workers の project は `test/bundle/` を外し、`tsconfig.node.json` がそれを型チェックする
 
 ## 通しの E2E
 
-`e2e/` の Playwright のテストは、次の4つ。CI では `e2e` の job で動き、`ci` と同じく必須のチェックになっている（[branch-protection.md](../runbooks/branch-protection.md#何を決めているか)）。
+`e2e/` の Playwright のテストは、次の4つ（使い方の画像を撮るスクリプトは別。[使い方の画像を撮り直す](#使い方の画像を撮り直す)）。CI では `e2e` の job で動き、`ci` と同じく必須のチェックになっている（[branch-protection.md](../runbooks/branch-protection.md#何を決めているか)）。
 
-| spec                       | 確かめること                                                                                                                                          |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `full-game.spec.ts`        | ログイン → 問題セットの編集 → 部屋を作る → 2人が参加 → 3問（①②、1問目は ③ も）→ 最終ランキング                                                        |
-| `csp.spec.ts`              | CSP の違反を集める仕組みが、インラインのスクリプトを捕まえられること                                                                                  |
-| `player-reconnect.spec.ts` | リロード、別のタブ（X1）、失敗する `resume`、サーバーの側で切れたとき、名前の重なり、形の悪い部屋の ID                                                |
-| `a11y.spec.ts`             | 参加の画面、ホストの待機画面、回答中とホストの受付中の画面、ホストの ① で、axe の違反がないこと。違反（コントラストを含む）を見落とさないかも確かめる |
+| spec                       | 確かめること                                                                                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `full-game.spec.ts`        | ログイン → 問題セットの編集 → 部屋を作る → 2人が参加 → 3問（①②、1問目は ③ も）→ 最終ランキング                                                                                              |
+| `csp.spec.ts`              | CSP の違反を集める仕組みが、インラインのスクリプトを捕まえられること。使い方のページが、画像を同じオリジンから読み、違反を出さないこと                                                      |
+| `player-reconnect.spec.ts` | リロード、別のタブ（X1）、失敗する `resume`、サーバーの側で切れたとき、名前の重なり、形の悪い部屋の ID                                                                                      |
+| `a11y.spec.ts`             | 参加の画面、ホストの待機画面、回答中とホストの受付中の画面、ホストの ①、使い方のページ（390×844 と 1600×900）で、axe の違反がないこと。違反（コントラストを含む）を見落とさないかも確かめる |
 
 ### 本番と同じビルドで動かす
 
@@ -87,6 +87,21 @@
 - axe は `page.evaluate` で入れる。CSP はこれを止めないので、`bypassCSP` は使わない。ただしこの spec では CSP の違反を集めないので、`csp.spec` の context とは分けたままにする
 - ホストの context は、`beforeAll` で作って `afterAll` まで開いておく。`/api/e2e/login` は呼ぶたびに新しいホストを作るので、新しいホストはその部屋の持ち主ではなく、4404 で断られる
 - ルートの tsconfig には DOM の型がないので、ブラウザの側で動く式は文字列として `page.evaluate` に渡す
+
+## 使い方の画像を撮り直す
+
+使い方のページ（[frontend.md の「使い方のページ」](frontend.md#使い方のページ)）の画像は、次で撮り直す。ページに写る画面（ログイン、問題セットの編集と一覧、ホストの待機と進行、回答者の参加・待機・回答・結果）を変えたら、同じ変更で撮り直し、画像の差分を見てからコミットする。
+
+```sh
+pnpm run guide:shots
+```
+
+- `e2e/guide-screenshots/playwright.config.ts` は、ルートの `playwright.config.ts` を広げ、`testMatch` を `capture.ts` だけにする。`webServer` が `e2e:serve` をビルドして立ち上げる。ファイル名を `*.spec.ts` にしないので、CI の E2E には入らない
+- `capture.ts` は、ホスト1人と回答者3人で4問遊び、要所で `apps/web/src/features/guide/images/` に撮る。撮る前に、画面の大きさが手順の `device` と同じかを確かめる
+- 第1問は2択にし、編集画面の画像（1280×800）に名前から制限時間までを収める。遊ぶ画面は、選択肢の4色が並ぶ第2問で撮る。最後の2問は回答者の順位を伏せる（F15）ので、撮る問題はそこに入れない
+- 写る名前・問題は `capture.ts` に書いた仮のもの。部屋の ID と QR は e2e の手元の部屋のもので、本番では開けない
+- ホストは `loginAsHost(context, { name: 'ホスト' })` でログインする。`/api/e2e/login` は本文の `name` をホストの名前にし、渡さなければ ID を名前にする。名前は管理画面の右上に写る
+- 撮った画像の大きさと、手順とのそろいは、`apps/web/test/guide-images.test.ts` が `make check` で確かめる
 
 ## O2 のリハーサル用のボット
 
