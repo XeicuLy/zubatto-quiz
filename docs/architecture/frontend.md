@@ -312,6 +312,16 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - テストは `liveRegion(politeness)`（`test/live-region.ts`）で領域を探し、`setup.ts` がテストのたびに `clearAnnouncements()` を呼ぶ
 - Playwright の `getByText` は部分一致なので、領域にも入っている見える文は、`{ exact: true }` か `getByRole('paragraph')` で探す
 
+## 使い方のページ
+
+- `/guide`（`src/routes/guide.tsx` と `src/features/guide/`）は、ホストと回答者の流れを、画面の画像と一緒に順に見せる（#285）。ログインせずに開け、API を読まない。今のトップ（`/`）からは「使い方を見る」でつなぐ
+- 手順は `guide-steps.ts` の配列（見出し・説明・画像の名前・alt・`device`）だけに書く。DOM にも Vite にも頼らない値だけにし、撮影のスクリプトと node のテストからも読む
+- 画像は `images/<名前>.png` に置き、`GuidePage.tsx` の `import.meta.glob`（`eager`・`?url`）で URL にする。`assetsInlineLimit: 0` なので同じオリジンのハッシュ付きの URL になり、CSP の `default-src 'self'` を通る。`csp.spec.ts` が、全部の画像が `/assets/` から読めることを確かめる
+- `new URL(`` `./images/${name}.png` ``, import.meta.url)` の形は使わない。Vite はこれも glob に変えるが、ソースに glob の呼び出しの文字がないので、vitest 5 の `fsModuleCache` が前の一覧を残し、画像を足しても `src` が `undefined` になる（[Storybook](#storybook) の `story-files.ts` と同じ。vitest 5.0.5 で確かめた、2026-11-12）
+- `<img>` の `width`・`height` は、`device`（`pc` 1280×800・`projector` 1920×1080・`phone` 390×844）の大きさで書き、読み込む前から場所を取る。スマホの画像は幅を絞る。`test/guide-images.test.ts` が、手順ごとに PNG があること、alt が空でないこと、PNG の大きさが `device` と同じこと、どの手順も使わない PNG がないことを確かめる
+- 画像は撮影のスクリプトで撮り直す。画面を変えたら、同じ変更で撮り直す（[testing.md の「使い方の画像を撮り直す」](testing.md#使い方の画像を撮り直す)）
+- 事前描画（SSG）はしない。全ページを noindex にする（#284）ので検索の利点がなく、重いのは画像のほうで、JS より先に文字が出る差は小さい。ADR 0006 の SPA の前提も変えることになる（2026-11-12 に決めた）
+
 ## レイアウトの落とし穴
 
 - 列の型を書いていない `grid` の項目は `auto` の列に入り、中の入力欄の本来の幅より縮まないので、390 px ではみ出す。縦に並べる一覧には `grid-cols-1`（`minmax(0, 1fr)`）を使う

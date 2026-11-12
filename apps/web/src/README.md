@@ -24,16 +24,16 @@ flowchart LR
 
 上の層は下の層を読める。下から上は読まない。柵は `.oxlintrc.json` の `overrides` にあり、破ると `pnpm run lint` が落ちる（[全体の形](../../../docs/architecture/frontend.md#全体の形)）。
 
-| フォルダー                       | 置くもの                                                                                                                     | 読んでよい先                                                                     |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| [routes/](routes/)               | URL ごとのファイル。`loader` で読み込みと接続の操作役を用意し、features の画面を出す                                         | ほかのすべて                                                                     |
-| [features/](features/)           | 1つの画面のまとまり（`admin`・`host`・`player`）。部屋の操作役（`host-room.ts`・`player-room.ts`）と、その画面だけで使う部品 | `shared/`・`api/`・`realtime/`・`components/`・`lib/`。ほかの feature は読まない |
-| [shared/](shared/)               | 2つ以上の feature で使うもの（ログインの確認・接続の読み上げ・残り時間・結果・効果音）                                       | `api/`・`realtime/`・`components/`・`lib/`                                       |
-| [api/](api/)                     | HTTP API を呼ぶ関数と `queryOptions`、Better Auth（`auth-client.ts`）                                                        | `api/`・`realtime/`・`lib/`                                                      |
-| [realtime/](realtime/)           | 部屋の WebSocket（`client.ts`）、つなぎ直しの間隔、部屋の store（`room-store.ts`）                                           | `api/`・`realtime/`・`lib/`                                                      |
-| [components/ui/](components/ui/) | shadcn の部品（`Button`・`Card`・`ConfirmDialog`・`Field`）                                                                  | `components/ui/`・`lib/` だけ                                                    |
-| [components/](components/)       | `ui/` のほかの、画面に1つだけ置く部品（読み上げの `Announcer`・エラーの画面・アイコン）                                      | 柵はない。今は `components/` の中だけを読む                                      |
-| [lib/](lib/)                     | どの層からも使う小さな道具（`cn`・`pageTitle`）                                                                              | 外のパッケージだけ                                                               |
+| フォルダー                       | 置くもの                                                                                                                              | 読んでよい先                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [routes/](routes/)               | URL ごとのファイル。`loader` で読み込みと接続の操作役を用意し、features の画面を出す                                                  | ほかのすべて                                                                     |
+| [features/](features/)           | 1つの画面のまとまり（`admin`・`guide`・`host`・`player`）。部屋の操作役（`host-room.ts`・`player-room.ts`）と、その画面だけで使う部品 | `shared/`・`api/`・`realtime/`・`components/`・`lib/`。ほかの feature は読まない |
+| [shared/](shared/)               | 2つ以上の feature で使うもの（ログインの確認・接続の読み上げ・残り時間・結果・効果音）                                                | `api/`・`realtime/`・`components/`・`lib/`                                       |
+| [api/](api/)                     | HTTP API を呼ぶ関数と `queryOptions`、Better Auth（`auth-client.ts`）                                                                 | `api/`・`realtime/`・`lib/`                                                      |
+| [realtime/](realtime/)           | 部屋の WebSocket（`client.ts`）、つなぎ直しの間隔、部屋の store（`room-store.ts`）                                                    | `api/`・`realtime/`・`lib/`                                                      |
+| [components/ui/](components/ui/) | shadcn の部品（`Button`・`Card`・`ConfirmDialog`・`Field`）                                                                           | `components/ui/`・`lib/` だけ                                                    |
+| [components/](components/)       | `ui/` のほかの、画面に1つだけ置く部品（読み上げの `Announcer`・エラーの画面・アイコン）                                               | 柵はない。今は `components/` の中だけを読む                                      |
+| [lib/](lib/)                     | どの層からも使う小さな道具（`cn`・`pageTitle`）                                                                                       | 外のパッケージだけ                                                               |
 
 `src/` の直下には、入口の [main.tsx](main.tsx)、router と TanStack Query を作る [router.tsx](router.tsx)、`/api/*` を API の Worker へ転送する画面の Worker の [server.ts](server.ts)、色と文字のトークンの [styles.css](styles.css) がある。`routeTree.gen.ts` はルーターのプラグインが作る。
 

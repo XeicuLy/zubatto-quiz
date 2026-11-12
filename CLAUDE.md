@@ -31,6 +31,7 @@ pnpm run tsc        # root tsc --noEmit, then each package's own `tsc` script
 pnpm run test       # vitest run; root vitest.config.ts bundles apps/*, packages/* and tools/* as projects
 pnpm exec vitest run --project <name>   # one package; the project name is its vitest config `name`, else its package.json `name`, else its directory name
 make e2e            # pnpm run e2e (Playwright, e2e/); first run needs `pnpm exec playwright install chromium`
+pnpm run guide:shots   # retake /guide's screenshots against e2e:serve (e2e/guide-screenshots/, not in CI)
 pnpm --filter @zubatto-quiz/web run storybook   # Storybook on port 6006; storybook:build writes apps/web/storybook-static/ (not published)
 mkdir -p logs && pnpm -s run logs:api >> "logs/api-$(date +%Y%m%d-%H%M%S).json"   # O1 backup: wrangler tail --format json of zubakui-api (also logs:web); keep the files 7 days after the last entry (O1)
 ```
@@ -90,6 +91,7 @@ Production is all TypeScript on Cloudflare's free plan and stays there (ADR 0001
   - [Results](docs/architecture/frontend.md#結果の画面): ranks, ties, points and times come only from the DO's messages; seconds use scoring's `formatSeconds`. Write per-`variant` class maps in full (Tailwind reads literal strings), and `mobile` uses no `md:` classes.
   - [Host focus](docs/architecture/frontend.md#ホストの進行とフォーカス): after a host command, focus the new stage's heading through `settleFocus`, never the primary button (a second Enter would skip ①). Confirm in place with `ConfirmDialog` (`role="alertdialog"`, not modal; `useConfirm` returns focus to a replaced opener), never `window.confirm` or `AlertDialog`. An element focused only by script uses `focus-target`.
   - [Live regions](docs/architecture/frontend.md#読み上げ): announce with `useAnnouncement`; a screen that appears together with its text never gets `role="status"`.
+  - [Guide](docs/architecture/frontend.md#使い方のページ): `/guide`'s steps live only in `features/guide/guide-steps.ts` (plain data, also read by the capture script and node tests). Load its images with `import.meta.glob`, never a `new URL()` template: vitest's `fsModuleCache` keeps a stale file list for the latter. After changing a screen the guide shows, rerun `guide:shots` and commit the PNGs in the same change ([how](docs/architecture/testing.md#使い方の画像を撮り直す)). No SSG: the pages are noindex.
   - [Titles](docs/architecture/frontend.md#ページタイトル): every route sets `head: () => pageTitle('<画面名>')`; never put a room ID, player name or set name in a title (S3).
   - [Host auth](docs/architecture/frontend.md#ホストのログイン): only `src/api/auth-client.ts` imports Better Auth. Host-only routes use `requireHost` in `beforeLoad`, which never trusts the cached session; logout calls `queryClient.clear()`. Use `queryClient.query(options)`, not the deprecated `fetchQuery`/`prefetchQuery`/`ensureQueryData`.
   - [Editor](docs/architecture/frontend.md#問題セットの編集): every edit goes through the pure `editorReducer`; `validateDraft` only maps protocol's `questionSetSchema` issues and holds no rules of its own.
