@@ -97,7 +97,8 @@ pnpm run guide:shots
 ```
 
 - `e2e/guide-screenshots/playwright.config.ts` は、ルートの `playwright.config.ts` を広げ、`testMatch` を `capture.ts` だけにする。`webServer` が `e2e:serve` をビルドして立ち上げる。ファイル名を `*.spec.ts` にしないので、CI の E2E には入らない
-- `capture.ts` は、ホスト1人と回答者3人で3問遊び、要所で `apps/web/src/features/guide/images/` に撮る。撮る前に、画面の大きさが手順の `device` と同じかを確かめる。最後の2問は回答者の順位を伏せる（F15）ので、回答者の結果は第1問で撮る
+- `capture.ts` は、ホスト1人と回答者3人で4問遊び、要所で `apps/web/src/features/guide/images/` に撮る。撮る前に、画面の大きさが手順の `device` と同じかを確かめる
+- 第1問は2択にし、編集画面の画像（1280×800）に名前から制限時間までを収める。遊ぶ画面は、選択肢の4色が並ぶ第2問で撮る。最後の2問は回答者の順位を伏せる（F15）ので、撮る問題はそこに入れない
 - 写る名前・問題は `capture.ts` に書いた仮のもの。部屋の ID と QR は e2e の手元の部屋のもので、本番では開けない
 - ホストは `loginAsHost(context, { name: 'ホスト' })` でログインする。`/api/e2e/login` は本文の `name` をホストの名前にし、渡さなければ ID を名前にする。名前は管理画面の右上に写る
 - 撮った画像の大きさと、手順とのそろいは、`apps/web/test/guide-images.test.ts` が `make check` で確かめる
