@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 
 import { describe, expect, it } from 'vitest';
 
@@ -7,10 +7,16 @@ async function readAppFile(path: string): Promise<string> {
   return readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 }
 
-/** public/_headers から、すべての経路（/*）に付ける CSP を、ディレクティブごとに取り出す */
-async function readCsp(): Promise<Map<string, string[]>> {
+/** public/_headers から、すべての経路（/*）に付けるヘッダーの行を取り出す */
+async function readAllPathsRules(): Promise<string> {
   const headers = await readAppFile('public/_headers');
   const [, rules = ''] = headers.split(/^\/\*$/m);
+  return rules;
+}
+
+/** public/_headers から、すべての経路（/*）に付ける CSP を、ディレクティブごとに取り出す */
+async function readCsp(): Promise<Map<string, string[]>> {
+  const rules = await readAllPathsRules();
   const value = rules.match(/^\s+Content-Security-Policy:\s*(.+)$/m)?.[1];
   if (value === undefined) {
     throw new Error('public/_headers の /* に Content-Security-Policy がない');
@@ -39,6 +45,22 @@ describe('public/_headers の CSP（ADR 0004）', () => {
     const csp = await readCsp();
 
     expect(csp.get(name)).toEqual(sources);
+  });
+});
+
+// 部屋の参加画面やログイン画面が検索から見つからないようにする。
+// robots.txt でクロールを止めると noindex が読まれず、ほかのサイトのリンクから URL だけ載ることがあるので、置かない
+describe('検索エンジンに載せない', () => {
+  it('_headers の /* が X-Robots-Tag で noindex を付ける', async () => {
+    expect(await readAllPathsRules()).toMatch(/^\s+X-Robots-Tag: noindex, nofollow$/m);
+  });
+
+  it('index.html が robots の meta で noindex を付ける（ヘッダーを読まない経路への保険）', async () => {
+    expect(await readAppFile('index.html')).toMatch(/<meta name="robots" content="noindex, nofollow" \/>/);
+  });
+
+  it('public/robots.txt を置かない', async () => {
+    await expect(access(new URL('../public/robots.txt', import.meta.url))).rejects.toThrow(/ENOENT/);
   });
 });
 
