@@ -47,6 +47,16 @@
 - 改行は、`question.text` を出す要素にすべて付けた `whitespace-pre-line` で見せる。これは空白と改行の見せ方を決める CSS で、XSS を防ぐのは上の「文字のまま描く」ほう
 - 利用者が入れた名前に、`innerHTML` のような API を使わない。oxlint が `dangerouslySetInnerHTML` と `innerHTML` のような DOM の API を断る
 
+## 検索エンジンに載せない
+
+本番の URL は公開されているが、検索から部屋の参加画面やログイン画面に来ても使い道がない。そのため、全ページを noindex にする（#284）。
+
+- `apps/web/public/_headers` の `/*` に `X-Robots-Tag: noindex, nofollow` を書く。CSP と同じブロックなので、静的アセットの応答すべて（ない URL に返す SPA の `index.html`、画像、JS、CSS）に付く。`/*` のブロックを2つに分けない。`test/static-files.test.ts` は `/*` の行で分けて読んでいる
+- `apps/web/index.html` にも `<meta name="robots" content="noindex, nofollow" />` を書く。ヘッダーを読まない経路への保険
+- `/api/*` は Worker の応答なので `_headers` が付かない（ADR 0006）。API は JSON と WebSocket だけで、ページとして載ることはないので、付けない
+- `robots.txt` の `Disallow: /` は使わない。クロールを止めると、クローラーが noindex を読めなくなり、ほかのサイトからのリンクで URL だけ載ることがある。`public/robots.txt` がないことも `test/static-files.test.ts` が確かめる
+- `vite dev` では `_headers` が効かない。確かめるときは `e2e:serve` に `curl -sI` を送る
+
 ## 色の役割
 
 - 色の役割は shadcn の名前（`background`/`foreground`、`card`、`primary`/`primary-foreground`、`muted`、`destructive`/`destructive-foreground`、`border`、`input`、`ring`…）にそろえる（#124、ADR 0007）。どれも `@theme inline` の項目で、中身は `:root`（明るい管理画面）と `.stage`（暗いステージ）に置いた素の変数。そのため `bg-primary` は `var(--primary)` をそのまま読み、`.stage` の中では値が入れ替わる。`@custom-variant dark` も `.stage` を指す。`.stage` は画面の route の外枠に付ける。ホストの画面（`routes/rooms/$roomId/host.tsx`、`host.test.tsx` が確かめる）と回答者の画面（`routes/r/$roomId.tsx`）に付いている
