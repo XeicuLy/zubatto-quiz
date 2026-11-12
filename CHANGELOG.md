@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/XeicuLy/zubatto-quiz/compare/v1.2.1...v1.3.0) (2026-11-12)
+
+
+### 新機能
+
+* スクショ入りの使い方ページを足す ([#296](https://github.com/XeicuLy/zubatto-quiz/issues/296)) ([b47a169](https://github.com/XeicuLy/zubatto-quiz/commit/b47a169ec96fcf383ff45271b2f4cf2bac33fe41))
+* 全ページを検索エンジンに載せない ([#297](https://github.com/XeicuLy/zubatto-quiz/issues/297)) ([eaf6c3d](https://github.com/XeicuLy/zubatto-quiz/commit/eaf6c3db224ceb47908fc11f67b64a52a95eb7f8))
+
 ## [1.2.1](https://github.com/XeicuLy/zubatto-quiz/compare/v1.2.0...v1.2.1) (2026-11-07)
 
 
