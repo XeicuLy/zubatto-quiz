@@ -36,6 +36,10 @@
 - 断られたホストの操作には、返事がない。そのため `host-commands.test.ts` は、操作のすぐあとに読めない文字列を送り、その `invalid_message` の返事まで読む。1つの接続のメッセージは順に処理されるので、返事が来たときには操作が終わっている
 - await する処理（`join`・`resume`）は、最初の返事が届いた時点で終わっている。`drain` は、その返事を読んでから呼ぶ
 - `close-question.test.ts` は、50人分の結果を作る時間を `performance.now()` で挟んで、P4 を測る。このテストでは `Date` を偽物にしない
+- `openapi-routes.test.ts` は、ルートと `openapi.json` の経路（メソッドと path）のずれだけを見る。サーバーを起こさず `app.routes` を読むので、CI で動く。状態コードのずれは見ない。`CONTRACT_ORIGIN` を設定した CI はないので、それは手元の[契約テスト](#契約テスト)で見る
+  - `app.routes` には、`.use()` のミドルウェアが `ALL` として、ハンドラーの前のバリデーターが同じ操作のもう1行として入る。そのため `ALL` を除き、重なりをまとめてから比べる。`:id` は `{id}` にそろえる。サブアプリの `'/'` は末尾のスラッシュなしの `/api/question-sets` になる（hono 4.13.16 で 2026-11-13 に確かめた）
+  - `openapi.json` は `packages/protocol/schema/` から相対で JSON として import する。Workers の実行環境ではファイルを `readFileSync` で読めないため
+  - 比べる関数そのものも、架空の Hono アプリと `paths` で、両方向のずれを見つけることを確かめている
 
 ## テスト専用のログイン
 
