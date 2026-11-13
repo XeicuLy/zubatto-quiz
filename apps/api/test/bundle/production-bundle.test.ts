@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { E2E_LOGIN_PATH } from '../e2e-login-path';
+import { SWAGGER_UI_PATH } from '../swagger-path';
 
 const apiRoot = new URL('../../', import.meta.url);
 const outDirs: string[] = [];
@@ -34,13 +35,31 @@ async function bundleOf(env: string): Promise<string> {
   return sources.join('\n');
 }
 
+// wrangler のバンドルは1回に数秒かかるので、env ごとに1度だけ作り、どのテストも同じものを読む
+const bundles = new Map<string, Promise<string>>();
+const cachedBundleOf = (env: string) => {
+  const bundle = bundles.get(env) ?? bundleOf(env);
+  bundles.set(env, bundle);
+  return bundle;
+};
+
 // toContain で比べると、失敗したときにバンドルの全体（数 MB）が差分に出るので、true / false で比べる
 describe('E2E 用のログインの入口（ADR 0003）', () => {
   it('本番のバンドルには、E2E 用のログインの経路が入らない', async () => {
-    expect((await bundleOf('')).includes(E2E_LOGIN_PATH)).toBe(false);
+    expect((await cachedBundleOf('')).includes(E2E_LOGIN_PATH)).toBe(false);
   });
 
   it('e2e の環境のバンドルには入る（上の確認が、綴りの違いなどで空振りしていない）', async () => {
-    expect((await bundleOf('e2e')).includes(E2E_LOGIN_PATH)).toBe(true);
+    expect((await cachedBundleOf('e2e')).includes(E2E_LOGIN_PATH)).toBe(true);
+  });
+});
+
+describe('Swagger UI（ADR 0011）', () => {
+  it('本番のバンドルには、Swagger UI の経路が入らない', async () => {
+    expect((await cachedBundleOf('')).includes(SWAGGER_UI_PATH)).toBe(false);
+  });
+
+  it('e2e の環境のバンドルには入る（上の確認が、綴りの違いなどで空振りしていない）', async () => {
+    expect((await cachedBundleOf('e2e')).includes(SWAGGER_UI_PATH)).toBe(true);
   });
 });
