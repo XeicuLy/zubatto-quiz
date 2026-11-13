@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.5.1",
+    "@hono/swagger-ui": "0.6.2",
     "drizzle-kit": "0.31.11",
     "vitest": "5.0.5",
     "wrangler": "4.157.0"

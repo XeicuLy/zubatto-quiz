@@ -45,8 +45,37 @@
 
 - Better Auth の `testUtils` のプラグインは、テスト専用の auth（`test/auth/create-test-auth.ts`）にだけ入れる（[backend.md の「ホストの認証」](backend.md#ホストの認証)）
 - テスト用のログインの入口は、本番の入口には入れない。実行時の環境変数で閉じておく形でも入れない。本番のバンドルに入口のコードが入っていれば、環境変数の入れ間違いがそのまま、誰でもホストになれる入口になる。本番の入口のファイルから import されない、テスト専用の入口にだけ置く（[ADR 0003](../adr/0003-host-identification-and-host-connection.md) の対応事項）
-- E2E は、別の入口のファイル `apps/api/test/e2e-entry.ts` を使う。本番の `app` を import し、`POST /api/e2e/login`（パスは `test/e2e-login-path.ts`）だけを足す。この入口は、呼ぶたびに新しいホスト（`user`・`account`・許可リストの行）を作り（名前は本文の `name`、なければ ID）、`testUtils` の `getCookies` の結果を返す。Playwright の `context.addCookies` にそのまま渡せる。セッションは本物の `session.create.before` を通る
-- `apps/api/vitest.bundle.config.ts`（project `api-bundle`、node、`test/bundle/`）は、両方の env で `wrangler deploy --dry-run` を動かし、本番のバンドルにそのパスがなく、E2E のバンドルにはあることを確かめる。両方を見るので、パスの打ち間違いでテストが通ってしまうことはない。Workers の project は `test/bundle/` を外し、`tsconfig.node.json` がそれを型チェックする
+- E2E は、別の入口のファイル `apps/api/test/e2e-entry.ts` を使う。本番の `app` を import し、`POST /api/e2e/login`（パスは `test/e2e-login-path.ts`）と、[Swagger UI](#swagger-ui-で-http-api-を試す) の経路だけを足す。ログインの入口は、呼ぶたびに新しいホスト（`user`・`account`・許可リストの行）を作り（名前は本文の `name`、なければ ID）、`testUtils` の `getCookies` の結果を返す。Playwright の `context.addCookies` にそのまま渡せる。セッションは本物の `session.create.before` を通る
+- `apps/api/vitest.bundle.config.ts`（project `api-bundle`、node、`test/bundle/`）は、両方の env で `wrangler deploy --dry-run` を動かし、本番のバンドルにログインと Swagger UI のパスがなく、E2E のバンドルにはあることを確かめる。両方を見るので、パスの打ち間違いでテストが通ってしまうことはない。バンドルは env ごとに1度だけ作る。Workers の project は `test/bundle/` を外し、`tsconfig.node.json` がそれを型チェックする
+
+## Swagger UI で HTTP API を試す
+
+HTTP API の仕様（`packages/protocol/schema/openapi.json`）は、E2E の環境の Swagger UI で見て、そのまま試せる（[ADR 0011](../adr/0011-hono-api-contract.md)）。
+
+- 経路は `/api/docs`（UI）と `/api/docs/openapi.json`（仕様）で、パスは `test/swagger-path.ts` にある。テスト用のログインと同じく `test/e2e-entry.ts` にだけ置き、`@hono/swagger-ui` は `devDependencies` に入れる。本番のバンドルに入らないことは `api-bundle` が確かめる
+- 本番には置かない。Swagger UI は外部の CDN（jsDelivr）のスクリプトを読むので、本番のオリジンに置くと、回答者の secret がある localStorage と同じ場所で、外のスクリプトが動く。実行時のフラグで止める作りにもしない（[テスト専用のログイン](#テスト専用のログイン)と同じ理由）
+- 返す仕様は、Go 版と契約テストが読むのと同じ、コミットしたファイル。protocol の `exports` の `./openapi.json` を JSON として import する
+- Swagger UI の版は `e2e-entry.ts` の `version` で固定している。Dependabot は上げないので、上げるときは手で直し、`e2e-entry.test.ts` の URL も合わせる
+- `/api/*` の応答は Worker が返すので、`_headers` の CSP が付かない。そのため、Swagger UI の CDN とインラインのスクリプトも止められない（`e2e:serve` で 2026-11-13 に確かめた）
+
+開き方:
+
+1. `e2e:serve` を動かし、`http://localhost:4173/api/docs` を開く
+
+   ```sh
+   pnpm --filter @zubatto-quiz/web run e2e:serve
+   ```
+
+2. ホストだけの API を試すときは、開発者ツールのコンソールで次を動かし、テスト用のホストとしてログインする。Swagger UI の Authorize は使えない。ブラウザは、スクリプトから `Cookie` のヘッダーを付けさせないため
+
+   ```js
+   const { cookies } = await (await fetch('/api/e2e/login', { method: 'POST' })).json();
+   for (const { name, value } of cookies) document.cookie = `${name}=${value}; path=/`;
+   ```
+
+3. 各経路の Try it out から送る。状態を変える経路も、ブラウザが同じオリジンの `Origin` を付けるので、`csrf()` を通る
+
+- 上のコードを動かしても 401 のままなら、開発者ツールの Application で `localhost` の Cookie を消してから、もう一度動かす。Cookie はポートで分かれないので、`vite dev`（5173）でログインした HttpOnly の Cookie が残っていると、スクリプトからは同じ名前の Cookie を上書きできない。`e2e:serve` は動かすたびに D1 を消すので、前の回の Cookie も使えない
 
 ## 通しの E2E
 

@@ -110,7 +110,7 @@
 - 仕様は手で書くので、ルートを足しても `openapi.json` には自動で載らない。`apps/api/test/openapi-routes.test.ts` が Hono の `app.routes` と `paths` を両方向に比べ、片方にしかない操作があれば落ちる。ルートを足したり消したりしたら、`src/openapi.ts` と `openapi.test.ts` の操作の表を直し、`schema` で書き出す。仕様に書かない経路（`/api/health`、`/api/auth/*`、WebSocket の入口）は、そのテストの `NOT_IN_SPEC` に理由と一緒に並べる。もうないルートの行が残っていても落ちる
 - ルートのステータスコードを変えたら、その `responses` と `openapi.test.ts` の表も直す。`csrf()` の 403 と、JSON として読めない本文の 400 は `text/plain` になる。JSON Schema で書けない条件（`.refine()`、`.trim()`）は、`.meta({ description })` か `info.description` に書く
 - テストは、コミットしたファイルに `@readme/openapi-parser` の `validate` をかける。`validate` は `$ref` をその場で解決して書き換えるので、呼ぶたびにファイルを読み直す
-- `@hono/zod-openapi` も Swagger UI も Worker には入れない（[ADR 0011](../adr/0011-hono-api-contract.md)）。手元では、リポジトリの直下で次を動かし、1つの HTML ファイルにして見る。CLI v2 の `preview` は Redocly のプロジェクト用で、1つのファイルは開けない（2.57.0 で 2026-10-18 に確かめた）
+- `@hono/zod-openapi` も Swagger UI も本番の Worker には入れない（[ADR 0011](../adr/0011-hono-api-contract.md)）。仕様を見て API を試すときは、E2E の環境の Swagger UI（`/api/docs`）を使う（[testing.md の「Swagger UI で HTTP API を試す」](testing.md#swagger-ui-で-http-api-を試す)）。サーバーを動かさずに読むだけなら、リポジトリの直下で次を動かし、1つの HTML ファイルにして見る。CLI v2 の `preview` は Redocly のプロジェクト用で、1つのファイルは開けない（2.57.0 で 2026-10-18 に確かめた）
 
   ```sh
   pnpm dlx --package=@redocly/cli@<ver> redocly build-docs packages/protocol/schema/openapi.json -o .playwright-mcp/openapi.html
