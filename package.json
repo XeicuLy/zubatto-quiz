@@ -25,16 +25,16 @@
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
     "@commitlint/types": "21.2.3",
-    "@playwright/test": "1.64.1",
-    "@tailwindcss/cli": "4.3.4",
+    "@playwright/test": "1.65.0",
+    "@tailwindcss/cli": "4.3.5",
     "@types/node": "24.19.2",
     "@zubatto-quiz/protocol": "workspace:*",
     "consola": "3.4.2",
     "husky": "9.1.7",
-    "oxfmt": "0.76.0",
-    "oxlint": "1.91.0",
-    "tailwindcss": "4.3.4",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
+    "tailwindcss": "4.3.5",
     "typescript": "6.0.3",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   }
 }
