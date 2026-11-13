@@ -107,6 +107,7 @@
   ```
 
 - `schema/openapi.json`（OpenAPI 3.1、`src/openapi.ts`）は、HTTP API（`/api/question-sets` と `POST /api/rooms`）の同じもので、同じ `schema` スクリプトで書き、同じように確かめる。リクエストの本文は `toDef(schema, 'input')`、応答は `'output'` で書く。OpenAPI 3.1 は zod の JSON Schema 2020-12 をそのまま受け取る
+- 仕様は手で書くので、ルートを足しても `openapi.json` には自動で載らない。`apps/api/test/openapi-routes.test.ts` が Hono の `app.routes` と `paths` を両方向に比べ、片方にしかない操作があれば落ちる。ルートを足したり消したりしたら、`src/openapi.ts` と `openapi.test.ts` の操作の表を直し、`schema` で書き出す。仕様に書かない経路（`/api/health`、`/api/auth/*`、WebSocket の入口）は、そのテストの `NOT_IN_SPEC` に理由と一緒に並べる。もうないルートの行が残っていても落ちる
 - ルートのステータスコードを変えたら、その `responses` と `openapi.test.ts` の表も直す。`csrf()` の 403 と、JSON として読めない本文の 400 は `text/plain` になる。JSON Schema で書けない条件（`.refine()`、`.trim()`）は、`.meta({ description })` か `info.description` に書く
 - テストは、コミットしたファイルに `@readme/openapi-parser` の `validate` をかける。`validate` は `$ref` をその場で解決して書き換えるので、呼ぶたびにファイルを読み直す
 - `@hono/zod-openapi` も Swagger UI も Worker には入れない（[ADR 0011](../adr/0011-hono-api-contract.md)）。手元では、リポジトリの直下で次を動かし、1つの HTML ファイルにして見る。CLI v2 の `preview` は Redocly のプロジェクト用で、1つのファイルは開けない（2.57.0 で 2026-10-18 に確かめた）
