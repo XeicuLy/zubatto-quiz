@@ -147,7 +147,7 @@
 - `shadcn add toast --view`（Base UI 版）を写し、次を外した。重ねて縮める動きと `transition`（動きは1か所だけの決まり。縦に並べ、上限の3つを超えた古いものは `data-limited:hidden` で隠す）、フォーカスの class、閉じるボタン・アクション・説明（成功の知らせは待てば消え、文は題1つで足りる）、アイコンの `lucide-react`（入れていない。印はインラインの SVG）
 - 題（`Toast.Title`）は `render={<p />}` で `<p>` にする。Base UI は既定で `<h2>` を描き、toast が出るたびに画面の見出しの並びに知らせが混ざる。toast（`role="dialog"`）の名前には `aria-labelledby` で変わらずなる
 - `Toast.Portal` は使わない。`<body>` の直下に描くと、Storybook の `.stage` の箱の外に出て暗い面の色が当たらない。Viewport は `fixed` なので、`__root` の末尾に置けば同じ場所に出る
-- 位置は、スマホの幅では下に幅いっぱい（両端は余白）、`sm` 以上では右下。色は `bg-primary` と `text-primary-foreground` で、枠を持たないので、面そのものが下の画面の `background`・`card` に 3:1 以上になることを `test/contrast.test.ts` が確かめる
+- 位置は、スマホの幅では上に幅いっぱい（両端は余白）、`sm` 以上では右上。問題セットの編集とホストの進行は下に操作の帯を固定しているので、下に出すと、保存したあとフォーカスのある「保存する」や、作った直後に開いた部屋の「第1問を出す」を覆う（WCAG 2.4.11。#290 で下から移した）。上に出すと覆うのは固定でないヘッダーで、6秒ほどで消える。払って閉じる向きも、出ている角の方（`swipeDirection={['up', 'right']}`）にする。色は `bg-primary` と `text-primary-foreground` で、枠を持たないので、面そのものが下の画面の `background`・`card` に 3:1 以上になることを `test/contrast.test.ts` が確かめる
 - `Toaster` は `__root` の `Announcer` の隣に置く。経路の外にあるので、保存して一覧へ移るときも toast は消えない
 - 画面は `toastManager` を直接触らず、`notify(message)` を呼ぶ。`notify` は hook ではないので、mutation の `onSuccess` からそのまま呼べる。消えるまでの時間は `notifyTimeoutOf` が文の長さで決める（最低 6 秒、1文字 150 ms。WCAG 2.2.1）。hover とフォーカスのあいだは止まり、Esc で閉じる（どちらも Base UI が持つ）。読み上げは[読み上げ](#読み上げ)の節
 - テストでは `setup.ts` が、テストのたびに `toastManager.close()` で全部閉じる。manager はモジュールに1つなので、消えるまでの timer を次のテストに残さない。ストーリーは、ストーリーごとに `createToastManager()` で manager を作って `Toaster` に渡し、`useEffect` から `timeout: 0` で1つ出す。Provider は `useEffect` で manager を購読し、子の effect は親より先に走るので取りこぼさない（`useLayoutEffect` だと購読の前に出して消える）
@@ -319,14 +319,20 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 ## 問題セットの編集
 
 - HTTP の呼び出しは `src/api/` に置く。`question-sets.ts` と `rooms.ts` は、`request.ts` を通して `/api/question-sets` と `/api/rooms` を呼び、応答を protocol のスキーマで読む。2xx 以外は `ApiError(status, code)`（`errors.ts`）を投げる。`code` は本文の `error`（protocol の `httpErrorSchema`）で、`safeParse` で読めたときだけ入り、csrf() の 403 のように本文が JSON でない応答では `null`。`questionSetsQueryOptions` は 4xx をやり直さないので、401 ならすぐに「ログインが切れました」を出す
-- 問題セットには1問以上が要るので、「問題セットを作る」は `DRAFT_QUESTION_SET` を保存して `/admin/sets/$setId` へ移る
-- 編集画面（`/admin/sets/$setId`）の loader は、`questionSetQueryOptions(setId)` を読む（訪れるたびに新しく読む）。ルートの `errorComponent` が `LoadErrorCard` で 401/404 を出す。`QuestionSetEditor`（`setId` を key にする）は、loader のデータから下書きを1回だけ作る
+- 一覧の「問題セットを作る」は、`/admin/sets/new` への `<Link>`（`buttonVariants()`）で、何も保存しない。サーバーは空のセット（0問や空の値）を受け付けないので、保存前の新規は画面の中だけで持ち、API は変えない。作らずに離れても、一覧に仮のセットは増えない。`/admin/sets/new` は静的な経路なので、TanStack Router は `$setId` より先に一致させる（index > 静的 > 動的。2026-11-14 に確かめた）
+- `/admin/sets/new` は何も読まず、`QuestionSetEditor` に `initial={undefined}` を渡す。下書きは `emptyDraft()`（名前は空、`newQuestion` の1問）から始まり、見出しとタイトルは「問題セットを作る」
+- 編集画面（`/admin/sets/$setId`）の loader は、`questionSetQueryOptions(setId)` を読む（訪れるたびに新しく読む）。ルートの `errorComponent` が `LoadErrorCard` で 401/404 を出す。`QuestionSetEditor`（`setId` を key にする）は、loader のデータから下書きを1回だけ作る（`useReducer` の初期化の関数で、`initial` がなければ `emptyDraft()`、あれば `draftOf`）
+- 名前・問題文・選択肢には、入れる値の例を `placeholder`（「例: 2026 内輪クイズ」「例: 部長の十八番は？」、選択肢は番号ごとに「例: 演歌」…）で出す。placeholder は名前の代わりにならないので、選択肢の欄は `aria-label` の「選択肢N」のまま。文字の色は `muted-foreground` で、欄の背景の `card` に 4.5:1 以上（`test/contrast.test.ts` の組）
 - 下書き（`question-set-draft.ts`）は `QuestionSetInput` ではない。`correctIndex` は `null`（まだ正解を選んでいない）でもよく、制限時間は入力欄の秒の文字列
 - 編集はすべて純粋な関数 `editorReducer` を通す。選択肢が2〜4個、問題が1〜100問の外に出る編集には、同じ状態を返す
 - `validateDraft` は protocol の `questionSetSchema` を動かし、問題の場所（`'questions.1.correctIndex'`）ごとに日本語のメッセージを1つ当てる。自分では決まりを持たない
 - エラーは最初に保存を押したときから出し、そのあとはホストが打つたびに直す。誤りがあれば、どちらのボタンでも送らず、移らない
 - 保存のボタンは「保存する」（編集画面に留まる）と「保存して一覧へ」（`/admin` へ移る）の2つ。送る PUT は同じで、違いは保存できたあとに移るかどうかだけ。書き終えて一覧で部屋を作る流れが本筋なので、「保存して一覧へ」を主（`default`）にし、「保存する」は `outline` にする
-- 保存の流れは `use-question-set-save.ts` の `useQuestionSetSave({ setId, draft })` が持つ。mutation、最後に保存できた下書き（`savedDraft`）、`dirty`、`useBlocker` をまとめ、`save(input, intent)` を返す。画面は `validateDraft` を通した `input` だけを渡す。#290 で、作る（POST）か直す（PUT）かの分かれ道を `mutationFn` に足す
+- 保存の流れは `use-question-set-save.ts` の `useQuestionSetSave({ setId, draft })` が持つ。mutation、最後に保存できた下書き（`savedDraft`）、保存先の ID（`savedId`）、`dirty`、`useBlocker` をまとめ、`save(input, intent)` を返す。画面は `validateDraft` を通した `input` だけを渡す
+- `savedId` がなければ作り（`createQuestionSet` で POST）、あれば書き換える（`saveQuestionSet` で PUT）。作れたら、移る前に `savedId` を入れる。置き換えて移る先の loader を待つあいだにもう一度押されても、2つ目を作らず PUT するため
+- `/admin/sets/new` にいるあいだ（`setId` が `undefined`）は、「保存する」で `/admin/sets/$setId` へ、「保存して一覧へ」で `/admin` へ、どちらも `replace` で移る。戻る操作で空の作成画面に戻らないため。保存のあいだに打った分で確かめが出て「編集に戻る」を選んでも、押し直せば移れる
+- 作った先の編集画面は作り直され、押した「保存する」は消える。そこで `navigate` の `state: { focusSave: true }`（`router.tsx` で `HistoryState` を拡張した）を付け、移った先の `QuestionSetEditor` が `useLayoutEffect` で「保存する」にフォーカスする。続けて書け、もう一度押しても PUT するだけ。history state は再読み込みでも残るので、再読み込みしたときも「保存する」にフォーカスが行くが、害はないので受け入れた
+- toast は、作ったら「「名前」を作りました」、書き換えたら「「名前」を保存しました」
 - 「保存していない」は `draft !== savedDraft`（reducer はいつも新しいオブジェクトを返す）。`useBlocker`（`shouldBlockFn` の形で、`disabled` で切り替える）と `beforeunload` が、離れる前に確かめる
 - 保存できたら、`flushSync(() => setSavedDraft(sent))` で描いてから `notify` し、`'list'` なら `navigate` する。`useBlocker` は `disabled` を effect の中で読むので、ただの `setSavedDraft` のあとにすぐ移ると、まだ `dirty` の登録のまま止められ、確かめが出る。`flushSync` の同期の更新では、React が commit の最後に effect まで流す。`navigate({ ignoreBlocker: true })` は使わない。`sent` は送ったときの下書きなので、保存のあいだに打った分は `dirty` のまま残り、「保存して一覧へ」でも確かめが出る。`ignoreBlocker` だとその分が黙って消える。`use-question-set-save.test.tsx` がこの順序を確かめる（`flushSync` を外すと落ちる）
 - 保存できたことは toast（「「名前」を保存しました」）だけで知らせ、保存の帯には出さない。帯に `role="status"` の文も出すと2回読まれる。帯に残すのは、直すところ・「保存しています…」・失敗（`ActionError`）・「保存していない変更があります」。`Toaster` は `__root` にあるので、一覧へ移っても toast は見える
