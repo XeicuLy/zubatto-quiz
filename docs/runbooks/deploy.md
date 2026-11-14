@@ -133,13 +133,13 @@ gh run watch
 2. CI が通ると、`deploy` の前で run が止まり、「Waiting」になる
 3. run の画面の Summary で、`verify-ci` が書いた次の版とリリースノートを読む
 4. **Review deployments** を押し、`production` を選んで、動いたコミットを見てから **Approve and deploy** を押す。版や文面が違うと思ったら **Reject** する。何も出ず、何も作られない
-5. `deploy` が終わると `release` が動く。数分たったら、タグ・Release・CHANGELOG の PR ができたことを確かめる
+5. `deploy` が終わると `release` が動く。数分たったら、Summary で決めた版 `vX.Y.Z` のタグ・Release・CHANGELOG の PR ができたことを確かめる。どれも版を書いて確かめる。書かないと、今回のものが作られていなくても、前の版のものが出てくる
 
    ```sh
    git fetch --tags
-   git tag --list 'v*' --sort=-v:refname | head -1
-   gh release view --json tagName,targetCommitish,url --jq '"\(.tagName) \(.targetCommitish) \(.url)"'
-   gh pr list --json number,title,url,headRefName --jq '.[] | select(.headRefName | startswith("changelog/")) | "\(.number) \(.title) \(.url)"'
+   git rev-list -n 1 vX.Y.Z   # 動かしたコミットの SHA が出る
+   gh release view vX.Y.Z --json tagName,targetCommitish,url --jq '"\(.tagName) \(.targetCommitish) \(.url)"'
+   gh pr list --head changelog/vX.Y.Z --json number,title,url --jq '.[] | "\(.number) \(.title) \(.url)"'
    ```
 
 6. Release ができたことを確かめてから、CHANGELOG の PR を squash でマージする（[release.md の「CHANGELOG の PR をマージする」](release.md#changelog-の-pr-をマージする)）
@@ -251,6 +251,7 @@ gh run watch
 - CHANGELOG の PR を作る前に落ちたとき（App の token を作る、ブランチを作る、ファイルを書き換えるなど）: PR も Release も残らず、次の dispatch も止まらない。run の失敗を見て、自分で Re-run する。そのままにすると、デプロイしたコミットにタグがないまま残る
   - 書き換えたあとで落ちると、ブランチ `changelog/vX.Y.Z` だけが残ることがある。Re-run すれば、そのブランチを使って続きから終わる
   - Re-run せずに次の版を出したときは、次の run が同じ番号を選ぶことがある。そのときは、次の run の `release` が残ったブランチを使い、同じ版の節を、次の run の文面（前のタグから次の run のコミットまで）で作り直す。落ちた run の変更も、この文面に入るので失われない。落ちた run の番号は、次の run が使う
+- Re-run では直らない落ち方もある。Re-run は最初の run の deploy.yaml（App の token に頼む権限を含む）のまま動くので、App の権限が足りずに落ちたときは、あとから deploy.yaml を直しても通らない。[release.md の「失敗したとき」](release.md#失敗したとき)の手順で、その版の Release を手で作る
 - Re-run は、いちばん新しい run にだけ使う。新しい run の `release` が PR を作る前に落ちた状態では、タグも PR もなく、最新のタグは前と同じままなので、それより古い run を Re-run すると、`deploy` の確かめ直しを素通りして、古いコミットで本番を上書きしてしまう
 - `release` の最初の確かめ（`check-release`）は、タグ `vX.Y.Z` がすでにデプロイしたコミットにあれば何もせずに終わる。タグが別のコミットにあるとき、または最新の `v*` タグが基準のタグと違うときは、何も作らずに止まる。止まったときは、あとから別の版が出ている。その run の変更は、次の版の CHANGELOG に入る
 
