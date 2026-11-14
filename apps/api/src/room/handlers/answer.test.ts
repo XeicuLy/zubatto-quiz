@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   connect,
   joinPlayer,
+  MANY_PLAYERS_TIMEOUT_MS,
   messageReader,
   newRoom,
   nextOf,
@@ -270,9 +271,7 @@ describe('経過時間（P2）', () => {
 });
 
 describe('50名の一斉回答（P3）', () => {
-  // 前準備で50名を1人ずつ入室させる（接続と SHA-256 を50回）。CI では web のテストと並んで動き、
-  // 通るときでも 0.7〜3.2 秒かかった。既定の5秒では時々落ちるので、止まったときだけ落ちる長さにする
-  it('締切の直前に50名が同時に答えても、50件とも受け付ける', { timeout: 20_000 }, async () => {
+  it('締切の直前に50名が同時に答えても、50件とも受け付ける', { timeout: MANY_PLAYERS_TIMEOUT_MS }, async () => {
     const stub = await newRoom();
     const names = Array.from({ length: 50 }, (_, i) => `回答者${i + 1}`);
     const { host, players } = await startAccepting(stub, names);

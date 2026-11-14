@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   connect,
   joinPlayer,
+  MANY_PLAYERS_TIMEOUT_MS,
   messageReader,
   newRoom,
   newToken,
@@ -370,30 +371,35 @@ describe('得点の保存（A3）', () => {
 });
 
 describe('締切から結果までの時間（P4）', () => {
-  it('50名が答えた問題を締め切ると、全員に結果が2秒よりも十分に短い時間で届く', async () => {
-    const stub = await newRoom('alice', 3);
-    const names = Array.from({ length: 50 }, (_, i) => `回答者${i + 1}`);
-    const { host, players } = await enterRoom(stub, names);
-    send(host, { type: 'showQuestion', questionIndex: 0 });
-    send(host, { type: 'startAnswering', questionIndex: 0 });
-    await Promise.all(
-      players.map(async (player, i) => {
-        await nextOf(player, 'answeringStarted');
-        send(player, { type: 'answer', questionId: 'q-1', choiceIndex: i % 2, elapsedMs: 100 * i });
-        await nextOf(player, 'answerAccepted');
-      }),
-    );
+  // 上限を延ばすのは前準備の入室のため。P4 として測るのは、下の performance.now() の間だけ
+  it(
+    '50名が答えた問題を締め切ると、全員に結果が2秒よりも十分に短い時間で届く',
+    { timeout: MANY_PLAYERS_TIMEOUT_MS },
+    async () => {
+      const stub = await newRoom('alice', 3);
+      const names = Array.from({ length: 50 }, (_, i) => `回答者${i + 1}`);
+      const { host, players } = await enterRoom(stub, names);
+      send(host, { type: 'showQuestion', questionIndex: 0 });
+      send(host, { type: 'startAnswering', questionIndex: 0 });
+      await Promise.all(
+        players.map(async (player, i) => {
+          await nextOf(player, 'answeringStarted');
+          send(player, { type: 'answer', questionId: 'q-1', choiceIndex: i % 2, elapsedMs: 100 * i });
+          await nextOf(player, 'answerAccepted');
+        }),
+      );
 
-    const startedAt = performance.now();
-    send(host, { type: 'closeAnswering', questionIndex: 0 });
-    const results: ServerMessage[] = await Promise.all([
-      nextOf(host, 'revealed'),
-      ...players.map((player) => nextOf(player, 'myResult')),
-    ]);
-    const elapsed = performance.now() - startedAt;
+      const startedAt = performance.now();
+      send(host, { type: 'closeAnswering', questionIndex: 0 });
+      const results: ServerMessage[] = await Promise.all([
+        nextOf(host, 'revealed'),
+        ...players.map((player) => nextOf(player, 'myResult')),
+      ]);
+      const elapsed = performance.now() - startedAt;
 
-    expect(results).toHaveLength(51);
-    // P4 の2秒の半分。テストの環境の揺れを見込んでも、集計と配信が間に合っていることを確かめる
-    expect(elapsed).toBeLessThan(1_000);
-  });
+      expect(results).toHaveLength(51);
+      // P4 の2秒の半分。テストの環境の揺れを見込んでも、集計と配信が間に合っていることを確かめる
+      expect(elapsed).toBeLessThan(1_000);
+    },
+  );
 });
