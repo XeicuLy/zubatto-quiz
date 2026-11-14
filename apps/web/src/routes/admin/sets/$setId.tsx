@@ -1,10 +1,9 @@
-import { createFileRoute, Link, useRouter, type ErrorComponentProps } from '@tanstack/react-router';
+import { createFileRoute, useRouter, type ErrorComponentProps } from '@tanstack/react-router';
 
-import { ApiError } from '@/api/errors';
 import { questionSetQueryOptions } from '@/api/question-sets';
-import { Card } from '@/components/ui/card';
 import { QuestionSetEditor } from '@/features/admin/QuestionSetEditor';
 import { pageTitle } from '@/lib/page-title';
+import { LoadErrorCard } from '@/shared/feedback/LoadErrorCard';
 
 /**
  * 問題セットの編集（F4・F7）。一覧の「問題セットを作る」と「編集」が、ここへ移る。
@@ -25,36 +24,21 @@ function QuestionSetEditPage() {
 
 function QuestionSetLoadError({ error }: ErrorComponentProps) {
   const router = useRouter();
-  const status = error instanceof ApiError ? error.status : null;
 
   return (
     <main className="mx-auto max-w-4xl px-5 py-10">
-      <Card variant="destructive" role="alert">
-        {status === 401 ? (
-          <>
-            <h1 className="font-bold text-destructive">ログインが切れました</h1>
-            <Link to="/login" className="mt-3 inline-block font-bold underline">
-              ログインし直す
-            </Link>
-          </>
-        ) : status === 404 ? (
-          <>
-            {/* 他人のセットも、ないセットと同じに見せる（S1） */}
-            <h1 className="font-bold text-destructive">問題セットが見つかりません</h1>
-            <p className="mt-2 text-note text-muted-foreground">消されたか、URL が違います。</p>
-            <Link to="/admin" className="mt-3 inline-block font-bold underline">
-              問題セットの一覧に戻る
-            </Link>
-          </>
-        ) : (
-          <>
-            <h1 className="font-bold text-destructive">問題セットを読めませんでした</h1>
-            <button type="button" onClick={() => void router.invalidate()} className="mt-3 font-bold underline">
-              もう一度読む
-            </button>
-          </>
-        )}
-      </Card>
+      <LoadErrorCard
+        error={error}
+        failed="問題セットを読めませんでした"
+        retry={() => void router.invalidate()}
+        // 他人のセットも、ないセットと同じに見せる（S1）
+        notFound={{
+          title: '問題セットが見つかりません',
+          detail: '消されたか、URL が違います。',
+          back: { to: '/admin', label: '問題セットの一覧に戻る' },
+        }}
+        titleAs="h1"
+      />
     </main>
   );
 }

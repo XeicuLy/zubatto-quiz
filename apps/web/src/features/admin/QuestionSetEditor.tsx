@@ -3,11 +3,11 @@ import { Link, useBlocker } from '@tanstack/react-router';
 import { MAX_QUESTIONS, type QuestionSet, type QuestionSetDetail } from '@zubatto-quiz/protocol';
 import { useReducer, useState } from 'react';
 
-import { ApiError } from '@/api/errors';
 import { questionSetsQueryOptions, saveQuestionSet } from '@/api/question-sets';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Field, Input } from '@/components/ui/field';
+import { ActionError, LoginLink } from '@/shared/feedback/ActionError';
 
 import { draftOf, editorReducer, errorSummaryOf, newQuestionKey, validateDraft } from './question-set-draft';
 import { QuestionEditor } from './QuestionEditor';
@@ -153,7 +153,20 @@ function SaveStatus({ errorSummary, save, dirty }: SaveStatusProps) {
     );
   }
   if (save.error !== null) {
-    return <SaveError error={save.error} />;
+    return (
+      <ActionError
+        error={save.error}
+        failed="保存できませんでした。もう一度押してください。"
+        // この画面でログインし直すと、GitHub へ移るあいだに下書きが消える。別のタブでログインすれば Cookie が共有される
+        unauthorized={
+          <>
+            ログインが切れました。<LoginLink newTab>別のタブでログインし直して</LoginLink>
+            から、もう一度保存してください。
+          </>
+        }
+        notFound="この問題セットは消されているため、保存できません。"
+      />
+    );
   }
   if (dirty) {
     return <p className="text-note text-muted-foreground">保存していない変更があります</p>;
@@ -166,31 +179,4 @@ function SaveStatus({ errorSummary, save, dirty }: SaveStatusProps) {
     );
   }
   return null;
-}
-
-function SaveError({ error }: { error: Error }) {
-  if (error instanceof ApiError && error.status === 401) {
-    // この画面でログインし直すと、GitHub へ移るあいだに下書きが消える。別のタブでログインすれば Cookie が共有される
-    return (
-      <p role="alert" className="text-body font-bold text-destructive">
-        ログインが切れました。
-        <a href="/login" target="_blank" rel="noopener" className="underline">
-          別のタブでログインし直して
-        </a>
-        から、もう一度保存してください。
-      </p>
-    );
-  }
-  if (error instanceof ApiError && error.status === 404) {
-    return (
-      <p role="alert" className="text-body font-bold text-destructive">
-        この問題セットは消されているため、保存できません。
-      </p>
-    );
-  }
-  return (
-    <p role="alert" className="text-body font-bold text-destructive">
-      保存できませんでした。もう一度押してください。
-    </p>
-  );
 }
