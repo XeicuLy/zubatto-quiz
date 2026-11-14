@@ -132,7 +132,7 @@ gh run watch
 1. `verify-ci` が次の版を決め、main の CI が終わるのを待つ。マージの直後は CI が走っているので、数分かかる
 2. CI が通ると、`deploy` の前で run が止まり、「Waiting」になる
 3. run の画面の Summary で、`verify-ci` が書いた次の版とリリースノートを読む
-   - Summary は画面でしか読めない。`gh run view` にも job のログにも出ない。手元で同じものを見るなら、`node tools/release/src/cli.ts --bump auto --to <動かしたコミット>` を動かす（`verify-ci` も同じものを動かしている）
+   - Summary は画面でしか読めない。`gh run view` にも job のログにも出ない。手元で同じものを見るなら、`git fetch --tags` してから `node tools/release/src/cli.ts --bump <その run で選んだ bump> --to <動かしたコミット>` を動かす（`verify-ci` も同じものを動かしている）。CLI は手元の最新の `v*` タグを基準にするので、出てきた `baseTag` が Summary の「基準のタグ」と同じときだけ、同じ版と文面になる
 4. **Review deployments** を押し、`production` を選んで、動いたコミットを見てから **Approve and deploy** を押す。版や文面が違うと思ったら **Reject** する。何も出ず、何も作られない
 5. `deploy` が終わると `release` が動く。数分たったら、Summary で決めた版 `vX.Y.Z` のタグ・Release・CHANGELOG の PR ができたことを確かめる。どれも版を書いて確かめる。書かないと、今回のものが作られていなくても、前の版のものが出てくる
 

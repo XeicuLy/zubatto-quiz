@@ -46,6 +46,11 @@
   5. PR を開く
   6. `gh release create --target "$GITHUB_SHA"` で Release を作り、タグも Release の API に作らせる
 - PR を先にするのは、途中で落ちたときに、開いた PR が次の dispatch を承認の前で止めるため。PR を作る前に落ちたときは何も残らず止まらないので、runbook の手順で Re-run する
+- 例外は1つだけ: Re-run では通らないとき（Re-run は最初の run の deploy.yaml の `permission-*` のまま動くので、それが足りなかったときなど）に、人がタグのルールセットを止めて Release を作る（[release.md の「Release を手で作る」](../runbooks/release.md#release-を手で作る)）。CHANGELOG の PR がなければ、それも人が作る。`check-release` を通らないので、代わりに人が確かめる
+  - 順は `release` の job と同じで、PR が先、Release があと
+  - 文面は落ちた run の Summary を正とする。CLI で作り直すなら、`baseTag` と文面が Summary と同じときだけ使う
+  - ルールセットを止めるのは `gh release create` の1つのコマンドの間だけにし、戻したら `enforcement` が `active` かを確かめる。止めている間は、書き込みの権限があれば誰でも `v*` のタグを打て、production はそのタグからデプロイできるため
+  - 作ったあと、タグと Release の `targetCommitish` がデプロイしたコミットか、ほかに `v*` のタグが増えていないかを確かめる
 - `CHANGELOG.md` は、`steps.ts` の `changelog`（`prependNotes`）が、見出し（`# Changelog`）のすぐ下に節を足す。同じ版の節（その見出しから次の `## ` の手前まで）がすでにあれば、今回の文面で置き換える。中身が同じなら結果も変わらないので、Re-run で2回足さず、残ったブランチが別の run の文面のままにもならない（CHANGELOG の PR と Release の文面がずれない）。`release` は oxfmt を動かさないので、`.oxfmtrc.json` は `CHANGELOG.md` を飛ばす。v1.3.0 までの節は release-please が書いた形（日本語の見出し、空行が3つ続く形）のまま残す
 - ルートの `package.json` の `"version"` は `"name"` のすぐ下に置く。`setPackageVersion` は、いちばん外の `"version"` の値だけを書き換え、ないと止まる。`release-workflow.test.ts` が確かめる
 - 開いた CHANGELOG の PR は、ブランチが `changelog/` で始まることで見分ける（`guard.ts` の `changelogPr`）。`release.sh` の `gh pr list` は、fork からの PR（`isCrossRepository`）を数えない。誰でも同じ名前のブランチの PR を開けるので、数えると dispatch を止めたり、CHANGELOG の PR を作らずに飛ばさせたりできてしまう（`release-workflow.test.ts`）。題名は scope のない `chore: vX.Y.Z の CHANGELOG を更新する` で、`guard.test.ts` が commitlint に通す

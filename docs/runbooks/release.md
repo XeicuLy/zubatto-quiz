@@ -172,7 +172,7 @@ v1.3.0 までの release-please の流れから、この流れに切り替えた
 
 - **Release ができる前にマージしない**。`release` が PR を作ったあとで落ちたとき、開いた PR が次の dispatch を止めて知らせる。先にマージすると、この止める仕組みが効かなくなる（[deploy.md の「release が途中で失敗したとき」](deploy.md#release-が途中で失敗したとき)）
 - 開いている間は、次の dispatch が承認の前に止まる。マージを忘れない
-- 題名は `chore:` なので、次の CHANGELOG に出ず、版も上げない。マージした直後の main で auto を動かすと、`verify-ci` の Plan release が「vX.Y.Z のあとに feat・fix・perf・破壊的変更がない」で止まる。CI を待つ前に止まり、production の Deployment も、タグも Release もできない（2026-11-14 に v1.4.0 のあとで確かめた。16 秒で止まった）
+- 題名は `chore:` なので、次の CHANGELOG に出ず、版も上げない。タグ vX.Y.Z のあとに main へ入ったのがこの PR だけ（ほかに feat・fix・perf・破壊的変更がない）なら、マージした直後の main で auto を動かすと、`verify-ci` の Plan release が「vX.Y.Z のあとに feat・fix・perf・破壊的変更がない」で止まる。CI を待つ前に止まり、production の Deployment も、タグも Release もできない（2026-11-14 に v1.4.0 のあとで確かめた。16 秒で止まった）。PR が開いている間に feat などがマージされていれば、止まらずに次の版を決めて承認を待つ
 - 行を直したいときは、マージする前に、PR のブランチで `CHANGELOG.md` を直してよい。PR があれば、`release` を Re-run してもブランチとファイルには触れないので、直した節は書き戻されない。Release の本文も同じに直すときは、`gh release edit vX.Y.Z --notes-file <ファイル>` か、Release の画面の Edit で直す
 - 件名が利用者に通じない行が出ないよう、元の PR の題名を、利用者から見て何が変わったかで書く
 
@@ -194,13 +194,16 @@ v1.3.0 までの release-please の流れから、この流れに切り替えた
 
 ### Release を手で作る
 
-Re-run では通らない落ち方（deploy.yaml の `permission-*` が足りなかったなど）で、デプロイは成功したのに Release とタグがないときに行う。
+Re-run では通らない落ち方（deploy.yaml の `permission-*` が足りなかったなど）で、デプロイは成功したのに Release とタグがないときに**だけ**行う。Re-run で通るなら、Re-run する。タグ・Release・CHANGELOG の PR を `release` の job の外で作る、ただ1つの例外で、`check-release` の確かめも通らない（[operations.md](../architecture/operations.md#リリース)）。順は `release` の job と同じく、PR を先にする。
 
-1. run の Summary のリリースノートを、版の見出し（`## vX.Y.Z`）を除いてファイルに写す。Summary は run の画面でしか読めない。手元で同じ文面を作るなら、`node tools/release/src/cli.ts --bump <選んだ bump> --to <デプロイしたコミット>` の `notes` から見出しを除く
-2. [branch-protection.md の「打ち間違えたタグを消す」](branch-protection.md#打ち間違えたタグを消す)と同じ手順で、タグのルールセットを止める
-3. `gh release create vX.Y.Z --target <デプロイしたコミット> --title vX.Y.Z --notes-file <写したファイル>` で作る
-4. すぐにルールセットを戻す
-5. CHANGELOG の PR ができていれば、Release を確かめてからマージする。PR もなければ、ブランチ `changelog/vX.Y.Z` に `CHANGELOG.md` と `package.json` の変更を作り、`chore: vX.Y.Z の CHANGELOG を更新する` の PR を開く
+1. 落ちた run の Summary の「基準のタグ」と「リリースノート」を読み、リリースノートを版の見出し（`## vX.Y.Z`）を除いてファイルに写す。文面は Summary のものを正とする
+   - Summary は run の画面でしか読めない。手元の CLI で作り直すときは、`git fetch --tags` してから `node tools/release/src/cli.ts --bump <その run の bump> --to <デプロイしたコミット>` を動かし、出てきた `baseTag` と `notes` が Summary と同じかを確かめてから使う。CLI は手元の最新の `v*` タグを基準にするので、run のあとに別のタグができていると、同じコミットと bump でも違う版と文面になる。違ったら、CLI の結果は使わない
+2. CHANGELOG の PR（ブランチ `changelog/vX.Y.Z`）が開いていれば、次へ進む。なければ、そのブランチに `CHANGELOG.md`（1 の文面を見出しごと先頭に置く）と `package.json` の `version` の変更を作り、`chore: vX.Y.Z の CHANGELOG を更新する` の PR を開く。Release より先に作るのは、途中で手が止まっても、開いた PR が次の dispatch を止めるようにするため
+3. [branch-protection.md の「打ち間違えたタグを消す」](branch-protection.md#打ち間違えたタグを消す)と同じ手順で、タグのルールセット（`release-tags`）を止める。止めている間は、書き込みの権限があれば誰でも `v*` のタグを打て、production はそのタグからデプロイできる。止めるのは 4 の1つのコマンドの間だけにする
+4. `gh release create vX.Y.Z --target <デプロイしたコミット> --title vX.Y.Z --notes-file <写したファイル>` で作る
+5. すぐにルールセットを戻し、`gh api repos/XeicuLy/zubatto-quiz/rulesets/<id> --jq .enforcement` が `active` になっていることを確かめる
+6. `git fetch --tags && git rev-list -n 1 vX.Y.Z` がデプロイしたコミットの SHA になり、`gh release view vX.Y.Z --json targetCommitish` も同じになることを確かめる。ほかに `v*` のタグが増えていないことも見る（`git ls-remote --tags origin 'v*'`）
+7. Release を確かめてから、CHANGELOG の PR をマージする
 
 ## 秘密鍵を入れ替える
 
