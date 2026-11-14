@@ -5,6 +5,7 @@ import {
   correctIndexAfterRemoving,
   draftOf,
   editorReducer,
+  emptyDraft,
   errorSummaryOf,
   newQuestion,
   validateDraft,
@@ -57,6 +58,33 @@ describe('draftOf', () => {
     const keys = draftOf(DETAIL).questions.map((q) => q.key);
 
     expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe('emptyDraft', () => {
+  it('名前は空で、足したばかりと同じ1問だけを持つ', () => {
+    const draft = emptyDraft();
+
+    expect(draft).toEqual({ title: '', questions: [newQuestion(draft.questions[0]!.key)] });
+  });
+
+  it('呼ぶたびに、問題の key が新しくなる', () => {
+    expect(emptyDraft().questions[0]!.key).not.toBe(emptyDraft().questions[0]!.key);
+  });
+
+  it('空のままでは保存できない（名前・問題文・選択肢・正解が要る）', () => {
+    const validation = validateDraft(emptyDraft());
+
+    expect(validation.ok).toBe(false);
+    expect(validation.ok ? [] : Object.keys(validation.errors)).toEqual(
+      expect.arrayContaining([
+        'title',
+        'questions.0.text',
+        'questions.0.choices.0',
+        'questions.0.choices.1',
+        'questions.0.correctIndex',
+      ]),
+    );
   });
 });
 

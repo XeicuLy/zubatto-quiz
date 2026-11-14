@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import type { QuestionSetSummary } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
-import { DRAFT_QUESTION_SET, questionSetsQueryOptions } from '@/api/question-sets';
+import { questionSetsQueryOptions } from '@/api/question-sets';
 import { ANNOUNCE_DELAY_MS } from '@/components/a11y/announce';
 import { createAppRouter } from '@/router';
 
@@ -55,32 +55,20 @@ describe('問題セットの一覧（F7）', () => {
     await openAdmin();
 
     expect(await screen.findByText('まだ問題セットがありません')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '問題セットを作る' })).toBeEnabled();
+    expect(screen.getByRole('link', { name: '問題セットを作る' })).toHaveAttribute('href', '/admin/sets/new');
   });
 
-  it('問題セットを作ると、下書きを保存して、その編集画面へ移る', async () => {
+  it('問題セットを作ると、何も保存せずに、空の作成画面へ移る', async () => {
     const api = stubFakeApi({ questionSets: [QUIZ] });
     const router = await openAdmin();
 
-    fireEvent.click(await screen.findByRole('button', { name: '問題セットを作る' }));
+    const create = await screen.findByRole('link', { name: '問題セットを作る' });
+    expect(create).toHaveAttribute('href', '/admin/sets/new');
+    fireEvent.click(create);
 
-    await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/admin\/sets\/[0-9a-f-]{36}$/));
-    expect(api.requestsTo('POST', '/api/question-sets')).toEqual([
-      expect.objectContaining({ body: DRAFT_QUESTION_SET }),
-    ]);
-    expect(await screen.findByRole('heading', { level: 1, name: '問題セットの編集' })).toBeInTheDocument();
-  });
-
-  it('問題セットを作るときにログインが切れていたら、移らずにログインし直すよう促す', async () => {
-    const api = stubFakeApi({ questionSets: [] });
-    const router = await openAdmin();
-
-    api.expireSession();
-    fireEvent.click(await screen.findByRole('button', { name: '問題セットを作る' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('ログインが切れました。');
-    expect(screen.getByRole('link', { name: 'ログインし直す' })).toHaveAttribute('href', '/login');
-    expect(router.state.location.pathname).toBe('/admin');
+    expect(await screen.findByRole('heading', { level: 1, name: '問題セットを作る' })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/admin/sets/new');
+    expect(api.requestsTo('POST', '/api/question-sets')).toEqual([]);
   });
 
   it('消すときは確かめ、「やめる」を押せば何も消さない', async () => {

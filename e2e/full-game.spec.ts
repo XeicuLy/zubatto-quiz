@@ -72,18 +72,21 @@ test('ホストが問題セットを作って部屋を開き、2人が最後ま�
   await expect(host.page.getByText('まだ問題セットがありません')).toBeVisible();
 
   // 問題セットを作る（F4・F9）
-  await host.page.getByRole('button', { name: '問題セットを作る' }).click();
-  await expect(host.page.getByRole('heading', { name: '問題セットの編集' })).toBeVisible();
+  // 空の作成画面で書き、最初の保存で作る
+  await host.page.getByRole('link', { name: '問題セットを作る' }).click();
+  await expect(host.page).toHaveURL(/\/admin\/sets\/new$/);
+  await expect(host.page.getByRole('heading', { level: 1, name: '問題セットを作る' })).toBeVisible();
+  await expect(host.page.getByLabel('問題セットの名前')).toHaveValue('');
   await host.page.getByLabel('問題セットの名前').fill(TITLE);
   await fillQuestion(host.page, 0);
   for (let index = 1; index < QUESTIONS.length; index += 1) {
     await host.page.getByRole('button', { name: '問題を足す' }).click();
     await fillQuestion(host.page, index);
   }
-  // 保存すると一覧へ移り、成功は toast で知らせる
+  // 最初の保存で作って一覧へ移り、作ったことを toast で知らせる
   await host.page.getByRole('button', { name: '保存して一覧へ' }).click();
   await expect(host.page).toHaveURL(/\/admin$/);
-  await expect(host.page.getByRole('region', { name: '通知' })).toContainText(`「${TITLE}」を保存しました`);
+  await expect(host.page.getByRole('region', { name: '通知' })).toContainText(`「${TITLE}」を作りました`);
 
   // 部屋を作り、参加用の URL を出す（F1）
   const row = host.page.getByRole('listitem').filter({ hasText: TITLE });

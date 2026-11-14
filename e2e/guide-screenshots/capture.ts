@@ -100,7 +100,7 @@ test('使い方の画像を撮る', async ({ browser }) => {
   // 管理画面の右上に名前が出る。渡さないと ID が写る
   await loginAsHost(host.context, { name: 'ホスト' });
   await host.page.goto('/admin');
-  await host.page.getByRole('button', { name: '問題セットを作る' }).click();
+  await host.page.getByRole('link', { name: '問題セットを作る' }).click();
   await host.page.getByLabel('問題セットの名前').fill(TITLE);
   await fillQuestion(host.page, 0);
   for (let index = 1; index < QUESTIONS.length; index += 1) {
@@ -140,6 +140,9 @@ test('使い方の画像を撮る', async ({ browser }) => {
   const names = PLAYERS.map((player) => player.name);
   await expect(host.page.getByRole('list', { name: '参加者' }).getByRole('listitem')).toHaveText(names);
   await expect(taro.getByRole('list', { name: '参加者' }).getByRole('listitem')).toHaveText(names);
+  // 一覧で出た「作りました」の toast は部屋の画面まで残り、早く撮れると待機の画像にも写って、撮るたびに変わる。消えてから撮る
+  // （toast は6秒以上出る。shared/feedback/notify.ts の notifyTimeoutOf）
+  await expect(host.page.getByRole('region', { name: '通知' })).toHaveText('', { timeout: 15_000 });
   await shot(host.page, 'host-lobby');
   await shot(taro, 'player-waiting');
 

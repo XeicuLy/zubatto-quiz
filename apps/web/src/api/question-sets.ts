@@ -61,17 +61,11 @@ export async function saveQuestionSet(id: string, input: QuestionSetInput): Prom
 }
 
 /**
- * 「問題セットを作る」で保存する下書き。問題セットは1問以上ないと保存できないので、仮の1問を入れる。
- * 中身は、作ったあとに移る編集画面（T30）で書き換える
+ * 問題セットを作り、新しいセットの ID を返す。編集画面（/admin/sets/new）で書いた内容を、最初に保存するときに呼ぶ。
+ * サーバーは空のセットを受け付けないので、空の下書きは画面の中だけで持ち、ここへは questionSetSchema に通した値だけを渡す
  */
-export const DRAFT_QUESTION_SET = {
-  title: '新しい問題セット',
-  questions: [{ text: '問題文を入れてください', choices: ['選択肢1', '選択肢2'], correctIndex: 0 }],
-} satisfies QuestionSetInput;
-
-/** 下書きを保存し、新しいセットの ID を返す */
-export async function createDraftQuestionSet(): Promise<string> {
-  const response = await request('POST', '/api/question-sets', DRAFT_QUESTION_SET);
+export async function createQuestionSet(input: QuestionSetInput): Promise<string> {
+  const response = await request('POST', '/api/question-sets', input);
   return createQuestionSetResponseSchema.parse(await response.json()).id;
 }
 
