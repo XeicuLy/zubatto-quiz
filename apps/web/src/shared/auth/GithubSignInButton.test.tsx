@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { stubFakeApi } from '../../../test/fake-api';
@@ -28,6 +28,15 @@ function stubAssign() {
   return assign;
 }
 
+/** bfcache から戻ったときにブラウザが出す pageshow。jsdom の Event には persisted がないので足す */
+function restoreFromBackForwardCache() {
+  const event = new Event('pageshow');
+  Object.defineProperty(event, 'persisted', { value: true });
+  act(() => {
+    window.dispatchEvent(event);
+  });
+}
+
 describe('GitHub のログインのボタン', () => {
   it('押すと GitHub へ移り、移るあいだはもう押せない', async () => {
     stubFakeApi({ hostName: null });
@@ -51,5 +60,31 @@ describe('GitHub のログインのボタン', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('始められませんでした');
     expect(screen.getByRole('button', { name: 'GitHub でログイン' })).toBeEnabled();
     expect(assign).not.toHaveBeenCalled();
+  });
+
+  it('GitHub から「戻る」で bfcache のページに戻ると、また押せる', async () => {
+    stubFakeApi({ hostName: null });
+    const assign = stubAssign();
+    render(<SignIn />);
+    fireEvent.click(screen.getByRole('button', { name: 'GitHub でログイン' }));
+    await waitFor(() => expect(assign).toHaveBeenCalled());
+
+    restoreFromBackForwardCache();
+
+    expect(screen.getByRole('button', { name: 'GitHub でログイン' })).toBeEnabled();
+  });
+
+  it('bfcache でない pageshow（ふつうに開いたとき）では、移るあいだの状態を変えない', async () => {
+    stubFakeApi({ hostName: null });
+    const assign = stubAssign();
+    render(<SignIn />);
+    fireEvent.click(screen.getByRole('button', { name: 'GitHub でログイン' }));
+    await waitFor(() => expect(assign).toHaveBeenCalled());
+
+    act(() => {
+      window.dispatchEvent(new Event('pageshow'));
+    });
+
+    expect(screen.getByRole('button', { name: 'GitHub でログイン' })).toBeDisabled();
   });
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { githubSignInUrl } from '@/api/auth-client';
 
@@ -17,6 +17,18 @@ export interface GithubSignIn {
 export function useGithubSignIn(): GithubSignIn {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<unknown>(null);
+
+  // GitHub から「戻る」で戻ると、ブラウザは離れる前のページを bfcache からそのまま戻すことがあり、
+  // starting が true のまま残ってボタンを押せなくなる。persisted の pageshow は bfcache から戻ったときだけ届く
+  useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) {
+        setStarting(false);
+      }
+    }
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, []);
 
   async function signIn() {
     setStarting(true);
