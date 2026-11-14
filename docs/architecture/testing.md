@@ -47,7 +47,7 @@
 
 - Better Auth の `testUtils` のプラグインは、テスト専用の auth（`test/auth/create-test-auth.ts`）にだけ入れる（[backend.md の「ホストの認証」](backend.md#ホストの認証)）
 - テスト用のログインの入口は、本番の入口には入れない。実行時の環境変数で閉じておく形でも入れない。本番のバンドルに入口のコードが入っていれば、環境変数の入れ間違いがそのまま、誰でもホストになれる入口になる。本番の入口のファイルから import されない、テスト専用の入口にだけ置く（[ADR 0003](../adr/0003-host-identification-and-host-connection.md) の対応事項）
-- E2E は、別の入口のファイル `apps/api/test/e2e-entry.ts` を使う。本番の `app` を import し、`POST /api/e2e/login`（パスは `test/e2e-login-path.ts`）と、[Swagger UI](#swagger-ui-で-http-api-を試す) の経路だけを足す。ログインの入口は、呼ぶたびに新しいホスト（`user`・`account`・許可リストの行）を作り（名前は本文の `name`、なければ ID。本文の `admin` が `true` なら管理者のホスト）、`testUtils` の `getCookies` の結果を返す。Playwright の `context.addCookies` にそのまま渡せる。セッションは本物の `session.create.before` を通る
+- E2E は、別の入口のファイル `apps/api/test/e2e-entry.ts` を使う。本番の `app` を import し、`POST /api/e2e/login`（パスは `test/e2e-login-path.ts`）と、[Swagger UI](#swagger-ui-で-http-api-を試す) の経路だけを足す。ログインの入口は、呼ぶたびに新しいホスト（`user`・`account`・許可リストの行）を作り（名前は本文の `name`、なければ ID。本文の `admin` が `true` なら管理者のホスト）、`testUtils` の `getCookies` の結果（`cookies`）と、許可リストに入れた `githubUserId` を返す。`cookies` は Playwright の `context.addCookies` にそのまま渡せる。`githubUserId` は、契約テストが管理者の一覧の中で自分のホストを見分けるのに使う。セッションは本物の `session.create.before` を通る
 - `apps/api/vitest.bundle.config.ts`（project `api-bundle`、node、`test/bundle/`）は、本番・E2E・開発の入口（`test/dev-entry.ts`）の3つで `wrangler deploy --dry-run` を動かし、本番のバンドルにログインと Swagger UI のパスがなく、E2E のバンドルには両方、開発のバンドルには Swagger UI だけがあることを確かめる。ある側も見るので、パスの打ち間違いでテストが通ってしまうことはない。開発の入口は `wrangler.jsonc` の env にないので、入口のファイルを `wrangler deploy` に直に渡して作る。バンドルは1つにつき1度だけ作る。Workers の project は `test/bundle/` を外し、`tsconfig.node.json` がそれを型チェックする
 
 ## Swagger UI で HTTP API を試す
