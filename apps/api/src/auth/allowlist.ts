@@ -1,4 +1,4 @@
-import { and, eq, type SQL } from 'drizzle-orm';
+import { and, eq, lte, type SQL } from 'drizzle-orm';
 
 import type { Db } from '@/db';
 import { account, hostAllowlist } from '@/db/schema';
@@ -22,6 +22,18 @@ export async function isAllowedGithubUser(db: Db, githubUserId: string): Promise
  */
 export async function isAllowedUser(db: Db, userId: string): Promise<boolean> {
   return hasAllowlistRow(db, userId);
+}
+
+/**
+ * ホストの要求のたびに、requireHost が使う（ADR 0013）。user の GitHub の account が許可リストにあり、
+ * セッションがその行より後（同じ時刻を含む）に作られたかを返す。
+ *
+ * 行があるかだけを見ると、コマンドで行だけを外して足し直したとき、外す前のセッションがまた通る。足し直すと行が作り直されて
+ * created_at が新しくなるので、それより前のセッションは、どの道で外しても通らない。
+ * セッションは許可リストにある人にしか作られない（session.create.before）ので、外さずにいるホストのセッションはいつも通る
+ */
+export async function isAllowedSession(db: Db, userId: string, sessionCreatedAt: Date): Promise<boolean> {
+  return hasAllowlistRow(db, userId, lte(hostAllowlist.createdAt, sessionCreatedAt));
 }
 
 /**

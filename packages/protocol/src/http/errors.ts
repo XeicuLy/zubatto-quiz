@@ -18,8 +18,14 @@ export const httpErrorSchema = z.object({
     'forbidden',
     /** 入力が仕様に合わない（400） */
     'invalid_request',
-    /** ない、または他人のもの。どちらかは区別しない（404, S1） */
+    /** ない、または他人のもの。どちらかは区別しない（404, S1）。ホストの追加では、GitHub にその名前の User がない */
     'not_found',
+    /** 足そうとしたホストが、すでに許可リストにいる（409, ADR 0013） */
+    'already_exists',
+    /** 管理者のホストは、画面から外せない。印はコマンドで外す（409, ADR 0013） */
+    'admin_host',
+    /** GitHub が答えなかった（403・429・5xx・時間切れ・形の違う応答）。時間をおいて入れ直す（502, ADR 0013） */
+    'github_unavailable',
   ]),
 });
 export type HttpError = z.infer<typeof httpErrorSchema>;

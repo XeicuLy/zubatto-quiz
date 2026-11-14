@@ -18,18 +18,28 @@ export interface HostSession {
   origin: string;
   /** Cookie ヘッダーにそのまま入れる値 */
   cookie: string;
+  /** 許可リストに入った GitHub のユーザー ID。管理者だけの経路で、このホストを見分けるのに使う（ADR 0013） */
+  githubUserId: string;
 }
 
 /**
- * 新しいホストとしてログインする。テスト用のログインは `{ cookies: [{ name, value, … }] }` を返す
- * （Playwright の addCookies に渡せる形）ので、その name と value を Cookie ヘッダーの形にする
+ * 新しいホストとしてログインする。テスト用のログインは `{ cookies: [{ name, value, … }], githubUserId }` を返す
+ * （cookies は Playwright の addCookies に渡せる形）ので、その name と value を Cookie ヘッダーの形にする。
+ * admin を true にすると、管理者のホストになる（ADR 0013）。渡さなければ本文を送らず、管理者でないホストになる
  */
-export async function loginAsHost(origin: string): Promise<HostSession> {
-  const response = await fetch(new URL(LOGIN_PATH, origin), { method: 'POST', headers: { Origin: origin } });
+export async function loginAsHost(origin: string, { admin }: { admin?: boolean } = {}): Promise<HostSession> {
+  const response = await fetch(new URL(LOGIN_PATH, origin), {
+    method: 'POST',
+    headers: { Origin: origin, ...(admin === undefined ? {} : { 'Content-Type': 'application/json' }) },
+    body: admin === undefined ? undefined : JSON.stringify({ admin }),
+  });
   if (!response.ok)
     throw new Error(`${LOGIN_PATH} が ${response.status} を返した。テスト用の入口で動いているか確かめる`);
-  const { cookies } = (await response.json()) as { cookies: { name: string; value: string }[] };
-  return { origin, cookie: cookies.map(({ name, value }) => `${name}=${value}`).join('; ') };
+  const { cookies, githubUserId } = (await response.json()) as {
+    cookies: { name: string; value: string }[];
+    githubUserId: string;
+  };
+  return { origin, cookie: cookies.map(({ name, value }) => `${name}=${value}`).join('; '), githubUserId };
 }
 
 export interface ApiResult {

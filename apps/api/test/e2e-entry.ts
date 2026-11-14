@@ -22,7 +22,8 @@ export { RoomDurableObject } from '@/room/room-do';
 const e2e = new Hono<{ Bindings: Env }>();
 
 /**
- * 新しいホストを作り、そのログイン Cookie を返す。返す形は Playwright の context.addCookies にそのまま渡せる。
+ * 新しいホストを作り、そのログイン Cookie と、許可リストに入れた GitHub のユーザー ID を返す。cookies は Playwright の context.addCookies にそのまま渡せる。
+ * githubUserId は、契約テストがほかのテストと並んで走っても、自分のホストを許可リストの中で見分けるのに使う（ADR 0013）。
  * 呼ぶたびに別のホストにして、前の回の問題セットが見えないようにする。
  * セッションは本番と同じ Better Auth の設定で作るので、許可リストの確認（session.create.before）も通る。
  * 本文で次を選べる。本文がないか形が違えば、どちらも渡さなかったことにする
@@ -41,7 +42,7 @@ e2e.post(E2E_LOGIN_PATH, async (c) => {
 
   const { test } = await createTestAuth(c.env);
   const cookies = await test.getCookies({ userId, domain: new URL(c.env.BETTER_AUTH_URL).hostname });
-  return c.json({ cookies });
+  return c.json({ cookies, githubUserId });
 });
 
 // HTTP API の仕様を見る Swagger UI（ADR 0011）。開発の入口（dev-entry.ts）と同じ経路を足す

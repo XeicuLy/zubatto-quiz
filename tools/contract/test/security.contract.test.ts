@@ -169,6 +169,64 @@ describe.skipIf(!origin)('安全の約束', { timeout: 30_000 }, () => {
     });
   });
 
+  describe('S1: 管理者だけの経路（ADR 0013）', () => {
+    // 一覧にはほかのファイルのテストが作ったホストも並ぶので、自分のホストはログインが返した githubUserId で見分ける
+    type Host = { githubUserId: string; isAdmin: boolean };
+    const listHosts = async (admin: HostSession) => {
+      const listed = await request(admin, 'GET /api/admin/hosts');
+      expect(listed.status).toBe(200);
+      return (listed.body as { hosts: Host[] }).hosts;
+    };
+
+    it('ログインしていなければ 401、管理者でないホストには 403 forbidden を返す', async () => {
+      const operations = [
+        ['GET /api/admin/hosts', {}],
+        ['POST /api/admin/hosts', { body: { login: 'octocat' } }],
+        ['DELETE /api/admin/hosts/{githubUserId}', { params: { githubUserId: '1' } }],
+      ] as const;
+      const host = await loginAsHost(origin);
+
+      for (const [operation, options] of operations) {
+        expect(await request({ origin }, operation, options)).toEqual({ status: 401, body: { error: 'unauthorized' } });
+        expect(await request(host, operation, options)).toEqual({ status: 403, body: { error: 'forbidden' } });
+      }
+    });
+
+    it('画面から外したホストは、そのときのセッションで次の要求から 401 になる', async () => {
+      const admin = await loginAsHost(origin, { admin: true });
+      const target = await loginAsHost(origin);
+      const params = { githubUserId: target.githubUserId };
+      expect(await listHosts(admin)).toContainEqual(expect.objectContaining({ ...params, isAdmin: false }));
+      expect((await request(target, 'GET /api/question-sets')).status).toBe(200);
+
+      const removed = await request(admin, 'DELETE /api/admin/hosts/{githubUserId}', { params });
+
+      expect(removed).toEqual({ status: 204, body: undefined });
+      expect((await listHosts(admin)).map((host) => host.githubUserId)).not.toContain(target.githubUserId);
+      expect(await request(target, 'GET /api/question-sets')).toEqual({ status: 401, body: { error: 'unauthorized' } });
+    });
+
+    it('管理者の行は外せず 409、許可リストにない ID は 404、形の違う名前は GitHub に問い合わせずに 400 を返す', async () => {
+      const admin = await loginAsHost(origin, { admin: true });
+
+      // 自分の行（管理者）を外そうとする
+      expect(
+        await request(admin, 'DELETE /api/admin/hosts/{githubUserId}', {
+          params: { githubUserId: admin.githubUserId },
+        }),
+      ).toEqual({ status: 409, body: { error: 'admin_host' } });
+      expect(
+        await request(admin, 'DELETE /api/admin/hosts/{githubUserId}', { params: { githubUserId: randomUUID() } }),
+      ).toEqual({ status: 404, body: { error: 'not_found' } });
+      // 正しい形の名前は api.github.com へ問い合わせるので、契約テストでは送らない（成功・404・409・502 は apps/api のテスト）
+      expect(await request(admin, 'POST /api/admin/hosts', { body: { login: '../orgs/x' } })).toEqual({
+        status: 400,
+        body: { error: 'invalid_request' },
+      });
+      expect((await request(admin, 'GET /api/question-sets')).status).toBe(200);
+    });
+  });
+
   describe('S2: 締切の前に、正解の番号は誰にも届かない', () => {
     it('受付中につなぎ直したホストと回答者を含め、締切の前に届いたどのメッセージにも correctIndex がない', async () => {
       const { session, roomId, host } = await openRoom();
