@@ -99,7 +99,7 @@
 `packages/protocol` に、WebSocket のメッセージ、close code、問題セットの形、HTTP のリクエストと応答の形（`src/http/`）の zod スキーマを置く。画面は Hono RPC ではなく、このスキーマで HTTP API を呼ぶ。そのため画面は Hono に頼らない。`hc` の型は TypeScript のサーバーの型なので、接続先を Go 版に替えると実物とずれる。zod の検証なら、どちらのサーバーにも同じように効く（[ADR 0011](../adr/0011-hono-api-contract.md)）。
 
 - 部屋の DO は、受け取ったものを `decodeClientMessage` で decode し、`encodeServerMessage` を通して送る。どちらも知らない項目を取り除くので、紛れ込んだ `participantId`・`correctIndex`・`rank` が外へ出ることはない
-- サーバーのメッセージに足す項目には `.default()` を付ける（`myResult.bonusPoints` は `.default(0)`）。こうすると、`web` だけをデプロイしても、新しい画面が古い API のメッセージを捨てない（[deploy.md の「何が動くか」](../runbooks/deploy.md#何が動くか)）。`ws.schema.json` は出力の形で書くので、その項目はそこでは必須のまま残る。DO はメッセージを出力の型（`MyResult`）で作るので、その項目を落とすこともできない
+- サーバーのメッセージに足す項目には `.default()` を付ける（`myResult.bonusPoints` は `.default(0)`）。こうすると、新しい画面が古い API（Go 版に向けたときや、v1.3.0 までのタグに `web` で戻したあとの API）のメッセージを受けても捨てない（[deploy.md の「何が動くか」](../runbooks/deploy.md#何が動くか)）。`ws.schema.json` は出力の形で書くので、その項目はそこでは必須のまま残る。DO はメッセージを出力の型（`MyResult`）で作るので、その項目を落とすこともできない
 - `schema/ws.schema.json` は生成したもので、Go 版を作るときの正本になる。スキーマを変えたら次を動かす。ファイルが古いとテストが落ちる
 
   ```sh

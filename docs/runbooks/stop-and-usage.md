@@ -81,7 +81,7 @@ pnpm exec wrangler delete   # zubakui-api
 D1 は残っているので、作り直すのは Worker だけでよい。
 
 1. シークレットを入れ直す（[secrets.md](secrets.md#本番-wrangler-secret-put)）
-2. デプロイの workflow を「API と画面」（`all`）で動かす（[deploy.md](deploy.md#動かす)）。API の Worker を先に作り直さないと、画面の Worker の Service binding がつながらない
+2. デプロイの workflow を、最新の `v*` タグの上で動かす（[deploy.md](deploy.md#出し直す前の版に戻す)）。いつも API の Worker を先に作り直すので、画面の Worker の Service binding がつながる
 
 ### D1 も消すとき
 

@@ -1,41 +1,50 @@
 # 本番のデプロイ
 
-本番のデプロイとマイグレーションは、GitHub Actions の workflow（[.github/workflows/deploy.yaml](../../.github/workflows/deploy.yaml)）で行う。workflow は、Release ができたとき（リリース PR をマージしたとき）に動き始めるほか、手でも動かせる（ADR 0010）。ふつうの PR を main にマージしただけでは動かない。本番の最中は API の Worker をデプロイしない決まり（ADR 0006）を、マージで破らないため（ADR 0005）。
+本番のデプロイとマイグレーションは、GitHub Actions の workflow（[.github/workflows/deploy.yaml](../../.github/workflows/deploy.yaml)）で行う。workflow は手で動かしたとき（`workflow_dispatch`）にだけ動き、そのときに版の上げ方（`bump`）を選ぶ（ADR 0012）。PR を main にマージしただけでは動かない。本番の最中は何もデプロイしない決まり（ADR 0006・0012）を、マージで破らないため（ADR 0005）。
 
-本番に出す job は、動くたびに承認を待つ（Environment `production` の Required reviewers。ADR 0009）。Release で動き始めても、ボタンを押し間違えても、承認しなければ本番には何も出ない。
+本番に出す job は、動くたびに承認を待つ（Environment `production` の Required reviewers。ADR 0009）。ボタンを押し間違えても、承認しなければ本番には何も出ず、タグも Release も作らない。
+
+main の上で動かしてデプロイが成功すると、そのコミットにタグ `vX.Y.Z` と GitHub Release を作り、CHANGELOG の PR を開く（[release.md](release.md)）。
 
 手元からは `wrangler deploy` しない。デプロイの手順が workflow のファイルに残り、手元の `wrangler.jsonc` に D1 の ID が書き戻されることもない。
 
 ## 何が動くか
 
-Release で動くときは、いつも `all` になる（前のタグとの差は見ない。ADR 0010）。手で動かすときは `target` を選ぶ。
+いつも全体（マイグレーション → API の Worker → 画面の Worker）を出す。画面だけを出す道はない（ADR 0012 の K1）。
 
-| きっかけ           | 動くもの                                                          | 本番の最中に動かしてよいか                                                      | 承認 |
-| ------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---- |
-| Release（`all`）   | `verify-ci` → `deploy`（マイグレーション → API の Worker → 画面） | 動かさない。本番の最中はリリース PR をマージしない（[下の「動かす」](#動かす)） | 1回  |
-| 手で `web`（既定） | `verify-ci` → `deploy`（画面の Worker だけ）                      | よい。画面の Worker だけなら、部屋の接続は切れない                              | 1回  |
-| 手で `all`         | `verify-ci` → `deploy`（マイグレーション → API の Worker → 画面） | 選ばない。部屋の WebSocket が切れることがある（下の注）                         | 1回  |
+| どこで動かすか                          | 動くもの                                                                                                                                               | 承認 |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
+| main（ふだん）                          | `verify-ci`（版を決める → CI を待つ）→ `deploy`（確かめ直す → マイグレーション → API の Worker → 画面）→ `release`（CHANGELOG の PR → タグと Release） | 1回  |
+| タグ `vX.Y.Z`（出し直す・前の版に戻す） | `verify-ci`（CI を待つ）→ `deploy`（マイグレーション → API の Worker → 画面）                                                                          | 1回  |
 
-- どれでも、はじめに `verify-ci` が、動かしたコミットが main の履歴にあるかと、そのコミットで必須のチェック（`ci`・`e2e`・`pr-title`）が成功しているかを確かめる。main にないコミットなら止まる。失敗したチェックがあれば止まる。まだ走っているチェックと、まだ見つからないチェックは、終わるまで待つ（30 秒ごとに確かめ、30 分で止める）。GitHub の API から読めなかったとき（`api_error`）も、次の周で確かめ直す。止まったときは、本番には何も出さない
-  - Release の run は、リリース PR のマージで動いた main の CI が走っている間に始まる。待たずに止めると、毎回動かし直すことになる（ADR 0010 の Q1）
-  - main の履歴にあるかは、GitHub の compare API（`main...<コミット>`）で見る。`identical`（main の先頭）か `behind`（main の先頭より前。リリースのあとに別の PR が入ったときや、前の版のタグで動かしたとき）なら、main にある
+- main の上なら、はじめに `verify-ci` が次の版を決める（[.github/scripts/release.sh](../../.github/scripts/release.sh) の `plan`）。基準は最新の `v*` タグで、そこから動かしたコミットまでの commit を読む。次のどれかなら、ここで止まり、承認の画面まで来ない
+  - `bump` が `auto` で、feat・fix・perf・破壊的変更（`!`）がない
+  - 最新の `v*` タグが、動かしたコミットの祖先でない（これまでの版を含まないコミットを出さない）
+  - 最新の `v*` タグが、すでに動かしたコミットを指している（同じコミットに2つ目の版は作らない。出し直すときはタグの上で動かす）
+  - 前の CHANGELOG の PR（ブランチが `changelog/` で始まる、開いた PR）がある
+- 決めた版・その理由・リリースノートの文面は、run のまとめ（Summary）に出る。承認の前に読める
+- 続けて `verify-ci` が、動かしたコミットが main の履歴にあるかと、そのコミットで必須のチェック（`ci`・`e2e`・`pr-title`）が成功しているかを確かめる。main にないコミットなら止まる。失敗したチェックがあれば止まる。まだ走っているチェックと、まだ見つからないチェックは、終わるまで待つ（30 秒ごとに確かめ、30 分で止める）。GitHub の API から読めなかったとき（`api_error`）も、次の周で確かめ直す。止まったときは、本番には何も出さない
+  - main にマージした直後に動かすと、main の CI が走っている間に始まる。待たずに止めると、毎回動かし直すことになる（ADR 0010 の Q1）
+  - 版を先に決めるので、上げるものがないときは、CI を 30 分待たずに止まる
+  - main の履歴にあるかは、GitHub の compare API（`main...<コミット>`）で見る。`identical`（main の先頭）か `behind`（main の先頭より前。動かしたあとに別の PR が入ったときや、前の版のタグで動かしたとき）なら、main にある
   - 確かめるチェックの名前は、main のルールセット（[main-ruleset.json](main-ruleset.json)）の必須のチェックから読む。ルールセットにチェックを足せば、`verify-ci` も同じものを見る
   - PR の CI は、試しのマージコミットで動くので、main に入ったコミットにはチェックが付かない。そのため `ci.yaml` は main への push でも動く
-  - `verify-ci` は本番に触らないので、Environment（`production`）を使わず、Cloudflare のトークンも読まない。読めるのはコードと check run だけ。CI を待っている間に、トークンを読める job はない
+  - `verify-ci` は本番に触らないので、Environment（`production`）を使わず、Cloudflare のトークンも読まない。読めるのはコード・check run・PR だけ。CI を待っている間に、トークンを読める job はない
   - 確かめ方は [.github/scripts/verify-required-checks.sh](../../.github/scripts/verify-required-checks.sh) にある。`pnpm run lint` が shellcheck にかけ、`tools/docs-check` のテストが偽の `gh` で動かす
+- main の上なら、`deploy` は最初に、最新の `v*` タグがまだ `verify-ci` の基準のタグと同じかと、前の CHANGELOG の PR が開いていないかを確かめ直す（`release.sh guard`）。**Re-run failed jobs** は成功済みの `verify-ci` を動かし直さないので、古い run を動かし直したときに、あとから出た版を古いコミットで上書きしないようにする。依存パッケージを入れる step と、Cloudflare の secret を読む step より前にある
+- main の上なら、`deploy` が成功したあとに `release` が動く。先に CHANGELOG の PR を作り、次にデプロイしたコミットへ Release とタグを作る。どの手順も、すでにあれば飛ばす（[release.md の「何が動くか」](release.md#何が動くか)）。`deploy` が失敗したときと、タグの上で動かしたときは動かない
 
-- 承認は、`production` を使う job ごとに求められる（2026-10-27 に、job を3つに分けていたころの `all` で確かめた。ドキュメントには書かれていない）。`production` を使う job は `deploy` の1つだけにしてあるので、どのきっかけでも承認は1回になる（ADR 0010）
+- 承認は、`production` を使う job ごとに求められる（2026-10-27 に、job を3つに分けていたころの `all` で確かめた。ドキュメントには書かれていない）。`production` を使う job は `deploy` の1つだけにしてあるので、承認は1回になる（ADR 0010）。`release` は `release` の Environment を使い、承認は求めない
   - 承認を1回にするのに、承認だけの job を先頭に置き、`production` から reviewers を外す形は採らない。Cloudflare のトークンを持つ `production` に承認を付けておけば、main のどの workflow がそれを使っても、承認なしではトークンを読めない（ADR 0009）
-- 注: Cloudflare のドキュメントでは、コードの更新を含むデプロイで部屋の DO は再起動し、WebSocket はすべて切れる。ただ、O2 のリハーサルでは、眠っていた部屋の接続は切れずに新しい版へ引き継がれた（[記録](../rehearsal/o2-rehearsal.md#わかったこと)）。いつ切れるかを当てにできないので、本番の最中は `all` を選ばない
-- `web` をデプロイしても、開いている画面は、リロードするまで前のコードのまま動く。メッセージの仕様が変わっていなければ、そのまま遊び続けられる（[O2 のリハーサル](../rehearsal/o2-rehearsal.md#わかったこと)で確かめた）
-- メッセージの仕様は、API と画面のどちらが先に新しくなっても動くように変える。画面は知らない項目を取り除いて読むので、サーバーが項目を足しても前の画面は動く。逆に、新しい画面がその項目を必須にすると、`web` だけをデプロイしたときに、前の API から届いたメッセージを捨ててしまう。サーバーのメッセージに項目を足すときは、受け取る側でないときの値を決める（`myResult.bonusPoints` は `.default(0)`）。`ws.schema.json` は送る形で書くので、そこでは必須のまま残る
-- `deploy` の job は、D1 のマイグレーション（`wrangler d1 migrations apply DB --remote`）→ API の Worker → 画面の Worker の順に step を行う。画面の Worker が Service binding で API の Worker を呼ぶので、API を先にする（ADR 0006）。`web` では、マイグレーションと API の step を飛ばす
-- どれかの step が失敗すると、その後ろの step は動かない。`verify-ci` が止まると、`deploy` は動かない
-- 同じ workflow は同時に1つしか動かない。動いている間にもう一度動かすと、新しいほうは前のものが終わるまで待つ。動いているものは途中で止めない
+- 注: Cloudflare のドキュメントでは、コードの更新を含むデプロイで部屋の DO は再起動し、WebSocket はすべて切れる。ただ、O2 のリハーサルでは、眠っていた部屋の接続は切れずに新しい版へ引き継がれた（[記録](../rehearsal/o2-rehearsal.md#わかったこと)）。いつ切れるかを当てにできないので、本番の最中はデプロイしない
+- 画面の Worker をデプロイしても、開いている画面は、リロードするまで前のコードのまま動く。メッセージの仕様が変わっていなければ、そのまま遊び続けられる（[O2 のリハーサル](../rehearsal/o2-rehearsal.md#わかったこと)で確かめた）
+- メッセージの仕様は、API と画面のどちらが先に新しくなっても動くように変える。API を先に出すので、開いたままの前の画面は、新しい API のメッセージを読む。画面は知らない項目を取り除いて読むので、サーバーが項目を足しても前の画面は動く。逆に、新しい画面がその項目を必須にすると、前の API（Go 版に向けたときなど）から届いたメッセージを捨ててしまう。サーバーのメッセージに項目を足すときは、受け取る側でないときの値を決める（`myResult.bonusPoints` は `.default(0)`）。`ws.schema.json` は送る形で書くので、そこでは必須のまま残る
+- `deploy` の job は、D1 のマイグレーション（`wrangler d1 migrations apply DB --remote`）→ API の Worker → 画面の Worker の順に step を行う。画面の Worker が Service binding で API の Worker を呼ぶので、API を先にする（ADR 0006）
+- どれかの step が失敗すると、その後ろの step は動かない。`verify-ci` が止まると、`deploy` も `release` も動かない
+- 同じ workflow は同時に1つしか動かない。動いている間にもう一度動かすと、新しいほうは前のものが終わるまで待つ。動いているものは途中で止めない。1つずつ動くので、次の run が版を数えるのは、前の run の `release` がタグを打ったあとになる
 - 待てるのは1つだけ。待っている run があるときにさらに動かすと、待っていた run は取り消され（Cancelled）、新しいほうに置き換わる。頼んだ run がすべて動くとは限らない（2026-10-17 に GitHub のドキュメントで確かめた）
-  - 最後にデプロイされるのは、いつも最後に頼んだ run のコードになる。困るのは、取り消された run が `all`（Release の run を含む）で、残ったほうが `web` のとき。マイグレーションと API のデプロイが行われないまま終わる
-  - 続けて動かしたときは、Actions の一覧で取り消された run がないかを見る。あれば、そのときの target で動かし直す。Release の run なら、その run の **Re-run all jobs** で動かし直す
-  - 承認を待っている run も、動いている1つに数えられる。Release の run が承認を待っている間に `web` を動かすと、`web` の run は `verify-ci` も始まらないまま `pending` で待ち、Release の run が終わってから動き出した（2026-10-31 に v1.1.0 で確かめた）。本番の最中に `web` を出すときに Release の run が承認を待っていたら、先にその run を **Reject** する
+  - 最後にデプロイされるのは、いつも最後に頼んだ run のコードになる。続けて動かしたときは、Actions の一覧で取り消された run がないかを見る
+  - 承認を待っている run も、動いている1つに数えられる。承認を待っている run があるときに動かすと、新しい run は `verify-ci` も始まらないまま `pending` で待ち、前の run が終わってから動き出した（2026-10-31 に v1.1.0 で確かめた）
   - すべての run を並べて順に動かす設定（`queue: max`）は使わない。並んだ順に動く保証がなく、古いコミットの run があとから動いて、古い画面に戻ることがありうる
 - 呼ぶスクリプトは root の `db:migrate:remote`・`deploy:api`・`deploy:web`。API の Worker は `--env=""` で本番の設定（`wrangler.jsonc` の先頭）を選ぶ。画面の Worker は `vite build` の直後に `wrangler deploy` する
 
@@ -59,9 +68,9 @@ workflow が Cloudflare に入るためのトークン。2026-10-17 に Cloudfla
 
 トークンとアカウント ID は、リポジトリの secret ではなく、Environment（`production`）の secret に入れる。workflow の中で `environment: production` を書いた job だけが読めるので、PR ごとの CI（`ci.yaml`）からは読めない（ADR 0005 の DD4）。
 
-さらに、デプロイしてよい ref を、main ブランチと `v*` のタグだけに絞る。`workflow_dispatch` はどのブランチやタグの上でも動かせるので、絞らないと、マージ前のブランチのコードを本番にデプロイでき、トークンも読めてしまう。`v*` のタグは、Release のタグのコミットを出すためと、前の版に戻すとき（そのタグの上で動かす）のために許す（ADR 0010）。
+さらに、デプロイしてよい ref を、main ブランチと `v*` のタグだけに絞る。`workflow_dispatch` はどのブランチやタグの上でも動かせるので、絞らないと、マージ前のブランチのコードを本番にデプロイでき、トークンも読めてしまう。`v*` のタグは、出し直すときと前の版に戻すとき（そのタグの上で動かす）のために許す（ADR 0010・0012）。
 
-`v*` を許す前に、`v*` のタグを release-please の App だけが作れるようにしておく（[branch-protection.md の「タグのルールセットを作る」](branch-protection.md#タグのルールセットを作る)）。タグのルールセットがないまま許すと、書き込みの権限があれば誰でも、好きなコミットに `v*` を打って本番に出せる。
+`v*` を許す前に、`v*` のタグをリリースの App だけが作れるようにしておく（[branch-protection.md の「タグのルールセットを作る」](branch-protection.md#タグのルールセットを作る)）。タグのルールセットがないまま許すと、書き込みの権限があれば誰でも、好きなコミットに `v*` を打って本番に出せる。
 
 リポジトリのいちばん上で、次を実行する。
 
@@ -107,49 +116,69 @@ gh api repos/XeicuLy/zubatto-quiz/environments/production --jq '{rules: [.protec
 
 ## 動かす
 
-### Release で動かす（ふだん）
+### 版を出す（ふだん）
 
-リリース PR をマージすると、release-please がタグ `vX.Y.Z` と Release を作り、その Release で deploy.yaml が `all` で動き始める（[release.md の「ふだんのリリース」](release.md#ふだんのリリース)）。出すのは、Release のタグが指すコミット。本番の版が `vX.Y.Z` ちょうどになる。
+出したい変更を main にマージしたら、Actions → **Deploy** → **Run workflow** で、Branch を `main` にし、`bump` を選んで動かす。コマンドなら次のとおり。
 
 ```sh
-gh run list --workflow deploy.yaml --event release --limit 1   # Branch の欄がタグ（vX.Y.Z）の run
+gh workflow run deploy.yaml --ref main -f bump=auto
 gh run watch
 ```
 
-1. `verify-ci` が、main の CI が終わるのを待つ。マージの直後は CI が走っているので、数分かかる
-2. CI が通ると、`deploy` の前で run が止まり、「Waiting」になる
-3. Actions の run の画面に出る **Review deployments** を押し、`production` を選んで、タグと動いたコミットを見てから **Approve and deploy** を押す
-
-**本番の最中は、リリース PR をマージしない**。マージしてしまったら、Release の run の承認を押さずに **Reject** する。本番のあとに出すときは、その run の **Re-run all jobs** で動かし直して（`verify-ci` からやり直す）、承認する。
-
-### 手で動かす
-
-画面だけを出すとき、Release の run を出し直すとき、前の版に戻すときは、手で動かす。Actions → **Deploy** → **Run workflow** で、Branch を `main` にし、`target` を選んで動かす。コマンドなら次のとおり。
-
-```sh
-gh workflow run deploy.yaml --ref main -f target=web   # 画面だけ
-gh workflow run deploy.yaml --ref main -f target=all   # マイグレーション → API → 画面（本番の最中は選ばない）
-gh run watch
-```
-
+- `bump` は、ふだんは `auto` にする。前のタグからの commit に破壊的変更（`!`）があれば major、feat があれば minor、fix か perf があれば patch に上げる（[release.md の「番号の上がり方」](release.md#番号の上がり方)）
+- refactor や docs だけで版を出したいとき、auto より大きく上げたいときは、`major`・`minor`・`patch` を選ぶ。選んだ分だけ、前のタグから上げる
 - main にマージした直後に動かしてもよい。`verify-ci` が main の CI が終わるのを待つ
-- 前の版に戻すときは、`--ref` にそのタグ（`--ref v1.0.0` など）を書く。使われる deploy.yaml も、そのタグのコミットのものになる。v1.0.0 の deploy.yaml は job が3つに分かれていた形なので、`all` では承認が3回になり、`verify-ci` は CI を待たない
 
-動かすと、`deploy` の前で run が止まり、「Waiting」になる。Release で動いたときと同じく、**Review deployments** から、target と動かしたコミットを見てから承認する。
+1. `verify-ci` が次の版を決め、main の CI が終わるのを待つ。マージの直後は CI が走っているので、数分かかる
+2. CI が通ると、`deploy` の前で run が止まり、「Waiting」になる
+3. run の画面の Summary で、`verify-ci` が書いた次の版とリリースノートを読む
+4. **Review deployments** を押し、`production` を選んで、動いたコミットを見てから **Approve and deploy** を押す。版や文面が違うと思ったら **Reject** する。何も出ず、何も作られない
+5. `deploy` が終わると `release` が動く。数分たったら、タグ・Release・CHANGELOG の PR ができたことを確かめる
+
+   ```sh
+   git fetch --tags
+   git tag --list 'v*' --sort=-v:refname | head -1
+   gh release view --json tagName,targetCommitish,url --jq '"\(.tagName) \(.targetCommitish) \(.url)"'
+   gh pr list --json number,title,url,headRefName --jq '.[] | select(.headRefName | startswith("changelog/")) | "\(.number) \(.title) \(.url)"'
+   ```
+
+6. Release ができたことを確かめてから、CHANGELOG の PR を squash でマージする（[release.md の「CHANGELOG の PR をマージする」](release.md#changelog-の-pr-をマージする)）
+
+**本番の最中は動かさない**。動かしてしまったら、承認を押さずに **Reject** する。
+
+### 出し直す・前の版に戻す
+
+タグの上で動かすと、版を決めず、`release` も動かない。そのタグのコミットを、そのまま本番に出す。
+
+```sh
+gh workflow run deploy.yaml --ref v1.4.0   # 最新のタグで出し直す・前の版に戻す
+gh run watch
+```
+
+- 使われる deploy.yaml も、そのタグのコミットのものになる（`bump` の欄は使われない）
+- **v1.3.0 までのタグに戻すときは、`target` に `all` を選ぶ**。そのころの deploy.yaml には `target` の欄があり、既定は `web`。既定のまま動かすと画面だけが戻り、API の Worker は新しいまま残る
+
+  ```sh
+  gh workflow run deploy.yaml --ref v1.3.0 -f target=all
+  ```
+
+- v1.0.0 の deploy.yaml は job が3つに分かれていた形なので、`all` では承認が3回になり、`verify-ci` は CI を待たない
+- 前の版に戻したあとは、本番が最新のタグより古くなる。本番に何があるかは、[下の「デプロイのあとに確かめる」](#デプロイのあとに確かめる)の 0 で読む。次に main で動かすと、main の先頭が次の版として出る
+- 何も変えずに出し直すときも、main ではなく最新のタグの上で動かす。main で動かすと、新しい commit がなければ auto で止まり、patch などを選ぶと、中身が同じ版ができる
 
 ### 承認するとき・しないとき
 
-- 承認は、どのきっかけでも1回。承認すると、`deploy` の job が、マイグレーション → API → 画面（`web` では画面だけ）を続けて行う
-- 承認しないまま30日たつと、`deploy` は失敗する。出すのをやめるなら **Reject** を押す。job が1つなので、Reject すると何も出ない。マイグレーションも API も画面も、前のままになる
-- 本番の最中に `web` を出すときは、承認の画面を開いて待っておく。止まってから承認するまで、本番の画面は前のままになる
+- 承認は1回。承認すると、`deploy` の job が、マイグレーション → API → 画面を続けて行う
+- 承認しないまま30日たつと、`deploy` は失敗する。出すのをやめるなら **Reject** を押す。job が1つなので、Reject すると何も出ない。マイグレーションも API も画面も前のままで、タグも Release も PR も作られない
+- Reject した run は、失敗として履歴に残る
 
 終わったら、[下の「デプロイのあとに確かめる」](#デプロイのあとに確かめる)を行う。
 
 ## デプロイのあとに確かめる
 
-`web` のときは 0〜2 だけでよい。`all` のときと、本番の環境を初めて作ったときは、すべて行う。
+デプロイのたびに、すべて行う。
 
-0. 本番の API と画面の Worker が、それぞれどのコミットか。`deploy` の job の「Deploy API Worker」「Deploy web Worker」の step が成功した、いちばん新しい run の SHA を読む。`web` の run では「Deploy API Worker」の step が飛ばされる（skipped）ので、step の結果で `web` と `all` の run を見分けられる。どの版かは、そのコミットから一番近いタグで分かる。Release で出したときは `vX.Y.Z` ちょうどになる。タグのあとに `-<数>-g<SHA>` が付くときは、本番に版になっていない変更が入っている（[release.md](release.md)）
+0. 本番の API と画面の Worker が、それぞれどのコミットか。`deploy` の job の「Deploy API Worker」「Deploy web Worker」の step が成功した、いちばん新しい run の SHA を読む。v1.3.0 までの run には、画面だけを出した run（「Deploy API Worker」の step が skipped）があるので、step ごとに読む。どの版かは、そのコミットから一番近いタグで分かる。main で出して `release` まで終わったときは `vX.Y.Z` ちょうどになる。タグのあとに `-<数>-g<SHA>` が付くときは、`release` がまだタグを作っていないか、v1.3.0 までに版になっていない変更を出した（[release.md](release.md)）
 
    ```sh
    git fetch --tags
@@ -161,7 +190,7 @@ gh run watch
    done
    ```
 
-   - Release で動いた run は、Branch がタグ（`vX.Y.Z`）になる。`--branch main` で絞ると見落とすので、絞らない
+   - タグの上で動かした run（v1.3.0 までの Release で動いた run を含む）は、Branch がタグ（`vX.Y.Z`）になる。`--branch main` で絞ると見落とすので、絞らない
    - job を3つに分けていたころ（v1.0.0 まで）の run も、step の名前が同じなので、同じコマンドで読める
    - Environments の `production`（リポジトリのトップの Deployments）の一覧は、いつ何を出そうとしたかを見るのに使う。ただし Deployment は `deploy` の job ごとに作られ、その job が失敗しても残る。`all` で API の step が失敗すると、いちばん新しい Deployment は、出ていないコミットになる。なので本番の版は、上のように step の結果から読む
    - 直近の20回の run に、成功した「Deploy API Worker」（「Deploy web Worker」）の step がなければ、何も出ない。`--limit` を増やす
@@ -182,26 +211,46 @@ gh run watch
 
 ## 失敗したとき
 
-| どこで止まったか                   | よくある理由                                                                                          | どうするか                                                                                                                                                                                                                                                                                                                                                          |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| どれも動かない                     | 「Branch "..." is not allowed to deploy to production due to environment protection rules」           | main 以外のブランチで動かした。main にマージしてから、Branch を `main` にして動かす                                                                                                                                                                                                                                                                                 |
-| どれも動かない                     | タグの上で動かすか Release で動いて、同じく「... is not allowed to deploy to production ...」で止まる | `v*` でないタグで動かしたか、production に `v*` を足していない（上の「GitHub の Environment（production）を作る」）                                                                                                                                                                                                                                                 |
-| 承認のところ                       | 「Waiting」のまま進まない                                                                             | 承認を待っている。run の画面の **Review deployments** から承認する（上の「動かす」）                                                                                                                                                                                                                                                                                |
-| 承認のところ                       | Reject した・承認しないまま30日たった                                                                 | 何も出ていない。出すなら、その run の **Re-run all jobs** で動かし直して承認する                                                                                                                                                                                                                                                                                    |
-| `verify-ci`                        | 「… は main の履歴にない（ahead）」（`diverged` も同じ）                                              | main にマージしていないコミットで動かした。main にマージしてから、main で動かす                                                                                                                                                                                                                                                                                     |
-| `verify-ci`                        | 「… の ci が 1800 秒待っても終わらない（in_progress）」（`queued` も同じ）                            | main の CI が30分で終わらなかった。Actions の CI の run を見て、通ってから、その run の **Re-run failed jobs** で動かし直す                                                                                                                                                                                                                                         |
-| `verify-ci`                        | 「… の ci が 1800 秒待っても終わらない（not_found）」                                                 | main への push で CI が動いていない。Actions → **CI** → **Run workflow** を main で動かし、通ってから動かし直す                                                                                                                                                                                                                                                     |
-| `verify-ci`                        | 「… の ci が 1800 秒待っても終わらない（api_error）」                                                 | GitHub の API から check run を読めないまま30分たった。ログの `gh` のエラー（すぐ上の行）を見る。GitHub の障害なら、直ってから **Re-run failed jobs** で動かし直す                                                                                                                                                                                                  |
-| `verify-ci`                        | 「… の e2e が成功していない（failure）」                                                              | そのコミットはテストが落ちている。直して main にマージし、次のリリースで出す。落ちたのが不安定なテストなら、CI の run の **Re-run failed jobs** で通してから、deploy の run を動かし直す                                                                                                                                                                            |
-| `verify-ci`                        | 「… の ci が成功していない（cancelled）」                                                             | CI が途中で止まった。Actions の CI の run で **Re-run all jobs** を行い、通ってから動かし直す                                                                                                                                                                                                                                                                       |
-| `deploy` の Install tools via mise | 取得の失敗や通信のエラー                                                                              | GitHub やツールの配布元の不調。この試行では、後ろの step は動いていない。Re-run の試行なら、前の試行で終えた step の変更は本番に残っているので、どこまで終えたかを前の試行のログで確かめる。`deploy` はキャッシュを読まないので毎回取り直す（[理由](../architecture/operations.md#mise-の版とキャッシュ)）。下の注を読んでから、**Re-run failed jobs** で動かし直す |
-| `deploy` の Apply D1 migrations    | D1 が見つからず、`wrangler d1 create` を実行するように言われる                                        | 本番の D1 をまだ作っていない。[README](../../README.md#本番の環境を一から作る)の手順 2 で作ってから、もう一度動かす                                                                                                                                                                                                                                                 |
-| `deploy` の Apply D1 migrations    | 認証のエラー（Authentication error など）                                                             | トークンに D1 の Edit がないか、別のアカウントに絞っている。トークンを作り直す（下）                                                                                                                                                                                                                                                                                |
-| `deploy` の Deploy API Worker      | 「Missing required secrets」や「This Worker does not exist yet」                                      | アプリのシークレットが入っていない。[secrets.md](secrets.md#本番-wrangler-secret-put)で入れてから、もう一度動かす                                                                                                                                                                                                                                                   |
-| `deploy` の Deploy web Worker      | ビルドかデプロイのエラー                                                                              | 直して main にマージし、`web` で動かす。同じコードのままなら、失敗した run の **Re-run failed jobs** でもよい（`all` の run では、マイグレーションと API も、もう一度行われる）                                                                                                                                                                                     |
+| どこで止まったか                   | よくある理由                                                                                | どうするか                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| どれも動かない                     | 「Branch "..." is not allowed to deploy to production due to environment protection rules」 | main 以外のブランチで動かした。main にマージしてから、Branch を `main` にして動かす                                                                                                                                                                                                                                                                                 |
+| どれも動かない                     | タグの上で動かして、同じく「... is not allowed to deploy to production ...」で止まる        | `v*` でないタグで動かしたか、production に `v*` を足していない（上の「GitHub の Environment（production）を作る」）                                                                                                                                                                                                                                                 |
+| `verify-ci` の Plan release        | 「vX.Y.Z のあとに feat・fix・perf・破壊的変更がない」                                       | auto で上げるものがない。出すなら `patch` などを選んで動かし直す。何も変えずに出し直すなら、最新のタグの上で動かす                                                                                                                                                                                                                                                  |
+| `verify-ci` の Plan release        | 「vX.Y.Z はすでにこのコミットを指している」                                                 | そのコミットはもう版になっている。出し直すなら、そのタグの上で動かす（上の「出し直す・前の版に戻す」）                                                                                                                                                                                                                                                              |
+| `verify-ci` の Plan release        | 「vX.Y.Z がこのコミットの祖先でない」                                                       | 最新のタグを含まないコミットで動かした。main で動かす                                                                                                                                                                                                                                                                                                               |
+| `verify-ci` の Plan release        | 「前の CHANGELOG の PR（changelog/vX.Y.Z）が開いている」                                    | その版の Release ができていれば、PR をマージしてから動かし直す。Release がなければ、その版の run の `release` が途中で失敗している。下の「release が途中で失敗したとき」                                                                                                                                                                                            |
+| `deploy` の Recheck release base   | 「最新の v* タグ（…）が、verify-ci が版を決めたときの基準のタグ（…）と違う」                | 古い run を **Re-run** した。あとから別の版が出ているので、その run は出さない。出したいコミットがあれば、main で新しく動かす                                                                                                                                                                                                                                       |
+| 承認のところ                       | 「Waiting」のまま進まない                                                                   | 承認を待っている。run の画面の **Review deployments** から承認する（上の「動かす」）                                                                                                                                                                                                                                                                                |
+| 承認のところ                       | Reject した・承認しないまま30日たった                                                       | 何も出ていない。出すなら、その run の **Re-run all jobs** で動かし直して承認する                                                                                                                                                                                                                                                                                    |
+| `verify-ci`                        | 「… は main の履歴にない（ahead）」（`diverged` も同じ）                                    | main にマージしていないコミットで動かした。main にマージしてから、main で動かす                                                                                                                                                                                                                                                                                     |
+| `verify-ci`                        | 「… の ci が 1800 秒待っても終わらない（in_progress）」（`queued` も同じ）                  | main の CI が30分で終わらなかった。Actions の CI の run を見て、通ってから、その run の **Re-run failed jobs** で動かし直す                                                                                                                                                                                                                                         |
+| `verify-ci`                        | 「… の ci が 1800 秒待っても終わらない（not_found）」                                       | main への push で CI が動いていない。Actions → **CI** → **Run workflow** を main で動かし、通ってから動かし直す                                                                                                                                                                                                                                                     |
+| `verify-ci`                        | 「… の ci が 1800 秒待っても終わらない（api_error）」                                       | GitHub の API から check run を読めないまま30分たった。ログの `gh` のエラー（すぐ上の行）を見る。GitHub の障害なら、直ってから **Re-run failed jobs** で動かし直す                                                                                                                                                                                                  |
+| `verify-ci`                        | 「… の e2e が成功していない（failure）」                                                    | そのコミットはテストが落ちている。直して main にマージし、次のリリースで出す。落ちたのが不安定なテストなら、CI の run の **Re-run failed jobs** で通してから、deploy の run を動かし直す                                                                                                                                                                            |
+| `verify-ci`                        | 「… の ci が成功していない（cancelled）」                                                   | CI が途中で止まった。Actions の CI の run で **Re-run all jobs** を行い、通ってから動かし直す                                                                                                                                                                                                                                                                       |
+| `deploy` の Install tools via mise | 取得の失敗や通信のエラー                                                                    | GitHub やツールの配布元の不調。この試行では、後ろの step は動いていない。Re-run の試行なら、前の試行で終えた step の変更は本番に残っているので、どこまで終えたかを前の試行のログで確かめる。`deploy` はキャッシュを読まないので毎回取り直す（[理由](../architecture/operations.md#mise-の版とキャッシュ)）。下の注を読んでから、**Re-run failed jobs** で動かし直す |
+| `deploy` の Apply D1 migrations    | D1 が見つからず、`wrangler d1 create` を実行するように言われる                              | 本番の D1 をまだ作っていない。[README](../../README.md#本番の環境を一から作る)の手順 2 で作ってから、もう一度動かす                                                                                                                                                                                                                                                 |
+| `deploy` の Apply D1 migrations    | 認証のエラー（Authentication error など）                                                   | トークンに D1 の Edit がないか、別のアカウントに絞っている。トークンを作り直す（下）                                                                                                                                                                                                                                                                                |
+| `deploy` の Deploy API Worker      | 「Missing required secrets」や「This Worker does not exist yet」                            | アプリのシークレットが入っていない。[secrets.md](secrets.md#本番-wrangler-secret-put)で入れてから、もう一度動かす                                                                                                                                                                                                                                                   |
+| `deploy` の Deploy web Worker      | ビルドかデプロイのエラー                                                                    | 直して main にマージし、もう一度動かす。同じコードのままなら、失敗した run の **Re-run failed jobs** でもよい（マイグレーションと API も、もう一度行われる）                                                                                                                                                                                                        |
+| `release`                          | どこかの step で落ちた                                                                      | 本番には出ている。下の「release が途中で失敗したとき」                                                                                                                                                                                                                                                                                                              |
 
 - マイグレーションが通って API の step が止まると、新しいスキーマを古い API のコードが使っている状態になる。マイグレーションは古いコードでも動くもの（テーブルや列を足すもの）にしているので、そのまま動き続ける（ADR 0005）。直してもう一度 `all` で動かすと、当て済みのマイグレーションは飛ばされる（「No migrations to apply!」）
-- **Re-run failed jobs** は、失敗した job をはじめから動かす。`deploy` は1つの job なので、`all` の run で画面の step だけが失敗したときも、マイグレーション（当て済みなら飛ばされる）と API の Worker が、もう一度行われる。本番の外なら困らない。画面だけを出し直すときは、`web` で新しく動かす
+- **Re-run failed jobs** は、失敗した job をはじめから動かす。`deploy` は1つの job なので、画面の step だけが失敗したときも、マイグレーション（当て済みなら飛ばされる）と API の Worker が、もう一度行われる。本番の外なら困らない
+- **Re-run は、いちばん新しい run にだけ使う**。古い run の Re-run は、ふつうは `deploy` の最初の確かめ直しで止まるが、止められない場面がある（下の「release が途中で失敗したとき」）
+
+### release が途中で失敗したとき
+
+`release` が落ちても、本番には出ている。`release` だけを **Re-run failed jobs** で動かし直せば、デプロイはやり直さずに、続きから終わる。どの手順も、すでにあれば飛ばす。
+
+1. 落ちた run を開き、`release` のどの step で落ちたかを見る。App の token や Environment の設定が原因なら、先に直す（[release.md の「失敗したとき」](release.md#失敗したとき)）
+2. その run の **Re-run failed jobs** を押す。`verify-ci` と `deploy` は成功しているので動かず、`release` だけが動く。承認も求められない
+3. タグ・Release・CHANGELOG の PR ができたことを確かめる（上の「版を出す」の 5）
+
+- CHANGELOG の PR を作ったあとで落ちたとき: 開いたままの PR が残る。終わらせるまで、次の dispatch は `verify-ci` で止まる（「前の CHANGELOG の PR が開いている」）。Release ができる前にその PR をマージしない。マージすると、この止める仕組みが効かなくなる
+- CHANGELOG の PR を作る前に落ちたとき（App の token を作る、ブランチを作るなど）: PR も Release も残らず、次の dispatch も止まらない。run の失敗を見て、自分で Re-run する。そのままにすると、デプロイしたコミットにタグがないまま残る（変更は次の版の CHANGELOG に入るので、失われはしない）
+- Re-run は、いちばん新しい run にだけ使う。新しい run の `release` が PR を作る前に落ちた状態では、タグも PR もなく、最新のタグは前と同じままなので、それより古い run を Re-run すると、`deploy` の確かめ直しを素通りして、古いコミットで本番を上書きしてしまう
+- `release` の最初の確かめ（`check-release`）は、タグ `vX.Y.Z` がすでにデプロイしたコミットにあれば何もせずに終わる。タグが別のコミットにあるとき、または最新の `v*` タグが基準のタグと違うときは、何も作らずに止まる。止まったときは、あとから別の版が出ている。その run の変更は、次の版の CHANGELOG に入る
 
 ## トークンを作り直す・やめる
 

@@ -1,6 +1,6 @@
 # 運用の仕組み
 
-インフラの設定、GitHub のルールセット、リリース、本番へのデプロイ、ログと、それらを確かめる `tools/docs-check` のテストが、なぜその形になっているかをまとめる。決めた理由の大もとは [ADR 0005](../adr/0005-infrastructure-management.md)・[ADR 0009](../adr/0009-release-versioning-and-tagging.md)・[ADR 0010](../adr/0010-deploy-on-release.md) にある。手を動かす手順は [README の「運用の手順書」](../../README.md#運用の手順書)から開く runbook にあり、ここには書かない。
+インフラの設定、GitHub のルールセット、リリース、本番へのデプロイ、ログと、それらを確かめる `tools/docs-check` のテストが、なぜその形になっているかをまとめる。決めた理由の大もとは [ADR 0005](../adr/0005-infrastructure-management.md)・[ADR 0009](../adr/0009-release-versioning-and-tagging.md)・[ADR 0010](../adr/0010-deploy-on-release.md)・[ADR 0012](../adr/0012-release-after-deploy-with-changelogen.md) にある。手を動かす手順は [README の「運用の手順書」](../../README.md#運用の手順書)から開く runbook にあり、ここには書かない。
 
 コードを書くときに守る約束は、[CLAUDE.md](../../CLAUDE.md) に1行ずつ残している。この文書はその説明で、見出しを変えるときは CLAUDE.md のリンクも直す（docs-check が確かめる）。
 
@@ -18,7 +18,7 @@
 
 - 本番は `https://zubakui-web.xeikit-app.workers.dev`。D1 は APAC の `zubakui`。2026-10-18 に README の手順で作った
 - デプロイのあとの確かめ（state とセッションの Cookie、ホストの WebSocket の Cookie、CSP、通しの1回、tail と Observability）は、[deploy.md の「デプロイのあとに確かめる」](../runbooks/deploy.md#デプロイのあとに確かめる)にある
-- それぞれの Worker がどのコミットで動いているかは、`Deploy API Worker`・`Deploy web Worker` の step が成功した、いちばん新しい deploy.yaml の run から読む（同じ節の 0）。`production` の Deployment の一覧からは読まない。Deployment は job ごとに作られ、その job が失敗しても残るため。Release の run はタグの上で動くので、`--branch` で絞らない。`web` の run では API の step が `skipped` になるので、step の結果で `web` と `all` の run を見分けられる
+- それぞれの Worker がどのコミットで動いているかは、`Deploy API Worker`・`Deploy web Worker` の step が成功した、いちばん新しい deploy.yaml の run から読む（同じ節の 0）。`production` の Deployment の一覧からは読まない。Deployment は job ごとに作られ、その job が失敗しても残るため。タグの上で動かした run（v1.3.0 までの Release の run を含む）があるので、`--branch` で絞らない。v1.3.0 までの `web` の run では API の step が `skipped` になるので、step ごとに読む
 
 ## ルールセット
 
@@ -27,28 +27,32 @@
 - `docs/runbooks/main-ruleset.json` は、main のルールセットを `gh api -X POST .../rulesets --input` にそのまま渡せる形で書いたもの。`id`・`_links` など、GitHub が付ける項目は入れない
 - `main-ruleset.test.ts` は、必須のチェックのどれもが `.github/workflows/` のどれかの job のチェック名（`jobs.<id>.name`、なければ job ID）と合うかを確かめる。テストはチェックの名前を決め打ちしない。その workflow が main への PR と push の両方で動くことも確かめる。デプロイの `verify-ci` が、main のコミットでチェックを探すため
 - `storybook.yaml` の `storybook` は、部品の目録（Storybook）のビルドが通るかを、`ci.yaml` と同じきっかけ（main への PR と push）で確かめる。必須のチェックには入れない。仕様書のビルドの不調で、本番の修正の PR まで止めないため。secrets も `github.token` も読まず、権限は `contents: read` だけにする。書き出した `storybook-static` は公開しないので、artifact にも残さない（[frontend.md の「Storybook」](frontend.md#storybook)）。手元では2秒ほどで終わる（2026-11-08）。`ci-workflow.test.ts` が、必須に入っていないことと、権限と secrets を確かめる
-- `docs/runbooks/release-tag-ruleset.json`（ルールセットの名前は `release-tags`）は、`refs/tags/v*` の `creation`・`update`・`deletion` を禁じ、bypass を release-please の App（`actor_type: Integration`、`bypass_mode: always`）1つだけにする。`update` には `parameters` を付けない。GitHub は `update_allows_fetch_and_merge` を受け付けたうえで捨てるので、書き出した設定と合わなくなる（2026-10-28 に確かめた）
+- `docs/runbooks/release-tag-ruleset.json`（ルールセットの名前は `release-tags`）は、`refs/tags/v*` の `creation`・`update`・`deletion` を禁じ、bypass をリリースの App（`actor_type: Integration`、`bypass_mode: always`）1つだけにする。この App の token を持つのは deploy.yaml の `release` だけ（ADR 0012）。`update` には `parameters` を付けない。GitHub は `update_allows_fetch_and_merge` を受け付けたうえで捨てるので、書き出した設定と合わなくなる（2026-10-28 に確かめた）
 - `actor_id` は App の設定画面の About に出る App ID（5496985）で、Client ID ではない。非公開の App は `gh api apps/<slug>` でも `performed_via_github_app` でも読めないので、`release-tag-ruleset.test.ts` は形だけを確かめ、値は確かめない
 - タグのルールセットは、production に `v*` のタグを許すより前に作る。逆の順だと、その間は書き込みの権限があれば誰でも、好きなコミットにタグを打って本番に出せる。打ち間違えたタグは、ルールセットを一時的に止めないと消せない（[branch-protection.md の「打ち間違えたタグを消す」](../runbooks/branch-protection.md#打ち間違えたタグを消す)）
 
 ## リリース
 
-手順は [release.md](../runbooks/release.md) にある。
+手順は [release.md](../runbooks/release.md) にある。版はデプロイの dispatch の `bump` で選び、デプロイが成功したコミットにタグと Release を作る（ADR 0012）。v1.3.0 までは release-please のリリース PR で版を決め、できた Release でデプロイしていた（ADR 0009・0010）。
 
-- `release-please.yaml` は main への push のたびに、GitHub App の token で動く（`actions/create-github-app-token`）。`client-id` は `vars.RELEASE_APP_CLIENT_ID`、鍵は `secrets.RELEASE_APP_PRIVATE_KEY` で、どちらも main だけが使える Environment `release` に置く。workflow の `GITHUB_TOKEN` は `contents: read` のまま
-- App の token を使うのは、`GITHUB_TOKEN` で作った PR では ci / e2e が承認待ちのまま動かず、`GITHUB_TOKEN` で作った Release では deploy.yaml が動き始めないため
-- release-please はリリース PR（`chore: vX.Y.Z をリリースする`）を開いて更新し続ける。マージすると、そのコミットにタグ `vX.Y.Z` と GitHub Release を作る。release-please 自身はデプロイしない。タグは「この版ができた」印で、本番に出た印ではない。承認を断れば、タグはあっても本番は前のまま
-- `release-please-config.json` は `include-component-in-tag: false`（付けないとタグが `zubatto-quiz-v1.0.0` になる）。`changelog-sections` は日本語で、commitlint のすべての type を並べる。`release-please.test.ts` が、`commitlint --print-config` の type と見比べる
-- `bootstrap-sha` と `release-as: 1.0.0` は v1.0.0（2026-10-28、#161）のためだけのもので、もう消した。manifest に版があるのにどちらかが戻ると、テストが落ちる
-- release-please は `CHANGELOG.md` と `.release-please-manifest.json` を丸ごと書き直す（manifest はいつも詰めた形、CHANGELOG は空行が3つ続く形）。そのため `.oxfmtrc.json` は両方を飛ばす
-- ルートの `package.json` の `"version"` は `"name"` のすぐ下に置く。release-please は、ない項目を最後に足すので、`sortPackageJson` の並びが崩れる。ある項目はその場で書き換える。`release-please.test.ts` が両方を確かめる
-- release-please-action v5.0.0 は release-please 17.6.0 を同梱している。手元で試す（dry-run）ときは、この版を使う
-- 開いているリリース PR のファイルは、リリースノートが変わったときだけ作り直される。`ci:` や `docs:` だけのマージのあとで作り直したいときと、PR の本文の `BEGIN_COMMIT_OVERRIDE` の書き方は、[release.md の「CHANGELOG の行を直す」](../runbooks/release.md#changelog-の行を直す)と[「失敗したとき」](../runbooks/release.md#失敗したとき)にある
-- マージを squash だけにしているのは、マージコミットだと release-please の `splitMessages` が本文の PR の題名も読み、どの変更も2回ずつ出るため（ADR 0009）
+- タグ・Release・CHANGELOG の PR は、deploy.yaml の `release` の job が作る（`needs: [verify-ci, deploy]`・`if: github.ref_type == 'branch'`・`environment: release`）。`deploy` が失敗したとき、Reject したとき、タグの上で動かしたときは動かない。`verify-ci` の outputs を読むので、`verify-ci` も `needs` に書く（直接 `needs` に書いた job の outputs しか読めない）
+- 書き込みは GitHub App の token だけが持つ（`actions/create-github-app-token`、`permission-contents: write`・`permission-pull-requests: write`）。`client-id` は `vars.RELEASE_APP_CLIENT_ID`、鍵は `secrets.RELEASE_APP_PRIVATE_KEY` で、どちらも main だけが使える Environment `release` に置く。どの workflow の `GITHUB_TOKEN` にも書き込みを渡さない。App の token を使うのは、`GITHUB_TOKEN` で作った PR では ci / e2e が承認待ちのまま動かないため。ラベルを使わないので、`permission-issues` は渡さない
+- `release` は依存パッケージを入れず、`mise-action` で node だけを入れる（`install_args: node`・`cache: false`）。書き込みの token を持つ job で、依存の install スクリプトや、ほかの job が書けるキャッシュの中身が動かないようにする（ADR 0012 の DD2）。そのため、`release` が呼ぶ `tools/release/src/steps.ts` とそれが読み込むファイルは、changelogen も、ほかの npm のパッケージも読み込まない
+- 手順は [.github/scripts/release.sh](../../.github/scripts/release.sh) の `publish`。PR を先に、Release をあとに作る。どの手順も、すでにあれば飛ばす
+  1. `check-release`: タグ `vX.Y.Z` がデプロイしたコミットにあれば、前の Re-run で終わっているので何もしない。別のコミットにあれば止まる。なく、最新の `v*` タグが基準のタグと違えば止まる
+  2. main の先頭から `changelog/vX.Y.Z` のブランチを、git の refs の API で切る
+  3. contents API で `CHANGELOG.md` と `package.json` を書き換える。git で push しないので、checkout に token を残さずに済み、コミットには GitHub の署名が付く。本文は `--input` の JSON で渡す（引数1つの長さには 128KB の上限がある）。中身が変わらなければコミットしない
+  4. 閉じたものも含めて、そのブランチの PR がなければ開く
+  5. `gh release create --target "$GITHUB_SHA"` で Release を作り、タグも Release の API に作らせる
+- PR を先にするのは、途中で落ちたときに、開いた PR が次の dispatch を承認の前で止めるため。PR を作る前に落ちたときは何も残らず止まらないので、runbook の手順で Re-run する
+- `CHANGELOG.md` は、`steps.ts` の `changelog`（`prependNotes`）が、見出し（`# Changelog`）のすぐ下に節を足す。同じ版の見出しがすでにあれば変えない。`release` は oxfmt を動かさないので、`.oxfmtrc.json` は `CHANGELOG.md` を飛ばす。v1.3.0 までの節は release-please が書いた形（日本語の見出し、空行が3つ続く形）のまま残す
+- ルートの `package.json` の `"version"` は `"name"` のすぐ下に置く。`setPackageVersion` は、いちばん外の `"version"` の値だけを書き換え、ないと止まる。`release-workflow.test.ts` が確かめる
+- 開いた CHANGELOG の PR は、ブランチが `changelog/` で始まることで見分ける（`guard.ts` の `changelogPr`）。`release.sh` の `gh pr list` は、fork からの PR（`isCrossRepository`）を数えない。誰でも同じ名前のブランチの PR を開けるので、数えると dispatch を止めたり、CHANGELOG の PR を作らずに飛ばさせたりできてしまう（`release-workflow.test.ts`）。題名は scope のない `chore: vX.Y.Z の CHANGELOG を更新する` で、`guard.test.ts` が commitlint に通す
+- マージを squash だけにしているのは、マージコミットだと本文に PR の題名とコミットの一覧が入り、どの変更も2回ずつ数えられるため（ADR 0009）
 
 ### 版の判定と文面（tools/release）
 
-ADR 0012 の流れで、`verify-ci` が次の版とリリースノートの文面を決めるための道具。#245 で deploy.yaml から呼ぶまでは、どの workflow も使わない。
+ADR 0012 の流れで、deploy.yaml の3つの job が、版と文面を決め、続けるか止めるかを決めるための道具。
 
 ```sh
 node tools/release/src/cli.ts --bump auto --to <コミット>
@@ -65,29 +69,37 @@ node tools/release/src/cli.ts --bump auto --to <コミット>
 - `generateMarkDown` は、`noAuthors` でも、名前のある作者ごとに `https://ungh.cc/users/find/<メール>` へ問い合わせる。`selectCommits` は作者を消して渡す
 - `--to` は、changelogen の `getGitDiff` がシェルの文字列（`git log "基準...to"`）に埋め込むので、英数字と `._/-` だけを受け付ける。`基準...to` は対称差なので、基準のタグが `--to` の祖先でないと、基準の側にしかない commit も混ざる。祖先かどうかは `verify-ci` が確かめる
 - 出す type と見出しは、ルートの `changelog.config.ts` にある（feat・fix・perf・refactor・docs・revert。見出しは changelogen の既定で、既定の表にない revert だけを足す。chore・ci・test・build・style と、既定の表の `types`・`examples` は `false`）。`notes.test.ts` が、`commitlint --print-config` のどの type にも出すか `false` かの決まりがあることと、見出しの並びを確かめる。changelogen を上げて既定の見出しが変わったら、ここで気づく
+- 続けるか止めるかの判定は、`guard.ts` の純粋関数にする。読み出しは `steps.ts`（git）と `release.sh`（`gh`）が行い、判定には事実だけを渡す。`guard.test.ts` が、ADR 0012 の止める・飛ばす条件をすべて確かめる。`steps.test.ts` は、一時フォルダーに本物の git のリポジトリ（注釈付きのタグを含む）を作って `steps.ts` を動かす
+  - `checkPlan`（`verify-ci`）: 基準のタグが出すコミットを指している、祖先でない、前の CHANGELOG の PR が開いている
+  - `checkDeploy`（`deploy` の最初）: 最新の `v*` タグが基準のタグと違う、前の CHANGELOG の PR が開いている。祖先かだけを確かめ直すのでは、同じコミットが先に別の番号で出されたあとに、古い番号の版を作りうる
+  - `checkRelease`（`release` の最初）: タグがデプロイしたコミットにある → 飛ばす、別のコミットにある → 止める、最新のタグが基準のタグと違う → 止める
+- `steps.ts` が git に渡すタグ・SHA・版は、`vX.Y.Z`・40桁の小文字の16進・`x.y.z` の形だけを受け付ける。ref の書き方（`^{commit}` など）やオプション（`-`）として読まれないようにする
+- `files.ts` の `releaseBody` は、Release の題名と重なる版の見出し（`## vX.Y.Z`）を外して、Release の本文にする
 - changelogen はルートと `tools/release` の両方に、同じ版で入れる。ルートは `changelog.config.ts` の型のため（`commitlint.config.ts` と `@commitlint/types` と同じ形）。changelogen は 0.x なので、上げるたびに API の変化と `@deprecated` を確かめる
 
 ## デプロイの workflow
 
 手順は [deploy.md](../runbooks/deploy.md) にある。
 
-- 本番のデプロイは `.github/workflows/deploy.yaml` からだけ行う。`release: published`（target は `all`）か、手で動かす `workflow_dispatch`（`target` は `web` か `all`、既定は `web`）で動き始める（ADR 0010）
-- workflow 全体の `env.TARGET` は `github.event_name == 'release' && 'all' || inputs.target`。`release` のイベントには `inputs` がない。イベントを明示して確かめるのは、手で動かしたときに `inputs.target` が空でも `all` にならないようにするため
-- Release の run は、タグのコミット（`GITHUB_SHA`）をチェックアウトし、そのコミットの deploy.yaml で動く。前のタグの上で手で動かす（前の版に戻す）と、前の deploy.yaml で動く
-- job は `verify-ci` → `deploy` の2つ。`environment: production` を使うのは `deploy` だけで、Cloudflare のトークンとアカウント ID もそこにしかない。`deploy` は、マイグレーション → API → 画面の順に step を行う。マイグレーションと API の step は `if: env.TARGET == 'all'` で、status の関数を書かない step の `if` は `success() && …` と同じなので、どれかの step が失敗するとその後ろは動かない
+- 本番のデプロイは `.github/workflows/deploy.yaml` からだけ行う。手で動かす `workflow_dispatch` だけで動き始め、欄は `bump`（auto / major / minor / patch、既定は auto）だけ（ADR 0012）。`release: published` のきっかけと `target`（`web` / `all`）の欄はなくした。いつも全体（マイグレーション → API → 画面）を出す
+- ブランチの上の run は版を決めて `release` まで動き、タグの上の run（出し直す・前の版に戻す）は版を決めず `release` も動かない。分け目はどれも `github.ref_type == 'branch'` で書く。タグの上の run は、そのタグのコミットの deploy.yaml で動く。v1.3.0 までのタグの deploy.yaml には `target` の欄があり、既定が `web` なので、戻すときは `all` を選ぶ
+- job は `verify-ci` → `deploy` → `release` の3つ。`environment: production` を使うのは `deploy` だけで、Cloudflare のトークンとアカウント ID もそこにしかない。`deploy` は、マイグレーション → API → 画面の順に step を行う。status の関数を書かない step の `if` は `success() && …` と同じなので、どれかの step が失敗するとその後ろは動かない
+- `deploy` の最初の確かめ直し（`Recheck release base`、`release.sh guard`）は、ブランチの上の run で、`pnpm install` と、Cloudflare の secret を読むどの step よりも前にある。**Re-run failed jobs** は成功済みの `verify-ci` を動かし直さないので、古い run の Re-run を本番に出す直前に止める。`deploy-workflow.test.ts` が位置を確かめる
+- `verify-ci` の outputs（基準のタグ・版・文面）は、`run:` に `${{ }}` で埋め込まず、step の `env` で渡す。文面は commit の題名を含むので、`notes-base64` として base64 の1行にする。複数行の値を `$GITHUB_OUTPUT` に書く区切りの文字列を、題名で終わらせられないようにする
 - `production` が許すのは、main ブランチと `v*` のタグだけ（`deployment-branch-policies`、`v*` は `type: tag`）
-- `production` には Required reviewers（自分、`prevent_self_review: false`、`can_admins_bypass: false`）を付けている（ADR 0009）。承認は `production` を使う job ごとに求められる（2026-10-27 に、job を3つに分けていたころの `all` で確かめた。ドキュメントには書かれていない）。job を1つにしているので、承認は1回で済む（ADR 0010 の E3）。`deploy` を job に分け直さない。承認だけの job を先頭に置いて reviewers を外す形にもしない。トークンを持つ Environment から reviewers が外れてしまう
-- Reject すると何も出ない。**Re-run failed jobs** は `deploy` の job をはじめからやり直す（当て済みのマイグレーションは飛ばされる）。画面だけを出し直すときは、`web` で新しく動かす。本番の最中にリリース PR をマージしてしまったら、その run を Reject し、本番のあとで **Re-run all jobs** する
-- `timeout-minutes` は `deploy` が 30、`verify-ci` が 35。`verify-ci` は `CI_WAIT_SECONDS`（1800 秒）より長くしておく。短いと、どのチェックを待っていたかを書かずに時間切れで止まる。テストがこれを確かめる
-- `concurrency` は GitHub の既定のまま（待てる run は1つ）。新しい run が来ると、待っている run は取り消される。取り消された `all` や Release の run は、runbook の手順で動かし直す。承認を待っている Release の run も、動いている1つに数えられる（#172 で、2026-10-31 に確かめた）。`queue: max` は足さない。並んだ順に動く保証がなく、古いコミットが最後に出ることがある
+- `production` には Required reviewers（自分、`prevent_self_review: false`、`can_admins_bypass: false`）を付けている（ADR 0009）。承認は `production` を使う job ごとに求められる（2026-10-27 に、job を3つに分けていたころの `all` で確かめた。ドキュメントには書かれていない）。`production` を使う job を1つにしているので、承認は1回で済む（ADR 0010 の E3）。`deploy` を job に分け直さない。承認だけの job を先頭に置いて reviewers を外す形にもしない。トークンを持つ Environment から reviewers が外れてしまう
+- Reject すると何も出ず、何も作られない。**Re-run failed jobs** は失敗した job をはじめからやり直す（当て済みのマイグレーションは飛ばされる）。`release` だけが落ちたときは、`release` だけが動き直す。Re-run は、いちばん新しい run にだけ使う。新しい run の `release` が PR を作る前に落ちた状態では、古い run の Re-run を `deploy` の確かめ直しで止められない（ADR 0012）
+- `timeout-minutes` は `deploy` が 30、`verify-ci` が 35、`release` が 10。`verify-ci` は `CI_WAIT_SECONDS`（1800 秒）より長くしておく。短いと、どのチェックを待っていたかを書かずに時間切れで止まる。テストがこれを確かめる
+- `concurrency` は GitHub の既定のまま（待てる run は1つ）。新しい run が来ると、待っている run は取り消される。承認を待っている run も、動いている1つに数えられる（#172 で、2026-10-31 に確かめた）。1つずつ動くので、次の run が版を数えるのは、前の run の `release` がタグを打ったあとになる。`queue: max` は足さない。並んだ順に動く保証がなく、古いコミットが最後に出ることがある
 - step はルートの `db:migrate:remote`・`deploy:api`・`deploy:web` を呼ぶ。API のものは `--env=""` を付ける。画面の `deploy` は `vite build && wrangler deploy` で、E2E のビルドが残した設定を使わない（[testing.md の「本番と同じビルドで動かす」](testing.md#本番と同じビルドで動かす)）
 
 ## verify-ci
 
-- `verify-ci` の job は `permissions: contents: read, checks: read` で、Environment もシークレットも使わない。`.github/scripts/verify-required-checks.sh` と `main-ruleset.json` だけを sparse checkout する
+- `verify-ci` の job は `permissions: contents: read, checks: read, pull-requests: read` で、Environment もシークレットも使わない。版を決めるのでタグと履歴ごと checkout し（`fetch-depth: 0`）、ブランチの上の run でだけ、mise（`cache: false`）と `@zubatto-quiz/release` の依存を入れる。出した版と文面は App の token を持つ `release` に渡るので、`ci` と `e2e` が書けるキャッシュは読まない
+- ブランチの上の run では、CI を待つ前に版を決める（`release.sh plan`）。上げるものがない auto では、CI を 30 分待たずに止まる。`tools/release/src/cli.ts` が版と文面を出し、`steps.ts check-plan` が続けられるかを確かめる。基準のタグ・版・理由・文面は `$GITHUB_STEP_SUMMARY` に書き、outputs で渡す
 - スクリプトは、はじめにコミットが main にあるかを `gh api repos/…/compare/main...$GITHUB_SHA --jq .status` で確かめる。`identical` か `behind` なら通り、`ahead` か `diverged` なら止まる。こうすると、履歴を全部チェックアウトしなくて済む
 - 次に、ルールセットの必須のチェック（`ci`・`e2e`・`pr-title`）を、`CI_POLL_SECONDS`（30）秒ごとに、すべてが `completed`/`success` になるまで見る。チェックは、その `integration_id` を `app_id` にして絞り、`GITHUB_SHA` の上のいちばん新しい check run を読む。名前はルールセットから読み、workflow には写さない
-- 終わって成功でないものがあれば、すぐに止まる。まだ終わっていないもの（`queued`・`in_progress`・`waiting`・`requested`・`pending`）と、まだ見つからないもの（`not_found`）と、`gh api` の読み出しの失敗（`api_error`）は、`CI_WAIT_SECONDS`（1800）まで待つ。Release の run は、マージで動いた main の CI が走っている間に始まるため（ADR 0010 の Q1）
+- 終わって成功でないものがあれば、すぐに止まる。まだ終わっていないもの（`queued`・`in_progress`・`waiting`・`requested`・`pending`）と、まだ見つからないもの（`not_found`）と、`gh api` の読み出しの失敗（`api_error`）は、`CI_WAIT_SECONDS`（1800）まで待つ。マージの直後に動かした run は、main の CI が走っている間に始まるため（ADR 0010 の Q1）
 - `api_error` は `if ! result=$(…)` で捕まえる。こうしないと、GitHub の 5xx が1回あっただけで、`set -e` で待つのをやめてしまう。`CI_WAIT_SECONDS` と `CI_POLL_SECONDS` は step の `env` で渡し、スクリプトは `:?` で必須にしている
 - PR の CI は `refs/pull/N/merge` の上で動くので、main に入ったコミットにはチェックが付かない。そのため `ci.yaml` は main への push でも動く
 - シェルでは、全角の文字が続く変数を `{}` で囲む（`${result}）`）。bash は、マルチバイトの文字のバイトを変数名の一部として読むことがある
@@ -166,14 +178,14 @@ action と npm の依存の更新は、Dependabot が週に1回 PR にする（`
 
 - lock に載っている workflow なら、Dependabot は `uses:` と一緒に `actions.lock` も同じ PR で作り直す。設定は要らない（[GitHub の文書](https://docs.github.com/en/actions/how-tos/secure-your-work/lock-workflow-dependencies)で、2026-11-06 に確かめた）。lock に載っていない workflow は `uses:` だけが変わるので、workflow を足すときは必ず `gh actions-lock` まで動かす
 - `commit-message.prefix` は `ci` にする。squash マージなので PR の題名が `main` のコミットになり、`pr-title` の commitlint を通す必要がある。`ci` は CHANGELOG に載らず、版も上がらない。`include: scope` は書かない。書くと `ci(deps):` になり、scope を付けない決まりから外れる
-- minor と patch は1つの PR にまとめる。PR ごとに `e2e` が約10分かかるので、数を減らす。major は action ごとの PR に分ける。`release-please.yaml` と `deploy.yaml` は PR の CI で動かないので、壊れる更新はマージのあとで初めて分かる。分けておけば、原因の action をすぐ切り分けられる
+- minor と patch は1つの PR にまとめる。PR ごとに `e2e` が約10分かかるので、数を減らす。major は action ごとの PR に分ける。`deploy.yaml` は PR の CI で動かないので、壊れる更新はマージのあとで初めて分かる。分けておけば、原因の action をすぐ切り分けられる
 - `cooldown.default-days` は3日にする。乗っ取られて新しいタグが公開されると、そのタグは `--verify` を通る。`--verify` が止めるのは、すでにあるタグが動いたときだけだからだ。公開から数日待って、見つかるまでの時間を稼ぐ。github-actions では `semver-major-days` などの版ごとの設定は使えない
 - 更新の PR の GitHub Actions は `GITHUB_TOKEN` が読み取りだけになり、読める secrets は Dependabot secrets だけになる（今は0件）。本番の secrets は `production` 環境にあるので、更新された action のコードが PR の CI で動いても届かない。`pull_request_target` と `workflow_run` は使わない
 
 更新の PR で読むことは次のとおり。
 
 1. `actions.lock` の差分で、`ref` と `commit` が更新した action の分だけ変わっていること。`owner_id` と `repo_id` が変わっていたら、リポジトリの持ち主が変わった可能性があるので、そのままマージしない
-2. `release-please.yaml` か `deploy.yaml` が使う action なら、上流のリリースノートを読む。必須チェックが通っても、この2つの中での動きは確かめられていない
+2. `deploy.yaml` が使う action（`actions/create-github-app-token` など）なら、上流のリリースノートを読む。必須チェックが通っても、deploy.yaml の中での動きは確かめられていない
 3. `ci` の `Verify actions.lock` が `tag-commit-mismatch` か `unreachable-pin` で落ちたら、[上の手順](#ci-で落ちたとき)で理由を確かめる
 4. PR の題名を、日本語の subject に直してからマージする（例: `ci: mise-action と upload-artifact を更新する`）。`commit-message.prefix` で決められるのは `ci` までで、subject は英語のまま届く。`pr-title` の commitlint は subject の言語を見ないので、直さなくても通り、そのまま `main` のコミットになる
 
@@ -250,15 +262,15 @@ pnpm には、公開から1440分（1日）たっていない版を避ける `mi
 | `docs-index.test.ts`             | `docs/README.md` の ADR の一覧に、どの ADR もちょうど1行あり、状態が ADR の Status と合うこと                                                                                                                                                                                                                                                                                                                                             |
 | `main-ruleset.test.ts`           | [上の「ルールセット」](#ルールセット)のとおり                                                                                                                                                                                                                                                                                                                                                                                             |
 | `release-tag-ruleset.test.ts`    | 同じく                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `release-please.test.ts`         | [上の「リリース」](#リリース)のとおり                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `release-workflow.test.ts`       | [上の「リリース」](#リリース)のとおり（`release` の Environment・needs・if、依存を入れないこと、App の token の権限と持ち主、どの workflow も `GITHUB_TOKEN` に書き込みを渡さないこと、CHANGELOG を oxfmt から外すこと、release-please のファイルが残っていないこと）                                                                                                                                                                     |
 | `dev-vars-example.test.ts`       | [上の「インフラの管理」](#インフラの管理)のとおり                                                                                                                                                                                                                                                                                                                                                                                         |
 | `ci-workflow.test.ts`            | `run:` に `github.event.*` や `github.head_ref` を `${{ }}` で埋め込んでいないこと。そうした値は `env:` を通す。`ci` が `pnpm install` より前に `--verify` を動かし、トークンをその step にだけ渡すこと。`--verify` が止めない `uses:` の書き方がないこと（[上の「action の固定」](#action-の固定)）。`storybook.yaml` の `storybook` が必須のチェックに入らず、secrets もトークンも読まないこと（[上の「ルールセット」](#ルールセット)） |
 | `dependabot.test.ts`             | [上の「Dependabot での更新」](#dependabot-での更新)のとおり（週に1回、題名は scope のない `ci:`・`chore:`、major を分ける、手で直すもののグループ、グループの順番、`cooldown` の下限、手で上げる major、公開待ち期間を弱める設定がないこと、自動マージがないこと）                                                                                                                                                                        |
-| `deploy-workflow.test.ts`        | deploy.yaml と ci.yaml を `yaml` で読み、きっかけ（`release` か、`target` を付けた dispatch）と失敗する job やスクリプトごとに、どのスクリプトが動くかを試す（`scriptsThatRun`）。`production` を使う job が1つだけであること                                                                                                                                                                                                             |
+| `deploy-workflow.test.ts`        | deploy.yaml と ci.yaml を `yaml` で読み、ブランチとタグの上の run と、失敗する job・step・スクリプトごとに、どの job とスクリプトが動くかを試す（`simulate`）。きっかけが `workflow_dispatch` の `bump` だけであること、`production` を使う job が `deploy` だけであること、確かめ直しの step の位置、`run:` に `${{ }}` がないこと                                                                                                       |
 | `verify-required-checks.test.ts` | `verify-required-checks.sh` を偽の `gh` と本物の `jq` で、`CI_POLL_SECONDS=0` で動かす                                                                                                                                                                                                                                                                                                                                                    |
 | `oxlint-layers.test.ts`          | 一時フォルダーに `.oxlintrc.json` の写しと、import を1行だけ書いたファイルを置いて oxlint を走らせ、`apps/web/src` の層の柵と `import/no-cycle` が効くこと（[frontend.md の「全体の形」](frontend.md#全体の形)）                                                                                                                                                                                                                          |
 
 - `scriptRunsIn` は、スクリプト名を空白かバッククォートの手前まで読む。そのため `logs:web.bak` を `logs:web` とは読まないが、名前のすぐあとの全角の `）` は名前の一部として読む。コマンドは1行に1つずつ書く
 - 文書の一覧は `test/documents.ts` にあり、`links.test.ts` と `scripts.test.ts` が共有する。相対リンクや `pnpm run` のコマンドを書く文書を足したら、ここにも足す
-- `deploy-workflow.test.ts` の `targetOf` は上の `env.TARGET` の式だけを、`evaluateIf` は `env.TARGET == '…'` だけを知っている。どちらも、知らない形を見ると例外を投げる。job の条件を変えたら、この2つも広げる
+- `deploy-workflow.test.ts` の `evaluateIf` は `github.ref_type == '…'` だけを知っていて、知らない形を見ると例外を投げる。job や step の条件を変えたら、`evaluateIf` と `simulate` も広げる
 - 偽の `gh` は `PATH` に置いた node のスクリプトで、`compare` には `FAKE_COMPARE_STATUS` を返し、チェックの名前ごとに n 回目の呼び出しで `FAKE_CHECK_RUNS` の n 周目を返す。回数は `FAKE_STATE_DIR` の下のファイルで数える
