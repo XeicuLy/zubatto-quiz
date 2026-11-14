@@ -23,10 +23,12 @@ type ToastManager = ReturnType<typeof createToastManager>;
  * - 閉じるボタン・アクション・説明は写していない。成功の知らせは待てば消え、文は題（title）1つで足りる
  * - 画面の上に出す（#290）。問題セットの編集とホストの進行は、下に操作の帯を固定している。下に出すと、
  *   保存したあとフォーカスのある「保存する」や、作った直後に開いた部屋の「第1問を出す」を覆ってしまう（WCAG 2.4.11）
+ * - 一度に1つだけ見せる（limit={1}）。積み重なると、低い画面（横向きのスマホ）では下の操作の帯まで伸び、ボタンのクリックを取る。
+ *   新しいものが出たら古いものは隠れるが、読み上げは出たときに済んでいる
  */
 function Toaster({ toastManager: manager = toastManager }: { toastManager?: ToastManager }) {
   return (
-    <ToastPrimitive.Provider toastManager={manager}>
+    <ToastPrimitive.Provider toastManager={manager} limit={1}>
       {/* スマホでは上に幅いっぱい（両端は余白）、広い画面では右上に寄せる。toast のないところはクリックを下の画面へ通す */}
       <ToastPrimitive.Viewport
         aria-label="通知"
@@ -39,7 +41,7 @@ function Toaster({ toastManager: manager = toastManager }: { toastManager?: Toas
 }
 
 /**
- * 新しいものほど前に来るので、flex-col のまま角（上）にいちばん近いところへ置く。数が上限（3）を超えた古いものは隠す。
+ * 新しいものほど前に来るので、flex-col のまま角（上）にいちばん近いところへ置く。数が上限（1）を超えた古いものは隠す。
  * 払って閉じる向きは、出ている角の方（上か右）にする。Base UI の既定は下に出す前提の下か右
  */
 function ToastList() {

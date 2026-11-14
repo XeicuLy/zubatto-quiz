@@ -1,4 +1,4 @@
-import { Link, useLocation } from '@tanstack/react-router';
+import { Link, useLocation, useRouterState } from '@tanstack/react-router';
 import { MAX_QUESTIONS, type QuestionSetDetail } from '@zubatto-quiz/protocol';
 import { useLayoutEffect, useReducer, useRef, useState } from 'react';
 
@@ -42,6 +42,9 @@ export function QuestionSetEditor({ initial }: QuestionSetEditorProps) {
   const { save, dirty, blocker, isPending, error } = useQuestionSetSave({ setId: initial?.id, draft });
   const saveButton = useRef<HTMLButtonElement>(null);
   const focusSave = useLocation({ select: (location) => location.state.focusSave === true });
+  // 保存して移るあいだ（移った先の loader が読んでいるあいだ）も、この画面は残る。ここで打った分は、保存済みとして移り始めたあとなので
+  // 確かめも出ずに消える。移り終えるまで、画面ごと inert にして打てなくする。保存せずに離れるときも、打った分は消えるので同じにする
+  const leaving = useRouterState({ select: (state) => state.status === 'pending' });
 
   // 新しい問題セットを「保存する」で作ると、この画面へ置き換えて移り、画面が作り直される。押したボタンは消えるので、
   // 同じ場所にある「保存する」へフォーカスを移し、続けて書けるようにする。もう一度押されても書き換える（PUT）だけ。
@@ -67,7 +70,7 @@ export function QuestionSetEditor({ initial }: QuestionSetEditorProps) {
 
   return (
     <>
-      <main className="mx-auto max-w-4xl px-5 pt-6 pb-32">
+      <main inert={leaving} className="mx-auto max-w-4xl px-5 pt-6 pb-32">
         <Link to="/admin" className="font-bold underline focus-visible:outline-2 focus-visible:outline-ring">
           問題セットの一覧に戻る
         </Link>
@@ -111,7 +114,7 @@ export function QuestionSetEditor({ initial }: QuestionSetEditorProps) {
       </main>
 
       {/* 保存の帯。長い問題セットでも、どこからでも押せるよう画面の下に固定する */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-border bg-card/95 backdrop-blur">
+      <div inert={leaving} className="fixed inset-x-0 bottom-0 border-t border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-end gap-x-4 gap-y-2 px-5 py-3">
           {blocker.status === 'blocked' ? (
             // 押し間違えても書いた内容が消えない「編集に戻る」に、初めからフォーカスする

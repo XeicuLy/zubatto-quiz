@@ -1,7 +1,7 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { QuestionSetDetail } from '@zubatto-quiz/protocol';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createAppRouter } from '@/router';
 
@@ -342,6 +342,39 @@ describe('問題セットを作る（F4・F7）', () => {
     // 置き換えたので、戻ると空の作成画面ではなく一覧へ戻る
     act(() => router.history.back());
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin'));
+  });
+
+  it('作って移った先を読んでいるあいだは、元の画面に打てない（打っても移った先で消えるため）', async () => {
+    const api = stubFakeApi();
+    // 移った先の loader が読む GET を、止めておく
+    const fakeFetch = globalThis.fetch;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : input.href;
+      if ((init?.method ?? 'GET') === 'GET' && /\/api\/question-sets\/[0-9a-f-]{36}$/.test(url)) {
+        await held;
+      }
+      return fakeFetch(input, init);
+    });
+    const { router } = await openEditor(NEW_PATH);
+    await screen.findByLabelText('問題セットの名前');
+    fillNewSet('読んでいるあいだの問題セット');
+
+    fireEvent.click(saveButton());
+
+    await waitFor(() => expect(api.requestsTo('POST', '/api/question-sets')).toHaveLength(1));
+    await waitFor(() => expect(router.state.status).toBe('pending'));
+    expect(screen.getByRole('heading', { level: 1, name: '問題セットを作る' })).toBeInTheDocument();
+    expect(screen.getByLabelText('問題セットの名前').closest('[inert]')).not.toBeNull();
+    expect(saveButton().closest('[inert]')).not.toBeNull();
+
+    await act(async () => release());
+
+    expect(await screen.findByRole('heading', { level: 1, name: '問題セットの編集' })).toBeInTheDocument();
+    expect(saveButton()).toHaveFocus();
   });
 
   it('「保存して一覧へ」で作ってから一覧へ移り、一覧に作った問題セットが並ぶ', async () => {

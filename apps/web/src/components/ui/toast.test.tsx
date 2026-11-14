@@ -26,6 +26,22 @@ describe('Toaster', () => {
     expect([...viewport().classList].filter((name) => /(^|:)bottom-/.test(name))).toEqual([]);
   });
 
+  it('一度に1つだけ見せ、古いものは隠す。積み重なって下の操作の帯まで伸びないため', () => {
+    const manager = createToastManager();
+    render(<Toaster toastManager={manager} />);
+
+    act(() => {
+      manager.add({ title: '「1つ目」を消しました' });
+      manager.add({ title: '「2つ目」を消しました' });
+    });
+
+    // Base UI は上限を超えた古いものを消さず、data-limited を付ける（data-limited:hidden で隠す）
+    expect(within(viewport()).getByRole('dialog', { name: '「1つ目」を消しました' })).toHaveAttribute('data-limited');
+    expect(within(viewport()).getByRole('dialog', { name: '「2つ目」を消しました' })).not.toHaveAttribute(
+      'data-limited',
+    );
+  });
+
   it('toastManager.add で出した文が、live region の中に出る', () => {
     render(<Toaster />);
 
