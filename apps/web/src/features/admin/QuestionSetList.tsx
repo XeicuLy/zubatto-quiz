@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import type { QuestionSetSummary } from '@zubatto-quiz/protocol';
 import { useRef } from 'react';
 
-import { createDraftQuestionSet, deleteQuestionSet, questionSetsQueryOptions } from '@/api/question-sets';
+import { deleteQuestionSet, questionSetsQueryOptions } from '@/api/question-sets';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { ConfirmDialog, useConfirm } from '@/components/ui/confirm-dialog';
 import { ActionError } from '@/shared/feedback/ActionError';
@@ -26,7 +26,7 @@ export function QuestionSetList() {
     <main className="mx-auto max-w-4xl px-5 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="text-title font-bold">問題セット</h1>
-        {sets.data !== undefined && sets.data.length > 0 && <CreateButton align="end" />}
+        {sets.data !== undefined && sets.data.length > 0 && <CreateLink />}
       </div>
       <p className="mt-3 text-note text-muted-foreground">
         部屋は、作った時点の問題セットを使います。部屋を作ったあとに編集しても、その部屋には反映されません。
@@ -47,7 +47,7 @@ export function QuestionSetList() {
           <p className="text-heading font-bold">まだ問題セットがありません</p>
           <p className="mt-2 text-muted-foreground">問題セットを作ると、そこから部屋を作れます。</p>
           <div className="mt-6">
-            <CreateButton align="center" />
+            <CreateLink />
           </div>
         </div>
       ) : (
@@ -61,34 +61,15 @@ export function QuestionSetList() {
   );
 }
 
-/** 見出しの横では右に、空のときの枠の中では真ん中に、ボタンと失敗の知らせを寄せる */
-const createButtonAlign = {
-  end: 'items-end',
-  center: 'items-center',
-} as const;
-
-/** 下書きを保存し、その編集画面へ移る。問題セットは1問以上ないと保存できないので、空のままでは作れない */
-function CreateButton({ align }: { align: keyof typeof createButtonAlign }) {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const create = useMutation({
-    mutationFn: createDraftQuestionSet,
-    onSuccess: async (setId) => {
-      // 一覧の読み直しは待たずに移る。一覧へ戻ったときには、新しいセットが入っている
-      void queryClient.invalidateQueries({ queryKey: questionSetsQueryOptions.queryKey });
-      await navigate({ to: '/admin/sets/$setId', params: { setId } });
-    },
-  });
-
+/**
+ * 空の作成画面（/admin/sets/new）へ移る。何も保存しないので、作らずに離れても一覧に何も増えない。
+ * サーバーは空のセットを受け付けないので、作るのは作成画面で最初に保存したとき
+ */
+function CreateLink() {
   return (
-    <div className={`flex flex-col gap-2 ${createButtonAlign[align]}`}>
-      <Button onClick={() => create.mutate()} disabled={create.isPending}>
-        問題セットを作る
-      </Button>
-      {create.isError && (
-        <ActionError error={create.error} failed="問題セットを作れませんでした。もう一度押してください。" />
-      )}
-    </div>
+    <Link to="/admin/sets/new" className={buttonVariants()}>
+      問題セットを作る
+    </Link>
   );
 }
 

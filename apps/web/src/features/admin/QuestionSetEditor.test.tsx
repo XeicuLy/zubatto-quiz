@@ -22,9 +22,11 @@ const SET: QuestionSetDetail = {
 };
 
 const EDIT_PATH = `/admin/sets/${SET.id}`;
+const NEW_PATH = '/admin/sets/new';
 
+/** 一覧から移ってきたことにして開く。戻る操作でどこへ戻るかを確かめるため */
 async function openEditor(path = EDIT_PATH) {
-  const router = createAppRouter({ history: createMemoryHistory({ initialEntries: [path] }) });
+  const router = createAppRouter({ history: createMemoryHistory({ initialEntries: ['/admin', path] }) });
   const view = render(<RouterProvider router={router} />);
   await act(() => router.load());
   return { router, unmount: view.unmount };
@@ -259,5 +261,125 @@ describe('問題セットの編集（F4・F7・F9）', () => {
 
     expect(await screen.findByRole('heading', { name: '問題セットが見つかりません' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '問題セットの一覧に戻る' })).toHaveAttribute('href', '/admin');
+  });
+});
+
+describe('問題セットを作る（F4・F7）', () => {
+  /** 空の下書きの第1問に、保存できる中身を入れる */
+  function fillNewSet(title: string) {
+    fireEvent.change(screen.getByLabelText('問題セットの名前'), { target: { value: title } });
+    fireEvent.change(within(card(1)).getByLabelText('問題文'), { target: { value: '部長の十八番は？' } });
+    fireEvent.change(within(card(1)).getByLabelText('選択肢1'), { target: { value: '演歌' } });
+    fireEvent.change(within(card(1)).getByLabelText('選択肢2'), { target: { value: 'アニソン' } });
+    fireEvent.click(within(card(1)).getByRole('radio', { name: '選択肢2を正解にする' }));
+  }
+
+  it('空の下書きで始まり、入れる値の例を placeholder で見せる。開いただけでは何も作らない', async () => {
+    const api = stubFakeApi();
+
+    await openEditor(NEW_PATH);
+
+    expect(await screen.findByRole('heading', { level: 1, name: '問題セットを作る' })).toBeInTheDocument();
+    expect(screen.getByLabelText('問題セットの名前')).toHaveValue('');
+    expect(screen.getByLabelText('問題セットの名前')).toHaveAttribute('placeholder', '例: 2026 内輪クイズ');
+    expect(cardTitles()).toEqual(['第1問']);
+    expect(within(card(1)).getByLabelText('問題文')).toHaveValue('');
+    expect(within(card(1)).getByLabelText('問題文')).toHaveAttribute('placeholder', '例: 部長の十八番は？');
+    // placeholder は名前の代わりにならないので、選択肢の名前は番号のまま
+    const choices = within(card(1)).getAllByRole('textbox', { name: /^選択肢\d$/ });
+    expect(choices.map((choice) => [choice.getAttribute('aria-label'), choice.getAttribute('placeholder')])).toEqual([
+      ['選択肢1', '例: 演歌'],
+      ['選択肢2', '例: アニソン'],
+    ]);
+    for (const radio of within(card(1)).getAllByRole('radio')) {
+      expect(radio).not.toBeChecked();
+    }
+    expect(within(card(1)).getByLabelText('制限時間')).toHaveValue(10);
+    expect(api.requestsTo('POST', '/api/question-sets')).toEqual([]);
+  });
+
+  it('足した選択肢にも、番号ごとの例を出す', async () => {
+    stubFakeApi();
+    await openEditor(NEW_PATH);
+    await screen.findByLabelText('問題セットの名前');
+
+    fireEvent.click(within(card(1)).getByRole('button', { name: '選択肢を足す' }));
+    fireEvent.click(within(card(1)).getByRole('button', { name: '選択肢を足す' }));
+
+    expect(within(card(1)).getByLabelText('選択肢3')).toHaveAttribute('placeholder', '例: 洋楽ロック');
+    expect(within(card(1)).getByLabelText('選択肢4')).toHaveAttribute('placeholder', '例: 歌わない');
+  });
+
+  it('空のまま保存すると、作らずに直すところを示す', async () => {
+    const api = stubFakeApi();
+    const { router } = await openEditor(NEW_PATH);
+    await screen.findByLabelText('問題セットの名前');
+
+    fireEvent.click(saveButton());
+
+    expect(await screen.findByText('問題セットの名前・第1問に直すところがあります')).toBeInTheDocument();
+    expect(api.requestsTo('POST', '/api/question-sets')).toEqual([]);
+    expect(router.state.location.pathname).toBe(NEW_PATH);
+  });
+
+  it('「保存する」で作り、その編集画面へ置き換えて移って「保存する」にフォーカスし、作ったことを toast で知らせる', async () => {
+    const api = stubFakeApi();
+    const { router } = await openEditor(NEW_PATH);
+    await screen.findByLabelText('問題セットの名前');
+    fillNewSet('新しく作った問題セット');
+
+    fireEvent.click(saveButton());
+
+    expect(await screen.findByRole('heading', { level: 1, name: '問題セットの編集' })).toBeInTheDocument();
+    expect(router.state.location.pathname).toMatch(/^\/admin\/sets\/[0-9a-f-]{36}$/);
+    expect(saveButton()).toHaveFocus();
+    expect(within(toasts()).getByText('「新しく作った問題セット」を作りました')).toBeVisible();
+    // 移った先は、作ったセットを読み直した内容で始まる
+    expect(screen.getByLabelText('問題セットの名前')).toHaveValue('新しく作った問題セット');
+    expect(within(card(1)).getByRole('radio', { name: '選択肢2を正解にする' })).toBeChecked();
+    expect(api.requestsTo('POST', '/api/question-sets')).toHaveLength(1);
+
+    // 置き換えたので、戻ると空の作成画面ではなく一覧へ戻る
+    act(() => router.history.back());
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin'));
+  });
+
+  it('「保存して一覧へ」で作ってから一覧へ移り、一覧に作った問題セットが並ぶ', async () => {
+    const api = stubFakeApi();
+    const { router } = await openEditor(NEW_PATH);
+    await screen.findByLabelText('問題セットの名前');
+    fillNewSet('書き終えた問題セット');
+
+    fireEvent.click(saveAndListButton());
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin'));
+    expect(await screen.findByRole('heading', { level: 2, name: '書き終えた問題セット' })).toBeInTheDocument();
+    expect(within(toasts()).getByText('「書き終えた問題セット」を作りました')).toBeVisible();
+    expect(api.requestsTo('POST', '/api/question-sets')).toHaveLength(1);
+  });
+
+  it('何か打ったら、作る前に離れようとすると確かめる', async () => {
+    stubFakeApi();
+    const { router } = await openEditor(NEW_PATH);
+    await screen.findByLabelText('問題セットの名前');
+    fireEvent.change(screen.getByLabelText('問題セットの名前'), { target: { value: '書きかけ' } });
+
+    fireEvent.click(screen.getByRole('link', { name: '問題セットの一覧に戻る' }));
+
+    expect(await screen.findByRole('alertdialog', { name: '保存していない変更があります' })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe(NEW_PATH);
+  });
+
+  it('何も打たずに離れたら、確かめずに移り、一覧に何も増えない', async () => {
+    const api = stubFakeApi();
+    const { router } = await openEditor(NEW_PATH);
+    await screen.findByLabelText('問題セットの名前');
+
+    fireEvent.click(screen.getByRole('link', { name: '問題セットの一覧に戻る' }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin'));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(await screen.findByText('まだ問題セットがありません')).toBeInTheDocument();
+    expect(api.requestsTo('POST', '/api/question-sets')).toEqual([]);
   });
 });

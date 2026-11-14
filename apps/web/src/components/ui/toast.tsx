@@ -21,14 +21,16 @@ type ToastManager = ReturnType<typeof createToastManager>;
  * - shadcn の重ねて縮める動きと transition は外し、縦に並べる。動きは最速正解者と優勝の発表の1か所だけにする決まりのため。
  *   フォーカスの class も外す（styles.css の :focus-visible が枠を出す）
  * - 閉じるボタン・アクション・説明は写していない。成功の知らせは待てば消え、文は題（title）1つで足りる
+ * - 画面の上に出す（#290）。問題セットの編集とホストの進行は、下に操作の帯を固定している。下に出すと、
+ *   保存したあとフォーカスのある「保存する」や、作った直後に開いた部屋の「第1問を出す」を覆ってしまう（WCAG 2.4.11）
  */
 function Toaster({ toastManager: manager = toastManager }: { toastManager?: ToastManager }) {
   return (
     <ToastPrimitive.Provider toastManager={manager}>
-      {/* スマホでは下に幅いっぱい（両端は余白）、広い画面では右下に寄せる。toast のないところはクリックを下の画面へ通す */}
+      {/* スマホでは上に幅いっぱい（両端は余白）、広い画面では右上に寄せる。toast のないところはクリックを下の画面へ通す */}
       <ToastPrimitive.Viewport
         aria-label="通知"
-        className="pointer-events-none fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm flex-col-reverse gap-related sm:right-4 sm:left-auto sm:mx-0 sm:w-full"
+        className="pointer-events-none fixed inset-x-4 top-4 z-50 mx-auto flex max-w-sm flex-col gap-related sm:right-4 sm:left-auto sm:mx-0 sm:w-full"
       >
         <ToastList />
       </ToastPrimitive.Viewport>
@@ -36,13 +38,17 @@ function Toaster({ toastManager: manager = toastManager }: { toastManager?: Toas
   );
 }
 
-/** 新しいものほど前に来るので、flex-col-reverse で角にいちばん近いところへ置く。数が上限（3）を超えた古いものは隠す */
+/**
+ * 新しいものほど前に来るので、flex-col のまま角（上）にいちばん近いところへ置く。数が上限（3）を超えた古いものは隠す。
+ * 払って閉じる向きは、出ている角の方（上か右）にする。Base UI の既定は下に出す前提の下か右
+ */
 function ToastList() {
   const { toasts } = ToastPrimitive.useToastManager();
   return toasts.map((toast) => (
     <ToastPrimitive.Root
       key={toast.id}
       toast={toast}
+      swipeDirection={['up', 'right']}
       className="pointer-events-auto flex items-start gap-related rounded-panel bg-primary p-item text-primary-foreground shadow-lg select-none data-limited:hidden"
     >
       <CheckIcon />

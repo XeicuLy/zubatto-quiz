@@ -44,4 +44,10 @@ declare module '@tanstack/react-router' {
   interface Register {
     router: ReturnType<typeof createAppRouter>;
   }
+
+  /** navigate の state で、移った先の画面へ渡すもの。history に残るので、再読み込みしても読める */
+  interface HistoryState {
+    /** 新しい問題セットを初めて保存して編集画面へ移ったとき、移った先の「保存する」にフォーカスする（#290） */
+    focusSave?: boolean;
+  }
 }

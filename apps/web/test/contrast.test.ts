@@ -92,7 +92,7 @@ const surfacePairs = [
   ['primary-foreground', 'primary'],
   ['secondary-foreground', 'secondary'],
   ['muted-foreground', 'muted'],
-  // 補足の文字は、面の背景にもカードの上にも置く
+  // 補足の文字は、面の背景にもカードの上にも置く。入力欄の placeholder（components/ui/field.tsx）は、欄の背景の card の上
   ['muted-foreground', 'background'],
   ['muted-foreground', 'card'],
   ['accent-foreground', 'accent'],

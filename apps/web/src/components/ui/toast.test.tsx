@@ -19,6 +19,13 @@ describe('Toaster', () => {
     expect(viewport()).toBeEmptyDOMElement();
   });
 
+  it('画面の上に出す。下に固定した操作の帯（保存の帯・進行の帯）のボタンを覆わないため', () => {
+    render(<Toaster />);
+
+    expect(viewport()).toHaveClass('top-4');
+    expect([...viewport().classList].filter((name) => /(^|:)bottom-/.test(name))).toEqual([]);
+  });
+
   it('toastManager.add で出した文が、live region の中に出る', () => {
     render(<Toaster />);
 

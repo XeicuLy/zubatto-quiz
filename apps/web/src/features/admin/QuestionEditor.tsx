@@ -25,6 +25,12 @@ const choiceBadge = [
   'bg-choice-4 text-choice-4-foreground',
 ] as const;
 
+/**
+ * 選択肢の欄に出す、入れる値の例（番号ごと）。問題文の例「部長の十八番は？」の答えにそろえる。
+ * placeholder は名前の代わりにならないので、欄の名前は aria-label の「選択肢N」のまま
+ */
+const choiceExamples = ['例: 演歌', '例: アニソン', '例: 洋楽ロック', '例: 歌わない'] as const;
+
 /** 1問の編集（F4・F9）。問題文・2〜4個の選択肢・正解・制限時間を入れ、並べ替えと消すもここから行う */
 export function QuestionEditor({ question, index, count, errors, dispatch }: QuestionEditorProps) {
   const id = useId();
@@ -81,6 +87,7 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
         <Textarea
           rows={2}
           value={question.text}
+          placeholder="例: 部長の十八番は？"
           onChange={(event) => dispatch({ type: 'setText', index, text: event.target.value })}
         />
       </Field>
@@ -116,6 +123,7 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
                   <Input
                     aria-label={`選択肢${choiceNumber}`}
                     value={choice}
+                    placeholder={choiceExamples[choiceIndex]}
                     onChange={(event) => dispatch({ type: 'setChoice', index, choiceIndex, text: event.target.value })}
                     aria-invalid={choiceError !== undefined}
                     aria-describedby={choiceError === undefined ? undefined : `${id}-choice-${choiceIndex}-error`}
