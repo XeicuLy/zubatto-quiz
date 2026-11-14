@@ -324,8 +324,12 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - 下書き（`question-set-draft.ts`）は `QuestionSetInput` ではない。`correctIndex` は `null`（まだ正解を選んでいない）でもよく、制限時間は入力欄の秒の文字列
 - 編集はすべて純粋な関数 `editorReducer` を通す。選択肢が2〜4個、問題が1〜100問の外に出る編集には、同じ状態を返す
 - `validateDraft` は protocol の `questionSetSchema` を動かし、問題の場所（`'questions.1.correctIndex'`）ごとに日本語のメッセージを1つ当てる。自分では決まりを持たない
-- エラーは最初の「保存する」から出し、そのあとはホストが打つたびに直す
+- エラーは最初に保存を押したときから出し、そのあとはホストが打つたびに直す。誤りがあれば、どちらのボタンでも送らず、移らない
+- 保存のボタンは「保存する」（編集画面に留まる）と「保存して一覧へ」（`/admin` へ移る）の2つ。送る PUT は同じで、違いは保存できたあとに移るかどうかだけ。書き終えて一覧で部屋を作る流れが本筋なので、「保存して一覧へ」を主（`default`）にし、「保存する」は `outline` にする
+- 保存の流れは `use-question-set-save.ts` の `useQuestionSetSave({ setId, draft })` が持つ。mutation、最後に保存できた下書き（`savedDraft`）、`dirty`、`useBlocker` をまとめ、`save(input, intent)` を返す。画面は `validateDraft` を通した `input` だけを渡す。#290 で、作る（POST）か直す（PUT）かの分かれ道を `mutationFn` に足す
 - 「保存していない」は `draft !== savedDraft`（reducer はいつも新しいオブジェクトを返す）。`useBlocker`（`shouldBlockFn` の形で、`disabled` で切り替える）と `beforeunload` が、離れる前に確かめる
+- 保存できたら、`flushSync(() => setSavedDraft(sent))` で描いてから `notify` し、`'list'` なら `navigate` する。`useBlocker` は `disabled` を effect の中で読むので、ただの `setSavedDraft` のあとにすぐ移ると、まだ `dirty` の登録のまま止められ、確かめが出る。`flushSync` の同期の更新では、React が commit の最後に effect まで流す。`navigate({ ignoreBlocker: true })` は使わない。`sent` は送ったときの下書きなので、保存のあいだに打った分は `dirty` のまま残り、「保存して一覧へ」でも確かめが出る。`ignoreBlocker` だとその分が黙って消える。`use-question-set-save.test.tsx` がこの順序を確かめる（`flushSync` を外すと落ちる）
+- 保存できたことは toast（「「名前」を保存しました」）だけで知らせ、保存の帯には出さない。帯に `role="status"` の文も出すと2回読まれる。帯に残すのは、直すところ・「保存しています…」・失敗（`ActionError`）・「保存していない変更があります」。`Toaster` は `__root` にあるので、一覧へ移っても toast は見える
 - 管理画面の中を移るときの確かめは、保存の帯の中身を `ConfirmDialog` に入れ替えて出す（モーダルにしない）。開いたら「編集に戻る」にフォーカスし、戻ったら開く前にフォーカスのあった要素へ戻す。キーボードやスクリーンリーダーでリンクを押したときは、そのリンクへ戻る。macOS の Safari は、マウスで押したリンクにフォーカスを移さないので、直前まで打っていた入力欄へ戻る。押したリンクを別に覚えることはしない。フォーカスの位置に頼る人はどのブラウザでもリンクへ戻り、マウスの人には打っていた欄へ戻るのも「編集に戻る」として自然なため。ブラウザの「戻る」で止めたときは、押したリンクがそもそもない
 - 問題の React の key は `newQuestionKey()` で作り、`addQuestion` のアクションで渡す。こうして reducer を純粋なままにする
 
