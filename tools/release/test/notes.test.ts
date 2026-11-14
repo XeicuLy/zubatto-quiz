@@ -100,6 +100,33 @@ describe('selectCommits（文面と版の判定に使う commit）', () => {
     expect(plan({ currentTag: 'v1.3.0', commits, bump: 'auto' }).next).toBeNull();
   });
 
+  it('Reapply "…"（取り消しの取り消し）は、中の commit として読む', () => {
+    const commits = selectCommits([raw('Reapply "feat: 新しい画面を足す (#1)" (#9)')], config);
+    expect(commits).toMatchObject([{ type: 'feat', description: '新しい画面を足す' }]);
+    expect(plan({ currentTag: 'v1.3.0', commits, bump: 'auto' }).next).toBe('1.4.0');
+  });
+
+  it.each([
+    'fixup! feat: 新しい画面を足す (#1)',
+    'squash! feat: 新しい画面を足す (#1)',
+    'amend! feat: 新しい画面を足す (#1)',
+    'Merge pull request #1 from someone/feat: 新しい画面を足す',
+    'Merged PR 1: feat: 新しい画面を足す',
+  ])('commitlint が確かめずに通す題名（%s）は、途中の feat を拾わずに捨てる', (message) => {
+    // changelogen の正規表現は先頭に固定されていないので、そのままだと途中の feat を拾って minor に上げる
+    expect(selectCommits([raw(message)], config)).toEqual([]);
+  });
+
+  it.each(['BREAKING CHANGE: 旧エンドポイントを削除', 'BREAKING-CHANGE: 旧エンドポイントを削除'])(
+    '本文のフッター（%s）も破壊的変更として読む',
+    (footer) => {
+      // Conventional Commits は2つの書き方を同じ意味とするが、changelogen は空白のほうしか拾わない
+      const commits = selectCommits([{ ...raw('fix: 古い API を削除 (#11)'), body: `\n${footer}\n` }], config);
+      expect(commits).toMatchObject([{ type: 'fix', isBreaking: true }]);
+      expect(plan({ currentTag: 'v1.3.0', commits, bump: 'auto' }).next).toBe('2.0.0');
+    },
+  );
+
   it('作者を消す（generateMarkDown は noAuthors でも、作者ごとに ungh.cc へ問い合わせるため）', () => {
     const body = 'Co-Authored-By: Claude <noreply@anthropic.com>';
     const commits = selectCommits([{ ...raw('fix: 直す (#10)'), body }], config);
