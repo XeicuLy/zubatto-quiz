@@ -1,0 +1,12 @@
+{
+  "name": "@zubatto-quiz/release",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "plan": "node src/cli.ts",
+    "tsc": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "changelogen": "0.6.2"
+  }
+}
