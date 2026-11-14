@@ -83,7 +83,9 @@ ADR 0001〜0004 で、基盤は Cloudflare Workers + Durable Objects（Free プ�
   - 本番のデプロイとマイグレーションは、GitHub Actions の workflow から行う
     - 手で動かしたとき（`workflow_dispatch`）だけ動く workflow にする。main にマージしてもデプロイしない。本番中は API の Worker をデプロイしない決まり（ADR 0006）を、マージで破らないため
       - ADR 0010 で、Release ができたときにも動くように変えた。本番に出す前に承認が要る（ADR 0009）ので、動き始めても承認しなければ出ない。手で動かす形も残す
+      - ADR 0012 で、手で動かしたときだけに戻した。動かすときに版の上げ方を選び、デプロイが成功したらそのコミットにタグと Release を作る
     - 動かすときに「画面だけ」か「API と画面」かを選ぶ。「API と画面」では、マイグレーション（`wrangler d1 migrations apply DB --remote`）→ API の Worker → 画面の Worker の順に行う。Service binding の相手が先にないといけないので、API の Worker を先にする（ADR 0006）
+      - ADR 0012 で、選ぶのをやめ、いつも「API と画面」にした。本番の最中は何もデプロイしない
     - マイグレーションは、古いコードのままでも動くもの（テーブルや列を足すもの）にする。マイグレーションを当ててから API の Worker をデプロイし終えるまでは、古いコードが新しいスキーマで動くため
     - 手元からはデプロイしない。デプロイの手順が workflow のファイルに残り（DD2）、手元の wrangler.jsonc に ID が書き戻されることもない
     - Cloudflare の API トークンとアカウント ID は、GitHub の Environment（`production`）の secret に置き、デプロイの job だけが読めるようにする。トークンは「Edit Cloudflare Workers」のテンプレートに D1 の Edit を足して作り、このアカウントだけに絞る。テンプレートには D1 の権限が入っていない

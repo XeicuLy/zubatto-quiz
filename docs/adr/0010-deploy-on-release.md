@@ -71,6 +71,8 @@ Release で動くときの target
 
 採用する選択肢: 「U1（`release: published` で動かす）」。あわせて G1・H1・N1・E3・Q1 を選ぶ。`workflow_dispatch` は残す。
 
+- ADR 0012 で、U1・G1・N1 を置き換えた。`release: published` のきっかけをやめ、`workflow_dispatch` で版を選んで main のコミットを出し、デプロイが成功したらそのコミットにタグと Release を作る。`target` もなくし、いつも全体を出す。H1・E3・Q1 は残す
+
 理由:
 
 - U1 は DD4 を満たし、DD1 も崩さない。リリース PR をマージすれば、タグと Release ができ、デプロイが動き出して承認を待つ。本番に出るのは承認したときだけ
