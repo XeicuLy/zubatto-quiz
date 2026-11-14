@@ -9,8 +9,8 @@ describe('飾り文字（Dela Gothic One）を使う場所', () => {
       'features/admin/AdminLayout.tsx',
       'features/admin/LoginPage.tsx',
       'features/guide/GuidePage.tsx',
+      'features/landing/LandingPage.tsx',
       'features/player/JoinForm.tsx',
-      'routes/index.tsx',
     ]);
   });
 

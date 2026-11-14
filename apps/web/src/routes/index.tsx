@@ -1,17 +1,27 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 
+import { hostSessionQueryOptions } from '@/api/host-session';
+import { LandingPage } from '@/features/landing/LandingPage';
+import { pageTitle } from '@/lib/page-title';
+
+/**
+ * 入口（#294）。ログインせずに開ける。セッションは、ログインのボタンと「問題セットへ」を出し分けるためだけに読む。
+ * 読めなくても入口は出したいので、エラーの画面にせず、ログインしていないとして扱う。ログイン済みでも /admin へは移さない
+ */
 export const Route = createFileRoute('/')({
-  component: TopPage,
+  head: () => pageTitle('はじめに'),
+  loader: async ({ context }) => {
+    const host = await context.queryClient.query(hostSessionQueryOptions).catch(() => null);
+    return { signedIn: host !== null };
+  },
+  component: TopRoute,
 });
 
-// 入口のページ（#294）ができるまでの仮のトップ。使い方へのリンクだけを置く
-function TopPage() {
+function TopRoute() {
+  const { signedIn } = Route.useLoaderData();
   return (
-    <main className="mx-auto max-w-md px-6 py-16 text-center">
-      <h1 className="font-logo text-display">ズバクイ</h1>
-      <Link to="/guide" className="mt-cluster inline-block font-bold underline underline-offset-4">
-        使い方を見る
-      </Link>
-    </main>
+    <div className="min-h-dvh bg-background font-sans text-foreground antialiased">
+      <LandingPage signedIn={signedIn} />
+    </div>
   );
 }

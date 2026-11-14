@@ -6,7 +6,7 @@ import { APP_NAME } from '@/lib/page-title';
 import type { RouterContext } from '@/router';
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  // 子のルートが head でタイトルを付ければ、そちらが勝つ。付けない画面（トップ・知らない URL）はこれを出す
+  // 子のルートが head でタイトルを付ければ、そちらが勝つ。付けない画面（知らない URL）はこれを出す
   head: () => ({ meta: [{ title: APP_NAME }] }),
   component: RootLayout,
 });
