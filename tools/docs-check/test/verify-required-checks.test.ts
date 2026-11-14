@@ -151,7 +151,7 @@ describe('verify-required-checks.sh（deploy.yaml の verify-ci）', () => {
     ['まだ始まっていない', 'queued', run('ci', 'queued')],
     ['check run がまだない（CI の job が作られる前など）', 'not_found', undefined],
   ])('%s必須のチェックは、終わるまで待ち、成功すれば 0 で終わる', (_, result, pending) => {
-    // Release の run は、リリース PR のマージで動いた main の CI がまだ走っている間に始まる（ADR 0010 の Q1）
+    // main の上で動かした run は、直前のマージで動いた main の CI がまだ走っている間に始まりうる（ADR 0010 の Q1）
     const first = [...(pending ? [pending] : []), passed('e2e'), passed('pr-title')];
     const { status, stdout, calls } = verifyOver([first, first, allPassed()], { waitSeconds: 60 });
     expect(status).toBe(0);
@@ -173,7 +173,7 @@ describe('verify-required-checks.sh（deploy.yaml の verify-ci）', () => {
   });
 
   it('check run を読む gh api が一時的に失敗しても止まらず、次の周で確かめ直す', () => {
-    // 30 分の間に GitHub の API が一度 5xx を返しただけで、Release の run を動かし直すことにならないように
+    // 30 分の間に GitHub の API が一度 5xx を返しただけで、デプロイの run を動かし直すことにならないように
     const { status, stdout, calls } = verifyOver([API_ERROR, allPassed()], { waitSeconds: 60 });
     expect(status).toBe(0);
     expect(stdout).toContain(`ci: ${API_ERROR}`);
@@ -220,7 +220,7 @@ describe('verify-required-checks.sh（deploy.yaml の verify-ci）', () => {
 describe('コミットが main の履歴にあるか（ADR 0010）', () => {
   it.each([
     ['main の先頭（手で main の上で動かしたとき）', 'identical'],
-    ['main の先頭より前（Release のあとに別の PR が入ったとき・前の版のタグで動かしたとき）', 'behind'],
+    ['main の先頭より前（dispatch のあとに別の PR が入ったとき・前の版のタグで動かしたとき）', 'behind'],
   ])('%s なら、チェックを確かめに進む', (_, compareStatus) => {
     const { status, stdout } = verify(allPassed(), { compareStatus });
     expect(status).toBe(0);

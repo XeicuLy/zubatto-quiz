@@ -28,8 +28,8 @@ describe('v* のタグのルールセット（docs/runbooks/release-tag-ruleset.
     expect(ruleset.rules).toEqual([{ type: 'creation' }, { type: 'update' }, { type: 'deletion' }]);
   });
 
-  it('有効で、bypass は release-please の App だけ', () => {
-    // actor_id は App の ID（Client ID ではない）。admin も例外にしないので、タグはリリース PR のマージでしかできない
+  it('有効で、bypass は deploy.yaml の release job が使う App だけ', () => {
+    // actor_id は App の ID（Client ID ではない）。admin も例外にしないので、タグはデプロイが成功したあとの release job でしかできない（ADR 0012）
     expect(ruleset.enforcement).toBe('active');
     expect(ruleset.bypass_actors).toEqual([
       { actor_id: expect.any(Number), actor_type: 'Integration', bypass_mode: 'always' },

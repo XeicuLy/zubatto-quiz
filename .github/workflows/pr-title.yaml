@@ -1,6 +1,6 @@
 name: PR title
 
-# squash マージだけなので、PR の題名がそのまま main のコミット名になり、release-please が CHANGELOG の1行にする（ADR 0009）。
+# squash マージだけなので、PR の題名がそのまま main のコミット名になり、deploy.yaml の release job が CHANGELOG の1行にする（ADR 0009・0012）。
 # 題名を手元の husky（commit-msg）と同じ commitlint の設定で確かめる
 on:
   pull_request:

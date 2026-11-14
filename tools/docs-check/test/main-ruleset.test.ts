@@ -94,7 +94,7 @@ describe('main のルールセット（docs/runbooks/main-ruleset.json・M1）',
   });
 
   it('マージは squash だけにする（PR 1つが main の1コミットになり、CHANGELOG の1行になる・ADR 0009）', () => {
-    // マージコミットは本文に PR の題名を入れ、release-please がそれと PR の中のコミットの両方を数えて、同じ変更が2行ずつ出る
+    // マージコミットは本文に PR の題名とコミットの一覧を入れ、changelogen がその中の feat: なども数えて、同じ変更が2行ずつ出る
     const rule = ruleset.rules.find(({ type }) => type === 'pull_request');
     expect(rule?.parameters?.allowed_merge_methods).toEqual(['squash']);
   });
