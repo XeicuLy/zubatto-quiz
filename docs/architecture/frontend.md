@@ -140,6 +140,18 @@
 - 閉じたときのフォーカスの戻し方は2つある。開いたボタンと置き換えて出すとき（ホストの帯、一覧の行）は、`useConfirm` を使う。`open(which, ref)` で開いたボタンの ref を覚え、閉じて描き直したあとに、その ref が指す新しいボタンへ戻す。開いたボタンが残るとき（編集画面の「問題セットの一覧に戻る」）は、`ConfirmDialog` が開く前の `document.activeElement` を覚えていて、閉じたときにまだ画面にあれば戻す。置き換えるときは、開いたボタンがクリックと同じ描画で外されるので、覚えた要素は `body` になり、2つがぶつかることはない
 - `useConfirm` は、作り直した直後には何も開いていないので、作っただけではフォーカスを動かさない。ホストの帯は段階ごとに key で作り直し、フォーカスは `HostPage` が見出しへ移す
 
+`Toaster`・`toastManager`（`toast.tsx`）と `notify`（`shared/feedback/notify.ts`）:
+
+- 成功を知らせる toast（#287）。いま使うのは、一覧で問題セットを消したときの「「〇〇」を消しました」。失敗には使わない。失敗は消えずに、原因の近くに残す
+- shadcn/ui の `sonner` は使わない。読み込み時に `document.createElement('style')` を `<head>` に差し込み、CSP（`style-src` がなく `default-src 'self'` が効く）に止められる。ADR 0007 の Radix の Dialog と同じ理由。Base UI 1.9.0 の `toast/` には `<style>` を作るコードがなく、位置などの値は React の `style` prop（CSSOM）で入るので止められない。`e2e/csp.spec.ts` が、問題セットを消して toast を出し、CSP の違反がないことと `<style>` 要素が0件のままであることを確かめる
+- `shadcn add toast --view`（Base UI 版）を写し、次を外した。重ねて縮める動きと `transition`（動きは1か所だけの決まり。縦に並べ、上限の3つを超えた古いものは `data-limited:hidden` で隠す）、フォーカスの class、閉じるボタン・アクション・説明（成功の知らせは待てば消え、文は題1つで足りる）、アイコンの `lucide-react`（入れていない。印はインラインの SVG）
+- 題（`Toast.Title`）は `render={<p />}` で `<p>` にする。Base UI は既定で `<h2>` を描き、toast が出るたびに画面の見出しの並びに知らせが混ざる。toast（`role="dialog"`）の名前には `aria-labelledby` で変わらずなる
+- `Toast.Portal` は使わない。`<body>` の直下に描くと、Storybook の `.stage` の箱の外に出て暗い面の色が当たらない。Viewport は `fixed` なので、`__root` の末尾に置けば同じ場所に出る
+- 位置は、スマホの幅では下に幅いっぱい（両端は余白）、`sm` 以上では右下。色は `bg-primary` と `text-primary-foreground` で、枠を持たないので、面そのものが下の画面の `background`・`card` に 3:1 以上になることを `test/contrast.test.ts` が確かめる
+- `Toaster` は `__root` の `Announcer` の隣に置く。経路の外にあるので、保存して一覧へ移るときも toast は消えない
+- 画面は `toastManager` を直接触らず、`notify(message)` を呼ぶ。`notify` は hook ではないので、mutation の `onSuccess` からそのまま呼べる。消えるまでの時間は `notifyTimeoutOf` が文の長さで決める（最低 6 秒、1文字 150 ms。WCAG 2.2.1）。hover とフォーカスのあいだは止まり、Esc で閉じる（どちらも Base UI が持つ）。読み上げは[読み上げ](#読み上げ)の節
+- テストでは `setup.ts` が、テストのたびに `toastManager.close()` で全部閉じる。manager はモジュールに1つなので、消えるまでの timer を次のテストに残さない。ストーリーは、ストーリーごとに `createToastManager()` で manager を作って `Toaster` に渡し、`useEffect` から `timeout: 0` で1つ出す。Provider は `useEffect` で manager を購読し、子の effect は親より先に走るので取りこぼさない（`useLayoutEffect` だと購読の前に出して消える）
+
 ## Storybook
 
 props だけで見た目が決まる表示部品を、Storybook の autodocs（props の表とストーリーの一覧）で目録にする。手元で起動して見るもので、公開しない。振る舞いは部品のテストと E2E で確かめ、ストーリーは見た目の目録と煙テストにとどめる。play 関数、`@storybook/addon-vitest`、`@storybook/addon-a11y` は入れない。
@@ -319,7 +331,8 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - `ConnectionNotice`（回答者）と `HostConnectionNotice`（ホスト）は1つにしない。閉じたときの文が相手ごとに違い（回答者は `replaced` と部屋の終わり方3通り、ホストは `room_not_found` と一覧へ戻るリンク）、最終ランキングのあとの扱いも違う（回答者は中身の上に帯を出し、ホストは `HostPage` が操作の帯を `HostEndedBar` に差し替える）。1つにすると、ホストかどうかの分かれ道が部品の中に増えるので、見た目が同じ重ね表示だけを部品にした
 - `shared/status/` の2つの画面は、進行画面と回答者画面で共有し、`variant` で大きさを変える。つなぎの `StatusScreen`（「部屋に入っています…」「結果を集計しています」など）は自分で `useAnnouncement` を呼ぶ。見出しと本文の `MessageScreen`（満員、部屋が見つからない、接続が閉じた）は読み上げを持たない。閉じた画面の文は接続のお知らせが assertive で渡すので、部品でも言うと2回読まれる
 - 回答の時間と「締切になりました」を読み上げるのは `Answering` だけ。文は `AnswerFooter.tsx` の `answerAnnouncementOf` が、見える知らせと同じ中身で作る。締切のあとの分かれ道は `AnswerFooter` を作り直すので、そこで読み上げると2回読まれる
-- テストは `liveRegion(politeness)`（`test/live-region.ts`）で領域を探し、`setup.ts` がテストのたびに `clearAnnouncements()` を呼ぶ
+- toast は Base UI の Viewport が持つ `role="region"`・`aria-live="polite"` の領域（名前は「通知」）が読む。`notify` は `announce` を呼ばない。呼ぶと2回読まれる（`notify.test.ts` と `QuestionSetList.test.tsx` が確かめる）。toast を `aria-hidden` にして `announce` で読ませる形はとらない。toast 本体はフォーカスできる `role="dialog"` なので、隠すとフォーカスできる要素を読み上げから隠すことになり、キーボードで止める手段もなくなる
+- テストは `liveRegion(politeness)`（`test/live-region.ts`）で領域を探し、`setup.ts` がテストのたびに `clearAnnouncements()` を呼ぶ。toast の Viewport も `aria-live="polite"` を持つので、`liveRegion` と e2e は `role` のない領域（`[aria-live="polite"]:not([role])`）だけを Announcer とみなす
 - Playwright の `getByText` は部分一致なので、領域にも入っている見える文は、`{ exact: true }` か `getByRole('paragraph')` で探す
 
 ## 使い方のページ
