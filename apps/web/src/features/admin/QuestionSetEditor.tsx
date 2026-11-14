@@ -1,9 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link, useBlocker } from '@tanstack/react-router';
-import { MAX_QUESTIONS, type QuestionSet, type QuestionSetDetail } from '@zubatto-quiz/protocol';
+import { Link } from '@tanstack/react-router';
+import { MAX_QUESTIONS, type QuestionSetDetail } from '@zubatto-quiz/protocol';
 import { useReducer, useState } from 'react';
 
-import { questionSetsQueryOptions, saveQuestionSet } from '@/api/question-sets';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Field, Input } from '@/components/ui/field';
@@ -11,6 +9,7 @@ import { ActionError, LoginLink } from '@/shared/feedback/ActionError';
 
 import { draftOf, editorReducer, errorSummaryOf, newQuestionKey, validateDraft } from './question-set-draft';
 import { QuestionEditor } from './QuestionEditor';
+import { type SaveIntent, useQuestionSetSave } from './use-question-set-save';
 
 interface QuestionSetEditorProps {
   setId: string;
@@ -18,44 +17,30 @@ interface QuestionSetEditorProps {
   initial: QuestionSetDetail;
 }
 
-/** 離れるのを止めるかどうかは disabled で切り替える。関数は描くたびに作り直さない（作り直すと登録し直しになる） */
-const blockNavigation = () => true;
-
 /**
- * 問題セットの編集（F4・F7・F9）。下書きは画面の中だけで持ち、「保存する」で丸ごと PUT する。
+ * 問題セットの編集（F4・F7・F9）。下書きは画面の中だけで持ち、「保存する」か「保存して一覧へ」で丸ごと PUT する。
+ * 2つの違いは、保存できたあとに一覧へ移るかどうかだけ。保存の流れと離れる前の確かめは useQuestionSetSave が持つ。
  *
- * 誤りは、初めて「保存する」を押したときに出し、以後は直すたびに出し直す。打ち始めから赤くしないため。
+ * 誤りは、初めて保存を押したときに出し、以後は直すたびに出し直す。打ち始めから赤くしないため。
  * 保存していない変更があるうちは、画面を離れる前に確かめる（経路の移動とタブを閉じる操作の両方）。
  * 管理画面の中の移動は、保存の帯の中身を ConfirmDialog に入れ替えて確かめる。画面を覆わないので、書いた内容を見ながら選べる
  */
 export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
-  const queryClient = useQueryClient();
   const [draft, dispatch] = useReducer(editorReducer, initial, draftOf);
-  // 最後に保存できた下書き。reducer は変えるたびに新しい下書きを返すので、同じものかどうかで変更の有無が分かる
-  const [savedDraft, setSavedDraft] = useState(draft);
   const [showErrors, setShowErrors] = useState(false);
+  const { save, dirty, blocker, isPending, error } = useQuestionSetSave({ setId, draft });
 
   const validation = validateDraft(draft);
   const errors = showErrors && !validation.ok ? validation.errors : {};
   const errorSummary = errorSummaryOf(errors);
-  const dirty = draft !== savedDraft;
 
-  const save = useMutation({
-    mutationFn: (input: QuestionSet) => saveQuestionSet(setId, input),
-    // 一覧の名前・問題の数・並び（更新の新しい順）が変わる
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: questionSetsQueryOptions.queryKey }),
-  });
-
-  const blocker = useBlocker({ shouldBlockFn: blockNavigation, disabled: !dirty, withResolver: true });
-
-  function handleSave() {
+  function handleSave(intent: SaveIntent) {
     setShowErrors(true);
+    // 誤りがあれば、どちらのボタンでも送らず、移らない
     if (!validation.ok) {
       return;
     }
-    // 保存のあいだに打った分は、保存していない変更として残す
-    const sent = draft;
-    save.mutate(validation.input, { onSuccess: () => setSavedDraft(sent) });
+    save(validation.input, intent);
   }
 
   return (
@@ -118,9 +103,13 @@ export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
             />
           ) : (
             <>
-              <SaveStatus errorSummary={errorSummary} save={save} dirty={dirty} />
-              <Button onClick={handleSave} disabled={save.isPending}>
+              <SaveStatus errorSummary={errorSummary} isPending={isPending} error={error} dirty={dirty} />
+              {/* 書き終えて一覧で部屋を作る流れが本筋なので、「保存して一覧へ」を主にする。「保存する」は書く途中の保存 */}
+              <Button variant="outline" onClick={() => handleSave('stay')} disabled={isPending}>
                 保存する
+              </Button>
+              <Button onClick={() => handleSave('list')} disabled={isPending}>
+                保存して一覧へ
               </Button>
             </>
           )}
@@ -132,12 +121,16 @@ export function QuestionSetEditor({ setId, initial }: QuestionSetEditorProps) {
 
 interface SaveStatusProps {
   errorSummary: string | null;
-  save: { isPending: boolean; isSuccess: boolean; error: Error | null };
+  isPending: boolean;
+  error: Error | null;
   dirty: boolean;
 }
 
-/** 保存の帯の左に出す、いまの状態。直すところ・保存の失敗・保存中・保存済みの順に1つだけ出す */
-function SaveStatus({ errorSummary, save, dirty }: SaveStatusProps) {
+/**
+ * 保存の帯の左に出す、いまの状態。直すところ・保存中・保存の失敗・保存していない変更の順に1つだけ出す。
+ * 保存できたことは toast（notify）が知らせるので、ここには出さない。出すと2回読まれる
+ */
+function SaveStatus({ errorSummary, isPending, error, dirty }: SaveStatusProps) {
   if (errorSummary !== null) {
     return (
       <p role="alert" className="text-body font-bold text-destructive">
@@ -145,17 +138,17 @@ function SaveStatus({ errorSummary, save, dirty }: SaveStatusProps) {
       </p>
     );
   }
-  if (save.isPending) {
+  if (isPending) {
     return (
       <p role="status" className="text-note text-muted-foreground">
         保存しています…
       </p>
     );
   }
-  if (save.error !== null) {
+  if (error !== null) {
     return (
       <ActionError
-        error={save.error}
+        error={error}
         failed="保存できませんでした。もう一度押してください。"
         // この画面でログインし直すと、GitHub へ移るあいだに下書きが消える。別のタブでログインすれば Cookie が共有される
         unauthorized={
@@ -170,13 +163,6 @@ function SaveStatus({ errorSummary, save, dirty }: SaveStatusProps) {
   }
   if (dirty) {
     return <p className="text-note text-muted-foreground">保存していない変更があります</p>;
-  }
-  if (save.isSuccess) {
-    return (
-      <p role="status" className="text-note font-bold">
-        保存しました
-      </p>
-    );
   }
   return null;
 }

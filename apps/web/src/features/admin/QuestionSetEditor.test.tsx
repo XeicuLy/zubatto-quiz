@@ -33,6 +33,8 @@ async function openEditor(path = EDIT_PATH) {
 const card = (number: number) => screen.getByRole('listitem', { name: `第${number}問` });
 const cardTitles = () => screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent);
 const saveButton = () => screen.getByRole('button', { name: '保存する' });
+const saveAndListButton = () => screen.getByRole('button', { name: '保存して一覧へ' });
+const toasts = () => screen.getByRole('region', { name: '通知' });
 
 describe('問題セットの編集（F4・F7・F9）', () => {
   it('開くと、保存した問題セットが入っている', async () => {
@@ -82,7 +84,10 @@ describe('問題セットの編集（F4・F7・F9）', () => {
     fireEvent.change(within(card(2)).getByLabelText('制限時間'), { target: { value: '30' } });
     fireEvent.click(saveButton());
 
-    expect(await screen.findByText('保存しました')).toBeInTheDocument();
+    // 成功は toast だけで知らせ、保存の帯には出さない（2回読まれないため）
+    expect(await within(toasts()).findByText('「書き換えた名前」を保存しました')).toBeVisible();
+    expect(screen.queryByText('保存しました')).not.toBeInTheDocument();
+    expect(screen.queryByText('保存していない変更があります')).not.toBeInTheDocument();
     expect(api.requestsTo('PUT', `/api/question-sets/${SET.id}`)).toHaveLength(1);
 
     first.unmount();
@@ -118,7 +123,20 @@ describe('問題セットの編集（F4・F7・F9）', () => {
     expect(screen.queryByText('第3問に直すところがあります')).not.toBeInTheDocument();
 
     fireEvent.click(saveButton());
-    expect(await screen.findByText('保存しました')).toBeInTheDocument();
+    expect(await within(toasts()).findByText(`「${SET.title}」を保存しました`)).toBeVisible();
+  });
+
+  it('直すところがあれば、「保存して一覧へ」でも保存せず、編集画面に留まる（F4）', async () => {
+    const api = stubFakeApi({ questionSetDetails: [SET] });
+    const { router } = await openEditor();
+    await screen.findByLabelText('問題セットの名前');
+
+    fireEvent.change(screen.getByLabelText('問題セットの名前'), { target: { value: '' } });
+    fireEvent.click(saveAndListButton());
+
+    expect(await screen.findByText('問題セットの名前に直すところがあります')).toBeInTheDocument();
+    expect(api.requestsTo('PUT', `/api/question-sets/${SET.id}`)).toEqual([]);
+    expect(router.state.location.pathname).toBe(EDIT_PATH);
   });
 
   it('名前を空にして保存すると、名前の欄に誤りを出して読み上げる（F4）', async () => {
@@ -196,7 +214,7 @@ describe('問題セットの編集（F4・F7・F9）', () => {
     await screen.findByLabelText('問題セットの名前');
     fireEvent.change(screen.getByLabelText('問題セットの名前'), { target: { value: '保存する名前' } });
     fireEvent.click(saveButton());
-    await screen.findByText('保存しました');
+    await within(toasts()).findByText('「保存する名前」を保存しました');
 
     fireEvent.click(screen.getByRole('link', { name: '問題セットの一覧に戻る' }));
 
@@ -204,6 +222,21 @@ describe('問題セットの編集（F4・F7・F9）', () => {
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     // 一覧も、保存した名前で読み直している
     expect(await screen.findByRole('heading', { level: 2, name: '保存する名前' })).toBeInTheDocument();
+  });
+
+  it('「保存して一覧へ」は、保存してから確かめずに一覧へ移り、一覧でも toast が見える', async () => {
+    const api = stubFakeApi({ questionSetDetails: [SET] });
+    const { router } = await openEditor();
+    await screen.findByLabelText('問題セットの名前');
+    fireEvent.change(screen.getByLabelText('問題セットの名前'), { target: { value: '書き終えた名前' } });
+
+    fireEvent.click(saveAndListButton());
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin'));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(api.requestsTo('PUT', `/api/question-sets/${SET.id}`)).toHaveLength(1);
+    expect(await screen.findByRole('heading', { level: 2, name: '書き終えた名前' })).toBeInTheDocument();
+    expect(within(toasts()).getByText('「書き終えた名前」を保存しました')).toBeVisible();
   });
 
   it('保存のときにログインが切れていたら、ログインし直すよう促し、書いた内容は残す', async () => {

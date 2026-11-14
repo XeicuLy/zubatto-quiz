@@ -111,11 +111,10 @@ test('使い方の画像を撮る', async ({ browser }) => {
   // ルートの tsconfig には DOM の型がないので、ブラウザで走らせる式は文字列で渡す
   await host.page.evaluate("document.querySelector('h1').scrollIntoView()");
   await shot(host.page, 'host-edit-set');
-  await host.page.getByRole('button', { name: '保存する' }).click();
-  await expect(host.page.getByText('保存しました')).toBeVisible();
+  await host.page.getByRole('button', { name: '保存して一覧へ' }).click();
 
   // 一覧から部屋を作る
-  await host.page.getByRole('link', { name: '問題セットの一覧に戻る' }).click();
+  await expect(host.page).toHaveURL(/\/admin$/);
   const row = host.page.getByRole('listitem').filter({ hasText: TITLE });
   await expect(row).toContainText(`${QUESTIONS.length}問`);
   await shot(host.page, 'host-create-room');

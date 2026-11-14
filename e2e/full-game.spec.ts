@@ -80,11 +80,12 @@ test('ホストが問題セットを作って部屋を開き、2人が最後ま�
     await host.page.getByRole('button', { name: '問題を足す' }).click();
     await fillQuestion(host.page, index);
   }
-  await host.page.getByRole('button', { name: '保存する' }).click();
-  await expect(host.page.getByText('保存しました')).toBeVisible();
+  // 保存すると一覧へ移り、成功は toast で知らせる
+  await host.page.getByRole('button', { name: '保存して一覧へ' }).click();
+  await expect(host.page).toHaveURL(/\/admin$/);
+  await expect(host.page.getByRole('region', { name: '通知' })).toContainText(`「${TITLE}」を保存しました`);
 
   // 部屋を作り、参加用の URL を出す（F1）
-  await host.page.getByRole('link', { name: '問題セットの一覧に戻る' }).click();
   const row = host.page.getByRole('listitem').filter({ hasText: TITLE });
   await expect(row).toContainText(`${QUESTIONS.length}問`);
   await row.getByRole('button', { name: '部屋を作る' }).click();
