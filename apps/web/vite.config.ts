@@ -4,12 +4,13 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
+import { apiWorker } from './api-worker.ts';
 import { reactCompiler } from './react-compiler.ts';
 
 /** E2E のローカルの D1 と DO の置き場所。package.json の e2e:serve が、毎回空にしてからマイグレーションを当てる */
 const E2E_STATE_PATH = '.wrangler/e2e';
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ command, mode, isPreview }) => ({
   plugins: [
     // react より前に置く。src/routes から src/routeTree.gen.ts を作り、ルートごとにコードを分ける
     // テストのファイル（*.test.tsx）は経路にしない
@@ -19,10 +20,11 @@ export default defineConfig(({ mode }) => ({
     reactCompiler(),
     tailwindcss(),
     // vite dev 1つで、画面の Worker と API の Worker（部屋の DO を含む）を動かす（ADR 0006）
-    // --mode e2e（.env.e2e の CLOUDFLARE_ENV）では、両方の Worker を wrangler.jsonc の env.e2e で作る。
+    // vite dev の API の Worker は、Swagger UI を足した開発の入口で動かす（api-worker.ts）
+    // e2e:serve（CLOUDFLARE_ENV=e2e、--mode e2e）では、両方の Worker を wrangler.jsonc の env.e2e で作る。
     // E2E のローカルの D1 と部屋の DO は、vite dev のもの（.wrangler/state）とは別の場所に置き、開発のデータを汚さない
     cloudflare({
-      auxiliaryWorkers: [{ configPath: '../api/wrangler.jsonc' }],
+      auxiliaryWorkers: [apiWorker({ command, isPreview })],
       persistState: mode === 'e2e' ? { path: E2E_STATE_PATH } : true,
     }),
   ],
