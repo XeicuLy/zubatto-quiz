@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 
 import { createAuth } from './auth/create-auth';
+import { meRoutes } from './routes/me';
 import { questionSetRoutes } from './routes/question-sets';
 import { roomRoutes } from './routes/rooms';
 import { wsRoutes } from './routes/ws';
@@ -21,6 +22,7 @@ app.use('/auth/*', bodyLimit({ maxSize: 4 * 1024 }));
 // GitHub のログイン・コールバック・ログアウト・セッションの取得（ADR 0003）。Origin の確認は Better Auth 自身が baseURL で行う
 app.on(['GET', 'POST'], '/auth/*', (c) => createAuth(c.env).handler(c.req.raw));
 
+app.route('/me', meRoutes);
 app.route('/question-sets', questionSetRoutes);
 // roomRoutes の csrf() と requireHost は /api/rooms/* の全体にかかる。WebSocket の入口を先に置き、
 // 回答者用の入口が requireHost に止められないようにする。入口の応答を返せば、あとのミドルウェアは動かない

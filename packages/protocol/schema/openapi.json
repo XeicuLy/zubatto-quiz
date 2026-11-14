@@ -17,6 +17,27 @@
     }
   ],
   "paths": {
+    "/api/me": {
+      "get": {
+        "operationId": "getMe",
+        "summary": "ログインしているホストが管理者かを返す（ADR 0013）。画面が管理者向けのリンクを出すかを決めるのに使う",
+        "responses": {
+          "200": {
+            "description": "自分のこと",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/api/question-sets": {
       "get": {
         "operationId": "listQuestionSets",
@@ -213,6 +234,16 @@
       }
     },
     "schemas": {
+      "MeResponse": {
+        "type": "object",
+        "properties": {
+          "isAdmin": {
+            "type": "boolean"
+          }
+        },
+        "required": ["isAdmin"],
+        "additionalProperties": false
+      },
       "QuestionSetInput": {
         "type": "object",
         "properties": {
@@ -400,7 +431,7 @@
         "properties": {
           "error": {
             "type": "string",
-            "enum": ["unauthorized", "invalid_request", "not_found"]
+            "enum": ["unauthorized", "forbidden", "invalid_request", "not_found"]
           }
         },
         "required": ["error"],

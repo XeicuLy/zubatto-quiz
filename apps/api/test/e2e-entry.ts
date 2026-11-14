@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import * as z from 'zod';
 
 import { createDb } from '@/db';
 import app from '@/index';
@@ -24,19 +25,19 @@ const e2e = new Hono<{ Bindings: Env }>();
  * 新しいホストを作り、そのログイン Cookie を返す。返す形は Playwright の context.addCookies にそのまま渡せる。
  * 呼ぶたびに別のホストにして、前の回の問題セットが見えないようにする。
  * セッションは本番と同じ Better Auth の設定で作るので、許可リストの確認（session.create.before）も通る。
- * 本文に { name } を渡すと、その名前にする（管理画面の右上に出る。使い方の画像に ID を写さない）。渡さなければ ID を名前にする
+ * 本文で次を選べる。本文がないか形が違えば、どちらも渡さなかったことにする
+ * - name: その名前にする（管理画面の右上に出る。使い方の画像に ID を写さない）。渡さなければ ID を名前にする
+ * - admin: true なら管理者のホストにする（ADR 0013）。渡さなければ管理者でない
  */
+const loginBodySchema = z.object({ name: z.string().optional(), admin: z.boolean().optional() }).catch({});
+
 e2e.post(E2E_LOGIN_PATH, async (c) => {
   const db = createDb(c.env.DB);
   const userId = crypto.randomUUID();
   const githubUserId = crypto.randomUUID();
-  const body: unknown = await c.req.json().catch(() => ({}));
-  const name =
-    typeof body === 'object' && body !== null && 'name' in body && typeof body.name === 'string'
-      ? body.name
-      : undefined;
+  const { name, admin } = loginBodySchema.parse(await c.req.json().catch(() => ({})));
   await insertGithubUser(db, { userId, githubUserId, name });
-  await allowGithubUser(db, githubUserId);
+  await allowGithubUser(db, githubUserId, { admin });
 
   const { test } = await createTestAuth(c.env);
   const cookies = await test.getCookies({ userId, domain: new URL(c.env.BETTER_AUTH_URL).hostname });

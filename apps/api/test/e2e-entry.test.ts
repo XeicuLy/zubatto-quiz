@@ -18,7 +18,7 @@ beforeEach(async () => {
 const request = (path: string, init?: RequestInit) => e2e.request(`${ORIGIN}${path}`, init, env);
 
 /** E2E 用のログインを呼び、返ってきた Cookie を、ブラウザが付けるのと同じ Cookie ヘッダーにする */
-async function login(body?: { name: string }): Promise<string> {
+async function login(body?: { name?: string; admin?: boolean }): Promise<string> {
   const response = await request(
     E2E_LOGIN_PATH,
     body === undefined
@@ -67,6 +67,19 @@ describe('E2E 用のログインの入口（ADR 0003）', () => {
     expect((await nameOf(named)).name).toBe('ホスト');
     const { id, name } = await nameOf(unnamed);
     expect(name).toBe(id);
+  });
+
+  // 管理者の画面（ADR 0013）の E2E は、管理者のホストでログインする
+  it('admin: true を渡すと管理者のホストになる。渡さなければ管理者でない', async () => {
+    const admin = await login({ admin: true });
+    const host = await login();
+
+    const isAdminOf = async (cookie: string) => {
+      const response = await request('/api/me', { headers: { cookie } });
+      return (await response.json<{ isAdmin: boolean }>()).isAdmin;
+    };
+    expect(await isAdminOf(admin)).toBe(true);
+    expect(await isAdminOf(host)).toBe(false);
   });
 
   it('本番の経路もそのまま通る', async () => {

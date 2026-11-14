@@ -6,19 +6,21 @@ import { hostAllowlist, user } from '@/db/schema';
 import { allowGithubUser, createTestAuth, insertGithubUser } from './auth/create-test-auth';
 
 /**
- * D1 を空にして、2人のホストを入れ直す。alice が自分のセットを扱い、mallory が alice のセットに手を出そうとする（S1・ADR 0002）。
+ * D1 を空にして、3人のホストを入れ直す。alice が自分のセットを扱い、mallory が alice のセットに手を出そうとする（S1・ADR 0002）。
+ * admin は管理者のホストで、管理者だけの経路を通れる。alice と mallory は管理者でない（ADR 0013）。
  * vitest-plugin はテストごとには D1 を戻さないので、beforeEach で呼ぶ（user を消すと問題セットと問題も消える）
  */
 export async function resetHosts(): Promise<void> {
   const db = createDb(env.DB);
   await db.delete(user);
   await db.delete(hostAllowlist);
-  for (const [userId, githubUserId] of [
-    ['alice', '1001'],
-    ['mallory', '1002'],
+  for (const [userId, githubUserId, admin] of [
+    ['admin', '1000', true],
+    ['alice', '1001', false],
+    ['mallory', '1002', false],
   ] as const) {
     await insertGithubUser(db, { userId, githubUserId });
-    await allowGithubUser(db, githubUserId);
+    await allowGithubUser(db, githubUserId, { admin });
   }
 }
 

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createDb } from '@/db';
 import { account, hostAllowlist, user } from '@/db/schema';
 
-import { isAllowedGithubUser, isAllowedUser } from './allowlist';
+import { isAdminUser, isAllowedGithubUser, isAllowedUser } from './allowlist';
 
 // vitest-plugin はテストごとには D1 を戻さないので、テストの前に空にする（user を消すと account も消える）
 const db = createDb(env.DB);
@@ -14,7 +14,7 @@ beforeEach(async () => {
   await db.delete(hostAllowlist);
 });
 
-const allow = (githubUserId: string) => db.insert(hostAllowlist).values({ githubUserId });
+const allow = (githubUserId: string, isAdmin = false) => db.insert(hostAllowlist).values({ githubUserId, isAdmin });
 
 /** Better Auth が GitHub のログインで作るのと同じ形で、user と account を入れる */
 const insertUserWithAccount = async (userId: string, providerId: string, accountId: string) => {
@@ -79,5 +79,51 @@ describe('isAllowedUser（セッションを作るとき）', () => {
     await allow('1001');
 
     expect(await isAllowedUser(db, 'alice')).toBe(false);
+  });
+});
+
+describe('isAdminUser（管理者だけの経路・ADR 0013）', () => {
+  it('GitHub の account が、管理者の印のある許可リストの行にある user なら true', async () => {
+    await insertUserWithAccount('alice', 'github', '1001');
+    await allow('1001', true);
+
+    expect(await isAdminUser(db, 'alice')).toBe(true);
+  });
+
+  it('許可リストにあっても、管理者の印がなければ false', async () => {
+    await insertUserWithAccount('alice', 'github', '1001');
+    await allow('1001');
+
+    expect(await isAdminUser(db, 'alice')).toBe(false);
+  });
+
+  it('管理者の印を外したら false になる', async () => {
+    await insertUserWithAccount('alice', 'github', '1001');
+    await allow('1001', true);
+    await db.update(hostAllowlist).set({ isAdmin: false });
+
+    expect(await isAdminUser(db, 'alice')).toBe(false);
+  });
+
+  it('許可リストにない user なら false', async () => {
+    await insertUserWithAccount('alice', 'github', '1001');
+
+    expect(await isAdminUser(db, 'alice')).toBe(false);
+  });
+
+  it('GitHub 以外の account の ID が管理者の行の値と同じでも false', async () => {
+    await insertUserWithAccount('alice', 'google', '1001');
+    await allow('1001', true);
+
+    expect(await isAdminUser(db, 'alice')).toBe(false);
+  });
+
+  it('ほかの user が管理者でも false', async () => {
+    await insertUserWithAccount('alice', 'github', '1001');
+    await insertUserWithAccount('bob', 'github', '1002');
+    await allow('1001');
+    await allow('1002', true);
+
+    expect(await isAdminUser(db, 'alice')).toBe(false);
   });
 });

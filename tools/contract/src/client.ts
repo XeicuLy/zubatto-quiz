@@ -38,13 +38,16 @@ export interface ApiResult {
   body: unknown;
 }
 
+/** HTTP API の呼び手。cookie がなければ、ログインしていない人として呼ぶ */
+export type Caller = Pick<HostSession, 'origin'> & Partial<Pick<HostSession, 'cookie'>>;
+
 /**
- * ホストのセッションで HTTP API を呼び、応答を openapi.json で調べる。
+ * ホストのセッション（またはログインしていない人）で HTTP API を呼び、応答を openapi.json で調べる。
  * operation は openapi.json のキー（`'PUT /api/question-sets/{id}'`）で、`{…}` は params で埋める。
  * Cookie で認証する状態を変える経路は csrf() を通るので、ブラウザと同じ Origin と Sec-Fetch-Site を付ける
  */
 export async function request(
-  session: HostSession,
+  session: Caller,
   operation: string,
   { params = {}, body }: { params?: Record<string, string>; body?: unknown } = {},
 ): Promise<ApiResult> {
@@ -59,7 +62,7 @@ export async function request(
     headers: {
       Origin: session.origin,
       'Sec-Fetch-Site': 'same-origin',
-      Cookie: session.cookie,
+      ...(session.cookie === undefined ? {} : { Cookie: session.cookie }),
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
     },
     body: body === undefined ? undefined : JSON.stringify(body),

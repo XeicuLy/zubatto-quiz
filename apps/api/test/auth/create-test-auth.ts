@@ -27,4 +27,6 @@ export async function insertGithubUser(
   await db.insert(account).values({ id: `${userId}-github`, userId, providerId: 'github', accountId: githubUserId });
 }
 
-export const allowGithubUser = (db: Db, githubUserId: string) => db.insert(hostAllowlist).values({ githubUserId });
+/** GitHub のユーザー ID を許可リストに入れる。admin を true にすると管理者の行にする（ADR 0013） */
+export const allowGithubUser = (db: Db, githubUserId: string, { admin = false }: { admin?: boolean } = {}) =>
+  db.insert(hostAllowlist).values({ githubUserId, isAdmin: admin });
