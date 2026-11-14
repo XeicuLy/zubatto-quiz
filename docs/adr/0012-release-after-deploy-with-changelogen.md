@@ -42,7 +42,7 @@ ADR 0009 は、デプロイが成功したコミットにタグを打つ案（R4
 
 - DD1 正確さ: タグ・Release・CHANGELOG の版は、本番に出してデプロイが成功したコミットにだけ付く。Reject やデプロイの失敗では何も作らない。本番に何があるかは、これまでどおり production の Deployments と run の step の結果でも答えられる
 - DD2 セキュリティ: タグ・Release・PR を書く権限は App の token だけが持ち、`release` の Environment（main だけ）の中で使う。production の job に App の鍵を持ち込まない。`v*` のタグを作れるのは App だけのまま。GITHUB_TOKEN に `contents: write` を渡さない。main のルールセットを緩めない
-- DD3 運用の手間: dispatch 1回と承認1回で、デプロイと版が済む。上げるものがない auto や、続けられない状態は、承認の前に止まる。途中で失敗したら **Re-run failed jobs** で続きから動かせ、デプロイをやり直さずにタグだけを作り直せる。古い run を動かし直しても、本番を古いコミットで上書きしない。手元の状態に結果が左右されない
+- DD3 運用の手間: dispatch 1回と承認1回で、デプロイと版が済む。上げるものがない auto や、続けられない状態は、承認の前に止まる。途中で失敗したら **Re-run failed jobs** で続きから動かせ、デプロイをやり直さずにタグだけを作り直せる。古い run を動かし直しても、そのあとに別の版が出ていれば止まり、本番を古いコミットで上書きしたり、古い番号の版を作ったりしない。仕組みで止められない場面は、Re-run をいちばん新しい run にだけ使う決まりで守る。手元の状態に結果が左右されない
 - DD4 変更容易性: 版の決まり（auto の判定、基準は最新の `v*` タグ）は自前の純粋関数に置き、テストで固定する
 - DD5 学ぶ価値: 好きな UnJS の changelogen をライブラリとして使い、そのエコシステムに関わる
 
@@ -95,10 +95,18 @@ ADR 0009 は、デプロイが成功したコミットにタグを打つ案（R4
 流れは次のとおり。
 
 1. deploy.yaml を `workflow_dispatch` で動かす。欄は `bump`（auto / major / minor / patch、既定は auto）だけ。`target` はなくす
-2. `verify-ci`（Environment も secret も使わない）は、今までの確かめ（コミットが main にあり、必須のチェックが通っている）に加えて、次の版を決める。auto で上げるものがないときと、前の CHANGELOG の PR が開いているときは、ここで止まる。次の版・理由・文面を run のまとめに書く
-3. `deploy`（production、承認1回）は、ブランチの上の run なら、最初の step で、最新の `v*` タグが `github.sha` の祖先（か同じ）であることと、前の CHANGELOG の PR が開いていないことを確かめ直す。そのあと、マイグレーション → API → 画面を出す
-   - **Re-run failed jobs** は、成功済みの `verify-ci` を動かし直さない。`verify-ci` だけで確かめると、古い run を動かし直したときに素通りされ、あとから出た新しい版を古いコミットで上書きしうる。そのため、本番に出す直前のこの job の中でも確かめる。最新のタグが祖先であれば、出すコミットはこれまでに出したすべての版を含む
-4. `release`（`needs: deploy`、`environment: release`、ブランチの上で動いたときだけ）は、App の token で、先に `CHANGELOG.md` と `package.json` の `version` を更新する PR を作り、次に文面を本文にした Release を作る。PR のブランチは `origin/main` から切り、題名は scope なしの `chore`。Release は `target_commitish` を `github.sha` にして、タグ `vX.Y.Z` も Release API に作らせる。どの手順も、すでにあれば飛ばす。タグがすでに別のコミットにあれば、飛ばさずに止まる。依存パッケージは入れず、版と文面は `verify-ci` から受け取る
+2. `verify-ci`（Environment も secret も使わない）は、今までの確かめ（コミットが main にあり、必須のチェックが通っている）に加えて、ブランチの上の run なら、その時点の最新の `v*` タグを基準のタグにして、次の版を決める。次のどれかなら、ここで止まる
+   - 基準のタグが `github.sha` の祖先でない（出すコミットが、これまでの版を含まない）
+   - 基準のタグがすでに `github.sha` を指している（同じコミットに2つ目の版を作らない。出し直すときは、タグの上で動かす）
+   - auto で上げるものがない
+   - 前の CHANGELOG の PR が開いている
+
+   基準のタグ・次の版・理由・文面は、run のまとめに書き、後ろの job に渡す
+
+3. `deploy`（production、承認1回）は、ブランチの上の run なら、最初の step で、最新の `v*` タグがまだ基準のタグと同じであることと、前の CHANGELOG の PR が開いていないことを確かめ直す。そのあと、マイグレーション → API → 画面を出す
+   - **Re-run failed jobs** は、成功済みの `verify-ci` を動かし直さない。`verify-ci` だけで確かめると、古い run を動かし直したときに素通りされ、あとから出た版を古いコミットで上書きしたり、あとから出た版より古い番号の版を作ったりしうる。そのため、本番に出す直前のこの job の中でも確かめる
+   - 最新のタグが基準のタグと同じなら、`verify-ci` のあとに別の版は出ておらず、`verify-ci` が確かめた「基準のタグは `github.sha` の祖先で、`github.sha` はまだ版になっていない」もそのまま成り立つ。祖先かだけを確かめ直すのでは足りない。同じコミットが先に別の番号で出されたときに、古い番号の版を作ってしまう
+4. `release`（`needs: deploy`、`environment: release`、ブランチの上で動いたときだけ）は、最初に、タグ `vX.Y.Z` がすでに `github.sha` にあれば、前の Re-run で終わっているので残りを飛ばす。そうでなく、最新の `v*` タグが基準のタグと違えば、何も作らずに止まる（`release` だけを Re-run したときも、PR を作る前に止まる）。そのうえで、App の token で、先に `CHANGELOG.md` と `package.json` の `version` を更新する PR を作り、次に文面を本文にした Release を作る。PR のブランチは `origin/main` から切り、題名は scope なしの `chore`。Release は `target_commitish` を `github.sha` にして、タグ `vX.Y.Z` も Release API に作らせる。どの手順も、すでにあれば飛ばす。タグがすでに別のコミットにあれば、飛ばさずに止まる。依存パッケージは入れず、基準のタグ・版・文面は `verify-ci` から受け取る
 5. CHANGELOG の PR は、その版の Release ができてから、手でマージする。本番には関係しない
 
 `release` が途中で失敗しても、PR を先に作るので、タグだけが残ることはない。
@@ -110,7 +118,7 @@ ADR 0009 は、デプロイが成功したコミットにタグを打つ案（R4
 版と文面の決まりは次のとおり。
 
 - auto: 前のタグからの commit に破壊的変更（`!`）があれば major、なければ feat があれば minor、なければ fix か perf があれば patch。どれもなければ止まる
-- major / minor / patch を選んだときは、commit がなくても、前のタグからその分だけ上げる
+- major / minor / patch を選んだときは、版を上げる理由になる commit（feat・fix・perf・破壊的変更）がなくても、前のタグからその分だけ上げる。ただし `github.sha` がすでに版になっていれば、上の確かめで止まる
 - 基準は最新の `v*` タグ
 - CHANGELOG に出す type は feat・fix・perf・refactor・docs・revert。見出しは changelogen の既定のまま（`🚀 Enhancements` など）にし、既定の表にない revert は足す。chore・ci・test・build・style は出さない
 - 「❤️ Contributors」の節は出さない。`generateMarkDown` には作者を消してから渡し、ungh.cc へ問い合わせない
@@ -122,7 +130,7 @@ ADR 0009 は、デプロイが成功したコミットにタグを打つ案（R4
 理由:
 
 - ADR 0009 が R4・R5 を採らなかった理由には、次のように答える
-  - タグの2つの意味: K1 でデプロイはいつも全体になり、タグはデプロイの成功でしか作らない。画面だけのデプロイがないので、本番にない API の変更がタグに載ることはなく、#160 の仕組みは要らない。番号がすでに別のコミットのタグになっていることも、ふつうは起きない。次の版は最新のタグから数え、`concurrency` が run を1つずつ動かすので、次の run が版を数えるのは前の run がタグを打ったあとになる。それでも起きたら、飛ばさずに止める
+  - タグの2つの意味: K1 でデプロイはいつも全体になり、タグはデプロイの成功でしか作らない。画面だけのデプロイがないので、本番にない API の変更がタグに載ることはなく、#160 の仕組みは要らない。番号がすでに別のコミットのタグになっていることも、ふつうは起きない。次の版は最新のタグから数え、`concurrency` が run を1つずつ動かすので、次の run が版を数えるのは前の run がタグを打ったあとになる。古い run を Re-run しても、`deploy` と `release` が基準のタグを確かめ直すので止まる。それでも起きたら、飛ばさずに止める
   - 手元の状態: 版の判定と文面づくりは、`verify-ci` の中で、出すコミットの上で行う。手元では何も動かさない
   - DD7: 果たし終えた。代わりの学ぶ価値は DD5
 - L3 は DD1 を最もよく満たす。タグが成功したデプロイのコミットに付くことを、仕組みで保証できるのは L3 だけ。判定が自前の純粋関数なので DD4 も満たす
@@ -134,7 +142,7 @@ ADR 0009 は、デプロイが成功したコミットにタグを打つ案（R4
   - B1 は任意の版を書けるが、正しい semver か、最新のタグより大きいかを確かめるコードが要る。番号を飛ばすことと pre-release は、npm に出すパッケージもベータを配る相手もないので、使う場面がない
   - B2 は、「auto なのに版も書いた」「manual なのに空」の組み合わせを止めるコードが要るわりに、得るものが小さい
 - Z1 は DD1 と DD3 を満たす。CHANGELOG の PR を手でマージする設計なので、`package.json` は遅れうる。Z2 はそのあいだ古い版を指し、同じ版を二度作ろうとする
-- Y1 は DD3 を満たす。だめな run は承認の画面まで来ない。Y2 は、本番に出たのにタグを打てない状態を作り、DD1 を満たさない。前の CHANGELOG の PR が開いたままだと、次の PR がその節を持たない main から切られて、競合するか節が抜けるので、この確かめも承認の前に置く。`release` が PR を先に作るので、同じ確かめが、`release` が途中で失敗した run も拾う
+- Y1 は DD3 を満たす。だめな run は承認の画面まで来ない。Y2 は、本番に出たのにタグを打てない状態を作り、DD1 を満たさない。前の CHANGELOG の PR が開いたままだと、次の PR がその節を持たない main から切られて、競合するか節が抜けるので、この確かめも承認の前に置く。`release` が PR を先に作るので、同じ確かめが、PR を作ったあとで `release` が失敗した run も拾う。PR を作る前の失敗は拾えないので、Re-run で終わらせる（上の流れ）
 - J2 は DD2 と DD3 を満たす。App の鍵は `release`（main だけ）の中にとどまり、承認は production の1回のまま。`release` の段だけ失敗したら、**Re-run failed jobs** でデプロイをやり直さずに動かせる。J1 は App の鍵を Cloudflare のトークンと同じ job に入れ、タグだけのやり直しもできない
   - `release` で依存パッケージを入れないのは DD2 のため。書き込みの token を持つ job で、依存の install スクリプトや、ほかの job が書けるキャッシュの中身が動かないようにする
 - G1 は DD3 と DD4 を満たす。承認を待つあいだ、終わった `verify-ci` のまとめは run の画面に出るので、版と文面を読んでから承認できる。気に入らなければ Reject すれば何も出ず、何も作られないので、Reject がそのまま下見になる。足すのはまとめに書く数行だけ
@@ -155,17 +163,17 @@ ADR 0009 は、デプロイが成功したコミットにタグを打つ案（R4
 - 悪い影響: 自前の判定と、「すでにあれば飛ばす」workflow の手順を保つ。changelogen は 0.x なので、上げるたびに API の変化と `@deprecated` を確かめる
 - 悪い影響: CHANGELOG の見出しが、v1.3.0 までの節（release-please が書いた日本語）と、これから（changelogen の英語と絵文字）で変わる。過去の節は書き換えない
 - 悪い影響: `release` が途中で失敗すると、CHANGELOG の PR だけが開いたまま残る。**Re-run failed jobs** で `release` を終わらせるまで、次の dispatch は承認の前に止まる。Release ができる前にその PR をマージすると、この止める仕組みが効かなくなるので、マージは Release を確かめてからにする。PR を作る前に失敗したときは何も残らず、次の dispatch も止まらないので、run の失敗を見て自分で Re-run する
-- 悪い影響: 新しい run のデプロイが成功し、その `release` が PR を作る前に失敗した状態では、タグも PR もないので、それより古い run の Re-run を `deploy` の確かめで止められない。Re-run は、いちばん新しい run にだけ使う
+- 悪い影響: 新しい run のデプロイが成功し、その `release` が PR を作る前に失敗した状態では、タグも PR もなく、最新のタグは基準のタグと同じままなので、それより古い run の Re-run を `deploy` の確かめで止められない。Re-run は、いちばん新しい run にだけ使う
 - 悪い影響: 前の版に戻したあとは、本番が最新のタグより古い。本番に何があるかは Deployments で読む
 - 悪い影響: v1.3.0 までのタグに戻すときは、そのタグの deploy.yaml の `target` の欄で `all` を選ぶ必要がある。既定の `web` のままだと、画面だけが戻る
 - 対応事項（#244）: `tools/release` の判定を B3 に合わせる（`bump` は auto / major / minor / patch。auto で上げるものがなければ止める）。`changelog.config.ts` は feat・fix・perf・refactor・docs・revert を出し、見出しは既定にして revert を足し、`noAuthors` を付ける。作者を消してから `generateMarkDown` に渡す。type が commitlint の type と合うことをテストする
-- 対応事項（#245）: deploy.yaml から `target` を外して `bump` を足し、`release: published` を外す。`verify-ci` に版の判定・前の CHANGELOG の PR の確かめ・まとめを足す（タグと履歴を取り、PR を読む権限を足す）。`deploy` の最初に、最新の `v*` タグが祖先か・前の CHANGELOG の PR が開いていないかを確かめ直す step を足す。`release` job を足す（`needs: deploy`、`environment: release`、`if: github.ref_type == 'branch'`、依存を入れない）。release-please は同じ変更で外し、両方がタグを打つ期間を作らない。`deploy-workflow.test.ts`・runbook・operations.md・CLAUDE.md を直す。App の token の `issues` の権限と、App の Issues の権限・`autorelease` のラベルの扱いを手順に書く。deploy.md に、`release` が途中で失敗したときの動かし直し方と、v1.3.0 までのタグに戻すときは `target` に `all` を選ぶことを書く
+- 対応事項（#245）: deploy.yaml から `target` を外して `bump` を足し、`release: published` を外す。`verify-ci` に版の判定・前の CHANGELOG の PR の確かめ・まとめを足す（タグと履歴を取り、PR を読む権限を足す）。`verify-ci` は基準のタグを outputs で渡す。`deploy` と `release` の最初に、最新の `v*` タグが基準のタグと同じかを確かめ直す step を足す（`deploy` は前の CHANGELOG の PR も見る）。`release` job を足す（`needs: deploy`、`environment: release`、`if: github.ref_type == 'branch'`、依存を入れない）。release-please は同じ変更で外し、両方がタグを打つ期間を作らない。`deploy-workflow.test.ts`・runbook・operations.md・CLAUDE.md を直す。App の token の `issues` の権限と、App の Issues の権限・`autorelease` のラベルの扱いを手順に書く。deploy.md に、`release` が途中で失敗したときの動かし直し方と、v1.3.0 までのタグに戻すときは `target` に `all` を選ぶことを書く
 - 対応事項（#244・#245）: 次のセキュリティと同時実行のケースを、自動テストで確かめる
   - App の token を作る step は `release` job にだけあり、`permission-issues` を渡さない。GITHUB_TOKEN の権限は、どの job でも書き込みを持たない
   - `release` job は `environment: release`・`needs: deploy`・`if: github.ref_type == 'branch'` を持ち、依存パッケージを入れる step（`pnpm install`、mise のキャッシュ）を持たない
   - production を使う job は `deploy` だけで、`verify-ci` は Environment も secret も使わない
   - `release: published` のきっかけがない。`concurrency` は `deploy-production`・`cancel-in-progress: false` のままで、`queue: max` を持たない（今あるテストを残す）
-  - `release` の各手順の判定（タグがない → 作る、同じコミットにある → 飛ばす、別のコミットにある → 止める。Release と PR も、あれば飛ばす）と、`verify-ci` の止める条件（auto で上げるものがない、前の CHANGELOG の PR が開いている）と、`deploy` の最初の確かめ（最新の `v*` タグが `github.sha` の祖先でない、前の CHANGELOG の PR が開いている）は、純粋関数にしてテストする。途中で失敗したあとの Re-run で重複ができないことは、この判定のテストで確かめる
+  - `release` の各手順の判定（タグがない → 作る、同じコミットにある → 飛ばす、別のコミットにある → 止める。Release と PR も、あれば飛ばす）と、`verify-ci` の止める条件（基準のタグが祖先でない、基準のタグがすでに `github.sha` を指す、auto で上げるものがない、前の CHANGELOG の PR が開いている）と、`deploy` と `release` の最初の確かめ（最新の `v*` タグが基準のタグと違えば止める。`deploy` は前の CHANGELOG の PR が開いていても止める。`release` はタグ `vX.Y.Z` がすでに `github.sha` にあれば残りを飛ばす）は、純粋関数にしてテストする。途中で失敗したあとの Re-run で重複ができないことと、古い run の Re-run が止まることは、この判定のテストで確かめる
   - `deploy` の確かめの step は、ブランチの上の run で、Cloudflare の secret を読むどの step よりも前にある
 - 対応事項（#246）: 本番で通して確かめる。Reject した run が production の Deployments に何を残すかも確かめる
 - 対応事項: #242・#244・#245・#246 の本文を、この ADR（target をなくす、bump の選択肢、出す type、見出し）に合わせて直す
