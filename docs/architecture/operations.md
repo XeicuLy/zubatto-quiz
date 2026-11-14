@@ -162,6 +162,9 @@ action と npm の依存の更新は、Dependabot が週に1回 PR にする（`
 - `directory` は `/` だけにする。`pnpm-lock.yaml` は root に1つだけで、pnpm は `.mise.toml` と同じ 12 系まで Dependabot が対応している（[GitHub の文書](https://docs.github.com/en/code-security/dependabot/ecosystems-supported-by-dependabot/supported-ecosystems-and-repositories)で、2026-11-07 に確かめた）
 - `commit-message.prefix` は `chore` にし、`include: scope` は書かない。理由は action の `ci` と同じ。`chore` は版を上げないので、更新は次のリリースで本番に届く。脆弱性を直す更新をすぐ本番に出したいときは、PR の題名を `fix:` に書き換えてからマージする
 - minor と patch は `minor-and-patch` の1つの PR にまとめ、ほかの major はパッケージごとの PR にする。`storybook`・`react`・`tailwindcss`・`commitlint` は版をそろえて動くので、major のときだけ一緒に別の PR にする。minor と patch まで分けないのは、グループの数だけ PR と `e2e` が増えるからだ。グループは先に一致したものに入るので、`minor-and-patch` を最後に書く
+- 手で直すことがあるものは、minor と patch でも `minor-and-patch` から外し、直し方ごとのグループにする。1つにまとめると、その1件のために毎週の PR が `tsc` で止まり、ほかの更新のテストの結果が見えない。直すために手で push すると Dependabot が自動で rebase しなくなるので、手を入れる PR は小さいほうがよい
+  - `cloudflare`（`wrangler`・`@cloudflare/*`、major も含む）: `wrangler` はほぼ毎週新しい版が出て、そのたびに `worker-configuration.d.ts` の作り直しが要る（[下の3番](#更新の-pr-で読むこと)）。`@cloudflare/vite-plugin` と `@cloudflare/vitest-plugin` も workerd を持つので、型を作る版とテストを動かす版がずれないよう一緒に上げる
+  - `oxc`（`oxlint`・`oxfmt`）: 整形の変わり方や新しいルールで、リポジトリ全体に直しが出ることがある（下の4番）
 - `cooldown` は `default-days` を3日、`semver-major-days` を7日にする。公開直後の版を避け、[pnpm の公開待ち期間](#pnpm-の公開待ち期間)に引っかからないようにする
 - `@babel/core`・`@types/node`・`typescript` の major は `ignore` で止め、手で上げる。`@babel/core` は 8 系にすると React Compiler が既定値付き props の部品を黙って飛ばす（[frontend.md の「全体の形」](frontend.md#全体の形)）。`@types/node` は `.mise.toml` の Node の版に合わせる。`typescript` は 7.0 に API がなく、新しい API は 7.1 で出る予定なので（[TypeScript の告知](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)で、2026-11-07 に確かめた）、7.1 が出たら `ignore` を外す。このリポジトリの `tsc` と commitlint は 7.0.2 でも動いたので、今の失敗を避けるためではなく、API が整うのを待つための `ignore` だ
 - Dependabot alerts はオンにしている（2026-11-07 に `gh api -X PUT repos/XeicuLy/zubatto-quiz/vulnerability-alerts` で有効にした）。security updates はオフのままにする。`cooldown` が効かないので、公開待ち期間に引っかかりやすい。pnpm 12 の lockfile を依存グラフが読めていることは、`gh api repos/XeicuLy/zubatto-quiz/dependency-graph/sbom --jq '.sbom.packages | length'` の件数で確かめる（2026-11-07 は850件）
@@ -184,16 +187,22 @@ pnpm には、公開から1440分（1日）たっていない版を避ける `mi
 
 1. `pnpm-workspace.yaml` が変わっていないこと。`minimumReleaseAgeExclude` が足されていると `dependabot.test.ts` で `ci` が落ちる。その PR はマージせず、1日以上たってから `@dependabot recreate` とコメントして作り直す
 2. `ci` が `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` で落ちたら、除外を足さない。名前の出た版が公開から1日たつのを待ち、`ci` を再実行する
-3. `wrangler` を上げる PR は、`ci` の `tsc` が `Types at worker-configuration.d.ts are out of date` で落ちる。`wrangler types --check` は生成ファイルの workerd の版まで比べるのに、Dependabot はこのファイルを作り直さないからだ。PR のブランチで次の2つを動かし、できたファイルをコミットする。手で push すると Dependabot は自動で rebase しなくなるので、`pnpm-lock.yaml` を変えるほかの PR より先にマージする。`ci` は `tsc` で止まり、`test` がまだ動いていないので、push のあとの `ci` まで見る
+3. `wrangler` を上げる PR（`cloudflare` のグループ）は、`ci` の `tsc` が `Types at worker-configuration.d.ts are out of date` で落ちる。`wrangler types --check` は生成ファイルの workerd の版まで比べるのに、Dependabot はこのファイルを作り直さないからだ。PR のブランチで次の2つを動かし、できたファイルをコミットする。手で push すると Dependabot は自動で rebase しなくなるので、`pnpm-lock.yaml` を変えるほかの PR より先にマージする。`ci` は `tsc` で止まり、`test` がまだ動いていないので、push のあとの `ci` まで見る
 
    ```sh
    pnpm --filter @zubatto-quiz/api run types
    pnpm --filter @zubatto-quiz/web run types
    ```
 
-4. major の PR なら、上流のリリースノートを読む。`react` や `tailwindcss` は、テストが通っても見た目が変わることがある
-5. PR の題名を、日本語の subject に直してからマージする（例: `chore: minor と patch の依存を更新する`）。理由は [action の更新](#action-の更新)の4番と同じ
-6. npm の最初の PR では、`pnpm-lock.yaml` の `importers` の差分で、root だけでなく `apps/*`・`packages/*`・`tools/*` の依存も更新されていることを確かめる。`dependabot.yml` は `main` に入るまで動かないので、マージの前には確かめられない
+4. `oxc` の PR が `ci` の `fmt:check` で落ちたら、PR のブランチで次を動かし、整形の差分をコミットする。`lint` で落ちたら、新しいルールの違反を直す。どちらも push すると自動の rebase が止まるのは3番と同じ
+
+   ```sh
+   pnpm run fmt
+   ```
+
+5. major の PR なら、上流のリリースノートを読む。`react` や `tailwindcss` は、テストが通っても見た目が変わることがある
+6. PR の題名を、日本語の subject に直してからマージする（例: `chore: minor と patch の依存を更新する`）。理由は [action の更新](#action-の更新)の4番と同じ
+7. npm の最初の PR では、`pnpm-lock.yaml` の `importers` の差分で、root だけでなく `apps/*`・`packages/*`・`tools/*` の依存も更新されていることを確かめる。`dependabot.yml` は `main` に入るまで動かないので、マージの前には確かめられない
 
 #### 手で上げるとき
 
@@ -223,7 +232,7 @@ pnpm には、公開から1440分（1日）たっていない版を避ける `mi
 | `release-please.test.ts`         | [上の「リリース」](#リリース)のとおり                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `dev-vars-example.test.ts`       | [上の「インフラの管理」](#インフラの管理)のとおり                                                                                                                                                                                                                                                                                                                                                                                         |
 | `ci-workflow.test.ts`            | `run:` に `github.event.*` や `github.head_ref` を `${{ }}` で埋め込んでいないこと。そうした値は `env:` を通す。`ci` が `pnpm install` より前に `--verify` を動かし、トークンをその step にだけ渡すこと。`--verify` が止めない `uses:` の書き方がないこと（[上の「action の固定」](#action-の固定)）。`storybook.yaml` の `storybook` が必須のチェックに入らず、secrets もトークンも読まないこと（[上の「ルールセット」](#ルールセット)） |
-| `dependabot.test.ts`             | [上の「Dependabot での更新」](#dependabot-での更新)のとおり（週に1回、題名は scope のない `ci:`・`chore:`、major を分ける、グループの順番、`cooldown` の下限、手で上げる major、公開待ち期間を弱める設定がないこと、自動マージがないこと）                                                                                                                                                                                                |
+| `dependabot.test.ts`             | [上の「Dependabot での更新」](#dependabot-での更新)のとおり（週に1回、題名は scope のない `ci:`・`chore:`、major を分ける、手で直すもののグループ、グループの順番、`cooldown` の下限、手で上げる major、公開待ち期間を弱める設定がないこと、自動マージがないこと）                                                                                                                                                                        |
 | `deploy-workflow.test.ts`        | deploy.yaml と ci.yaml を `yaml` で読み、きっかけ（`release` か、`target` を付けた dispatch）と失敗する job やスクリプトごとに、どのスクリプトが動くかを試す（`scriptsThatRun`）。`production` を使う job が1つだけであること                                                                                                                                                                                                             |
 | `verify-required-checks.test.ts` | `verify-required-checks.sh` を偽の `gh` と本物の `jq` で、`CI_POLL_SECONDS=0` で動かす                                                                                                                                                                                                                                                                                                                                                    |
 | `oxlint-layers.test.ts`          | 一時フォルダーに `.oxlintrc.json` の写しと、import を1行だけ書いたファイルを置いて oxlint を走らせ、`apps/web/src` の層の柵と `import/no-cycle` が効くこと（[frontend.md の「全体の形」](frontend.md#全体の形)）                                                                                                                                                                                                                          |

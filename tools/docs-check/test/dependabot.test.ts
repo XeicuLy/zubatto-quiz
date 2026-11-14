@@ -91,6 +91,14 @@ describe('Dependabot の npm の更新', () => {
     ['tailwindcss', 'major', 'tailwindcss'],
     ['@tailwindcss/vite', 'major', 'tailwindcss'],
     ['@commitlint/cli', 'major', 'commitlint'],
+    // 手で直すことがあるものは、minor と patch でも別の PR にする。ほかの更新の ci を止めない
+    ['wrangler', 'patch', 'cloudflare'],
+    ['wrangler', 'major', 'cloudflare'],
+    ['@cloudflare/vite-plugin', 'minor', 'cloudflare'],
+    ['@cloudflare/vitest-plugin', 'patch', 'cloudflare'],
+    ['oxlint', 'minor', 'oxc'],
+    ['oxfmt', 'patch', 'oxc'],
+    ['oxfmt', 'major', undefined],
   ])('%s の %s は %s に入る', (name, updateType, group) => {
     expect(groupOf(name, updateType)).toBe(group);
   });
