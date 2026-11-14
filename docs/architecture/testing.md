@@ -46,19 +46,30 @@
 - Better Auth の `testUtils` のプラグインは、テスト専用の auth（`test/auth/create-test-auth.ts`）にだけ入れる（[backend.md の「ホストの認証」](backend.md#ホストの認証)）
 - テスト用のログインの入口は、本番の入口には入れない。実行時の環境変数で閉じておく形でも入れない。本番のバンドルに入口のコードが入っていれば、環境変数の入れ間違いがそのまま、誰でもホストになれる入口になる。本番の入口のファイルから import されない、テスト専用の入口にだけ置く（[ADR 0003](../adr/0003-host-identification-and-host-connection.md) の対応事項）
 - E2E は、別の入口のファイル `apps/api/test/e2e-entry.ts` を使う。本番の `app` を import し、`POST /api/e2e/login`（パスは `test/e2e-login-path.ts`）と、[Swagger UI](#swagger-ui-で-http-api-を試す) の経路だけを足す。ログインの入口は、呼ぶたびに新しいホスト（`user`・`account`・許可リストの行）を作り（名前は本文の `name`、なければ ID）、`testUtils` の `getCookies` の結果を返す。Playwright の `context.addCookies` にそのまま渡せる。セッションは本物の `session.create.before` を通る
-- `apps/api/vitest.bundle.config.ts`（project `api-bundle`、node、`test/bundle/`）は、両方の env で `wrangler deploy --dry-run` を動かし、本番のバンドルにログインと Swagger UI のパスがなく、E2E のバンドルにはあることを確かめる。両方を見るので、パスの打ち間違いでテストが通ってしまうことはない。バンドルは env ごとに1度だけ作る。Workers の project は `test/bundle/` を外し、`tsconfig.node.json` がそれを型チェックする
+- `apps/api/vitest.bundle.config.ts`（project `api-bundle`、node、`test/bundle/`）は、本番・E2E・開発の入口（`test/dev-entry.ts`）の3つで `wrangler deploy --dry-run` を動かし、本番のバンドルにログインと Swagger UI のパスがなく、E2E のバンドルには両方、開発のバンドルには Swagger UI だけがあることを確かめる。ある側も見るので、パスの打ち間違いでテストが通ってしまうことはない。開発の入口は `wrangler.jsonc` の env にないので、入口のファイルを `wrangler deploy` に直に渡して作る。バンドルは1つにつき1度だけ作る。Workers の project は `test/bundle/` を外し、`tsconfig.node.json` がそれを型チェックする
 
 ## Swagger UI で HTTP API を試す
 
-HTTP API の仕様（`packages/protocol/schema/openapi.json`）は、E2E の環境の Swagger UI で見て、そのまま試せる（[ADR 0011](../adr/0011-hono-api-contract.md)）。
+HTTP API の仕様（`packages/protocol/schema/openapi.json`）は、開発（`vite dev`）か E2E の環境の Swagger UI で見て、そのまま試せる（[ADR 0011](../adr/0011-hono-api-contract.md)）。
 
-- 経路は `/api/docs`（UI）と `/api/docs/openapi.json`（仕様）で、パスは `test/swagger-path.ts` にある。テスト用のログインと同じく `test/e2e-entry.ts` にだけ置き、`@hono/swagger-ui` は `devDependencies` に入れる。本番のバンドルに入らないことは `api-bundle` が確かめる
+- 経路は `/api/docs`（UI）と `/api/docs/openapi.json`（仕様）で、パスは `test/swagger-path.ts` にある。経路を足すのは `test/swagger-routes.ts` の `addSwaggerRoutes` だけで、E2E の入口（`test/e2e-entry.ts`）と開発の入口（`test/dev-entry.ts`）がそれを呼ぶ。`@hono/swagger-ui` は `devDependencies` に入れる。本番のバンドルに入らないことは `api-bundle` が確かめ、両方の入口が同じ経路を返すことは `swagger-routes.test.ts` が確かめる
+- 開発の入口は、本番の `app` に Swagger UI だけを足す。E2E 用のログインは足さず、本物の GitHub のログインを使う。`vite dev` のときだけ、`apps/web/api-worker.ts` が `auxiliaryWorkers` の `config.main` をこのファイルに替える（`vite build` と `vite preview` では替えない）。`wrangler.jsonc` に `env.dev` を足さないのは、Worker の名前が `zubakui-api-dev` に変わると、部屋の DO のデータの置き場所（`.wrangler/state/v3/do/<Worker の名前>-RoomDurableObject`）が変わり、開発の部屋が見えなくなるため。名前を `zubakui-api` のまま env を足すと、`--env dev` のデプロイが本番の Worker を Swagger UI 入りの入口で上書きする。D1 のローカルのファイルは binding 名（`DB`）で決まるので、どちらでも変わらない（wrangler 4.160.0・`@cloudflare/vite-plugin` 1.68.0 で 2026-11-14 に確かめた）
 - 本番には置かない。Swagger UI は外部の CDN（jsDelivr）のスクリプトを読むので、本番のオリジンに置くと、回答者の secret がある localStorage と同じ場所で、外のスクリプトが動く。実行時のフラグで止める作りにもしない（[テスト専用のログイン](#テスト専用のログイン)と同じ理由）
 - 返す仕様は、Go 版と契約テストが読むのと同じ、コミットしたファイル。protocol の `exports` の `./openapi.json` を JSON として import する
-- Swagger UI の版は `e2e-entry.ts` の `version` で固定している。Dependabot は上げないので、上げるときは手で直し、`e2e-entry.test.ts` の URL も合わせる
+- Swagger UI の版は `swagger-routes.ts` の `version` で固定している。Dependabot は上げないので、上げるときは手で直し、`swagger-routes.test.ts` の URL も合わせる
 - `/api/*` の応答は Worker が返すので、`_headers` の CSP が付かない。そのため、Swagger UI の CDN とインラインのスクリプトも止められない（`e2e:serve` で 2026-11-13 に確かめた）
 
-開き方:
+開発の環境での開き方（ふだんはこちら）:
+
+1. `vite dev` を動かし、`http://localhost:5173/api/docs` を開く。データは画面で使っている開発のもの（`.wrangler/state`）と同じ
+
+   ```sh
+   pnpm --filter @zubatto-quiz/web run dev
+   ```
+
+2. ホストだけの API を試すときは、同じブラウザで先に `http://localhost:5173/login` から GitHub でログインしておく。同じオリジンなので、Try it out の送信にもその Cookie が付く。状態を変える経路も、ブラウザが同じオリジンの `Origin` を付けるので、`csrf()` を通る（2026-11-14 に `GET /api/question-sets` で確かめた）
+
+E2E の環境での開き方（GitHub の OAuth App がないときや、空のデータで試したいとき）:
 
 1. `e2e:serve` を動かし、`http://localhost:4173/api/docs` を開く
 
@@ -99,7 +110,7 @@ HTTP API の仕様（`packages/protocol/schema/openapi.json`）は、E2E の環�
 
 - `CLOUDFLARE_ENV` はビルドにだけ付ける。preview は平らにした `dist/*/wrangler.json` を読むので、そこで `CLOUDFLARE_ENV` を付けると、env がないという警告が出る
 - `--mode e2e` で `persistState` を `.wrangler/e2e` に切り替える。こうして E2E は `vite dev` のデータに触れない。`database_name` を変えても手元の D1 のファイルは分かれず、分けるのはフォルダ
-- 2つの `wrangler.jsonc` に `env.e2e` がある。API のほうは `main` が `test/e2e-entry.ts` で、名前は `zubakui-api-e2e`。画面のほうの `env.e2e` は、この名前に Service binding でつなぐ。`durable_objects`・`d1_databases`・`secrets`・`services` は env に引き継がれないので、`env.e2e` の中にもう一度書いている。env があると、ふつうの `wrangler deploy` は警告を出すので、本番のデプロイは `--env=""` を付ける
+- 2つの `wrangler.jsonc` に `env.e2e` がある（開発の入口は env にせず、`apps/web/api-worker.ts` で替える。理由は [Swagger UI で HTTP API を試す](#swagger-ui-で-http-api-を試す)）。API のほうは `main` が `test/e2e-entry.ts` で、名前は `zubakui-api-e2e`。画面のほうの `env.e2e` は、この名前に Service binding でつなぐ。`durable_objects`・`d1_databases`・`secrets`・`services` は env に引き継がれないので、`env.e2e` の中にもう一度書いている。env があると、ふつうの `wrangler deploy` は警告を出すので、本番のデプロイは `--env=""` を付ける
 - `apps/api/.dev.vars.e2e` は、テスト用の値でコミットしている（`.gitignore` で戻している）。`CLOUDFLARE_ENV=e2e` のとき、wrangler は `.dev.vars` より先に `.dev.vars.e2e` を読み、Vite のプラグインはその結果を `dist/zubakui_api/.dev.vars` に写す。これがないと、開発者の本物の `.dev.vars` が E2E のビルドに写ってしまう
 - `vite build --mode e2e` は、`apps/web/.wrangler/deploy/config.json` を E2E のビルドに書き換える。そのため、画面の Worker を `wrangler deploy` するときは、いつもその直前に `vite build` する（本番のデプロイの workflow はそうしている。[operations.md の「デプロイの workflow」](operations.md#デプロイの-workflow)）
 

@@ -1,4 +1,3 @@
-import openapi from '@zubatto-quiz/protocol/openapi.json' with { type: 'json' };
 import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -7,7 +6,6 @@ import { hostAllowlist, user } from '@/db/schema';
 
 import e2e from './e2e-entry';
 import { E2E_LOGIN_PATH } from './e2e-login-path';
-import { SWAGGER_UI_PATH } from './swagger-path';
 
 const db = createDb(env.DB);
 const ORIGIN = env.BETTER_AUTH_URL;
@@ -75,24 +73,5 @@ describe('E2E 用のログインの入口（ADR 0003）', () => {
     const response = await request('/api/health');
 
     expect(await response.json()).toEqual({ ok: true });
-  });
-});
-
-describe('Swagger UI（ADR 0011）', () => {
-  it('UI の HTML を返し、版を固定した Swagger UI に、同じ入口の仕様を読ませる', async () => {
-    const response = await request(SWAGGER_UI_PATH);
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get('content-type')).toMatch(/^text\/html/);
-    const page = await response.text();
-    expect(page).toContain('https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.34.1/swagger-ui-bundle.js');
-    expect(page).toContain(`url: "${SWAGGER_UI_PATH}/openapi.json"`);
-  });
-
-  it('仕様は、コミットした openapi.json をそのまま返す', async () => {
-    const response = await request(`${SWAGGER_UI_PATH}/openapi.json`);
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual(openapi);
   });
 });
