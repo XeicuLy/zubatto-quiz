@@ -46,6 +46,27 @@
 - 開いているリリース PR のファイルは、リリースノートが変わったときだけ作り直される。`ci:` や `docs:` だけのマージのあとで作り直したいときと、PR の本文の `BEGIN_COMMIT_OVERRIDE` の書き方は、[release.md の「CHANGELOG の行を直す」](../runbooks/release.md#changelog-の行を直す)と[「失敗したとき」](../runbooks/release.md#失敗したとき)にある
 - マージを squash だけにしているのは、マージコミットだと release-please の `splitMessages` が本文の PR の題名も読み、どの変更も2回ずつ出るため（ADR 0009）
 
+### 版の判定と文面（tools/release）
+
+ADR 0012 の流れで、`verify-ci` が次の版とリリースノートの文面を決めるための道具。#245 で deploy.yaml から呼ぶまでは、どの workflow も使わない。
+
+```sh
+node tools/release/src/cli.ts --bump auto --to <コミット>
+```
+
+- 出力は1行の JSON（`baseTag`・`next`・`reason`・`notes`）。`next` は `v` を付けない `x.y.z`。GitHub の `$GITHUB_OUTPUT` やまとめへの書き方は、呼ぶ側のシェルが決める。手元で動かせば、承認の前に出る版と文面を下見できる
+- 終了コードは、版が決まれば 0、`next` が `null`（auto で上げるものがない、`v*` のタグがない）なら 1、引数の誤りなら 2。1 のときも JSON を出し、理由を標準エラーにも書く
+- 基準は、`git tag --list 'v*'` のうち版がいちばん大きいタグ（`latestTag`）。`vX.Y.Z` の形でないタグは数えず、版は数で比べる（`v1.10.0` は `v1.9.0` より大きい）。タグが1つもなければ、取り忘れ（`fetch-depth: 0` など）とみなして止まる
+- 次の版は自前の純粋関数 `plan` が決める。changelogen の `bumpVersion` は、上げるものがなくても patch に落ち、docs なども patch に数え、基準が `package.json` になるので使わない。auto は、破壊的変更があれば major、feat があれば minor、fix か perf があれば patch、どれもなければ `null`。major・minor・patch を選べば、commit がなくてもその分だけ上げる
+- 版の判定と文面には、同じ commit（`selectCommits`）を使う。CHANGELOG に出さない type の破壊的変更（`chore!:` など）では版を上げない。上げた理由が文面に出ないため
+- changelogen はライブラリとして、commit の解析（`parseCommits`）と文面づくり（`generateMarkDown`）だけに使う。CLI が中でしている「types にない type や `false` の type を捨てる」は、ライブラリでは効かないので `selectCommits` でする。しないと `false` の type が `### undefined` の見出しで出る
+- commitlint は、`Revert "…"`・`Reapply "…"`・`fixup!`・`squash!`・`amend!`・`Merge pull request …` などの題名を確かめずに通す（`@commitlint/is-ignored` の既定）。changelogen の正規表現は先頭に固定されていないので、そのままだと途中の `feat:` を拾って minor に上げる。そのため `selectCommits` は、`Revert "feat: x (#1)" (#2)` を `revert: feat: x (#1) (#2)` に、`Reapply "feat: x (#1)" (#2)`（取り消しの取り消し）を `feat: x (#1) (#2)` に書き換え、それでも先頭が `type(scope)!: ` の形でない題名は捨てる
+- 本文のフッターの `BREAKING-CHANGE:` は `BREAKING CHANGE:` に書き換えてから読む。Conventional Commits は2つを同じ意味とするが、changelogen は空白のほうしか拾わない。squash の本文は空にする決まりなので、ふつうは題名の `!` で表す
+- `generateMarkDown` は、`noAuthors` でも、名前のある作者ごとに `https://ungh.cc/users/find/<メール>` へ問い合わせる。`selectCommits` は作者を消して渡す
+- `--to` は、changelogen の `getGitDiff` がシェルの文字列（`git log "基準...to"`）に埋め込むので、英数字と `._/-` だけを受け付ける。`基準...to` は対称差なので、基準のタグが `--to` の祖先でないと、基準の側にしかない commit も混ざる。祖先かどうかは `verify-ci` が確かめる
+- 出す type と見出しは、ルートの `changelog.config.ts` にある（feat・fix・perf・refactor・docs・revert。見出しは changelogen の既定で、既定の表にない revert だけを足す。chore・ci・test・build・style と、既定の表の `types`・`examples` は `false`）。`notes.test.ts` が、`commitlint --print-config` のどの type にも出すか `false` かの決まりがあることと、見出しの並びを確かめる。changelogen を上げて既定の見出しが変わったら、ここで気づく
+- changelogen はルートと `tools/release` の両方に、同じ版で入れる。ルートは `changelog.config.ts` の型のため（`commitlint.config.ts` と `@commitlint/types` と同じ形）。changelogen は 0.x なので、上げるたびに API の変化と `@deprecated` を確かめる
+
 ## デプロイの workflow
 
 手順は [deploy.md](../runbooks/deploy.md) にある。

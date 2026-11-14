@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `apps/web`: the SPA (TanStack Router) and the Worker that forwards `/api/*` ([frontend.md](docs/architecture/frontend.md)).
 - `packages/protocol` (the WebSocket messages and the HTTP shapes) and `packages/scoring` (points and ranks), shared by both ([backend.md](docs/architecture/backend.md#メッセージの形)).
 - `tools/docs-check`: tests that keep the documents in step with the repo ([operations.md](docs/architecture/operations.md#文書と-workflow-のテスト)).
+- `tools/release`: picks the next version from the latest `v*` tag and `bump`, and writes the release notes with changelogen as a library; `changelog.config.ts` at the root holds the shown types ([operations.md](docs/architecture/operations.md#版の判定と文面toolsrelease)). Not called by any workflow until #245.
 - `tools/loadtest` (the O2 rehearsal bots), `tools/contract` (contract tests that check what a server sends against `ws.schema.json` and `openapi.json`, for this server and the Go one) and `e2e/` (one Playwright run through the whole game against a production-like build) ([testing.md](docs/architecture/testing.md)).
 
 Before you design or implement anything, read the documents below. They are the source of truth:
