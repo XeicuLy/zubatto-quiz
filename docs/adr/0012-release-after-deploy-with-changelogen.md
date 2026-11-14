@@ -42,7 +42,7 @@ ADR 0009 は、デプロイが成功したコミットにタグを打つ案（R4
 
 - DD1 正確さ: タグ・Release・CHANGELOG の版は、本番に出してデプロイが成功したコミットにだけ付く。Reject やデプロイの失敗では何も作らない。本番に何があるかは、これまでどおり production の Deployments と run の step の結果でも答えられる
 - DD2 セキュリティ: タグ・Release・PR を書く権限は App の token だけが持ち、`release` の Environment（main だけ）の中で使う。production の job に App の鍵を持ち込まない。`v*` のタグを作れるのは App だけのまま。GITHUB_TOKEN に `contents: write` を渡さない。main のルールセットを緩めない
-- DD3 運用の手間: dispatch 1回と承認1回で、デプロイと版が済む。上げるものがない auto や、続けられない状態は、承認の前に止まる。途中で失敗したら **Re-run failed jobs** で続きから動かせ、デプロイをやり直さずにタグだけを作り直せる。手元の状態に結果が左右されない
+- DD3 運用の手間: dispatch 1回と承認1回で、デプロイと版が済む。上げるものがない auto や、続けられない状態は、承認の前に止まる。途中で失敗したら **Re-run failed jobs** で続きから動かせ、デプロイをやり直さずにタグだけを作り直せる。古い run を動かし直しても、本番を古いコミットで上書きしない。手元の状態に結果が左右されない
 - DD4 変更容易性: 版の決まり（auto の判定、基準は最新の `v*` タグ）は自前の純粋関数に置き、テストで固定する
 - DD5 学ぶ価値: 好きな UnJS の changelogen をライブラリとして使い、そのエコシステムに関わる
 
@@ -96,11 +96,16 @@ ADR 0009 は、デプロイが成功したコミットにタグを打つ案（R4
 
 1. deploy.yaml を `workflow_dispatch` で動かす。欄は `bump`（auto / major / minor / patch、既定は auto）だけ。`target` はなくす
 2. `verify-ci`（Environment も secret も使わない）は、今までの確かめ（コミットが main にあり、必須のチェックが通っている）に加えて、次の版を決める。auto で上げるものがないときと、前の CHANGELOG の PR が開いているときは、ここで止まる。次の版・理由・文面を run のまとめに書く
-3. `deploy`（production、承認1回）は、マイグレーション → API → 画面を出す
+3. `deploy`（production、承認1回）は、ブランチの上の run なら、最初の step で、最新の `v*` タグが `github.sha` の祖先（か同じ）であることと、前の CHANGELOG の PR が開いていないことを確かめ直す。そのあと、マイグレーション → API → 画面を出す
+   - **Re-run failed jobs** は、成功済みの `verify-ci` を動かし直さない。`verify-ci` だけで確かめると、古い run を動かし直したときに素通りされ、あとから出た新しい版を古いコミットで上書きしうる。そのため、本番に出す直前のこの job の中でも確かめる。最新のタグが祖先であれば、出すコミットはこれまでに出したすべての版を含む
 4. `release`（`needs: deploy`、`environment: release`、ブランチの上で動いたときだけ）は、App の token で、先に `CHANGELOG.md` と `package.json` の `version` を更新する PR を作り、次に文面を本文にした Release を作る。PR のブランチは `origin/main` から切り、題名は scope なしの `chore`。Release は `target_commitish` を `github.sha` にして、タグ `vX.Y.Z` も Release API に作らせる。どの手順も、すでにあれば飛ばす。タグがすでに別のコミットにあれば、飛ばさずに止まる。依存パッケージは入れず、版と文面は `verify-ci` から受け取る
 5. CHANGELOG の PR は、その版の Release ができてから、手でマージする。本番には関係しない
 
-`release` が途中で失敗しても、PR を先に作るので、タグだけが残ることはない。残るのは開いたままの CHANGELOG の PR で、次の dispatch はそれを見て承認の前に止まる。そのときは、失敗した run を **Re-run failed jobs** で動かして `release` を終わらせてから、新しく dispatch する。
+`release` が途中で失敗しても、PR を先に作るので、タグだけが残ることはない。
+
+- PR を作ったあとで失敗したときは、開いたままの CHANGELOG の PR が残り、次の dispatch はそれを見て承認の前に止まる
+- PR を作る前に失敗したとき（App の token を作る、ブランチを push するなど）は、PR も Release も残らず、次の dispatch も止まらない。変更は次の版の CHANGELOG に入るので失われないが、それまで、デプロイしたコミットにタグがない
+- どちらの場合も、失敗した run を **Re-run failed jobs** で動かして `release` を終わらせてから、新しく dispatch する。Re-run は、いちばん新しい run にだけ使う
 
 版と文面の決まりは次のとおり。
 
@@ -149,17 +154,19 @@ ADR 0009 は、デプロイが成功したコミットにタグを打つ案（R4
 - 悪い影響: Reject した run は、失敗として履歴に残る。production の Deployments に何が残るかは、まだ確かめていない
 - 悪い影響: 自前の判定と、「すでにあれば飛ばす」workflow の手順を保つ。changelogen は 0.x なので、上げるたびに API の変化と `@deprecated` を確かめる
 - 悪い影響: CHANGELOG の見出しが、v1.3.0 までの節（release-please が書いた日本語）と、これから（changelogen の英語と絵文字）で変わる。過去の節は書き換えない
-- 悪い影響: `release` が途中で失敗すると、CHANGELOG の PR だけが開いたまま残る。**Re-run failed jobs** で `release` を終わらせるまで、次の dispatch は承認の前に止まる。Release ができる前にその PR をマージすると、この止める仕組みが効かなくなるので、マージは Release を確かめてからにする
+- 悪い影響: `release` が途中で失敗すると、CHANGELOG の PR だけが開いたまま残る。**Re-run failed jobs** で `release` を終わらせるまで、次の dispatch は承認の前に止まる。Release ができる前にその PR をマージすると、この止める仕組みが効かなくなるので、マージは Release を確かめてからにする。PR を作る前に失敗したときは何も残らず、次の dispatch も止まらないので、run の失敗を見て自分で Re-run する
+- 悪い影響: 新しい run のデプロイが成功し、その `release` が PR を作る前に失敗した状態では、タグも PR もないので、それより古い run の Re-run を `deploy` の確かめで止められない。Re-run は、いちばん新しい run にだけ使う
 - 悪い影響: 前の版に戻したあとは、本番が最新のタグより古い。本番に何があるかは Deployments で読む
 - 悪い影響: v1.3.0 までのタグに戻すときは、そのタグの deploy.yaml の `target` の欄で `all` を選ぶ必要がある。既定の `web` のままだと、画面だけが戻る
 - 対応事項（#244）: `tools/release` の判定を B3 に合わせる（`bump` は auto / major / minor / patch。auto で上げるものがなければ止める）。`changelog.config.ts` は feat・fix・perf・refactor・docs・revert を出し、見出しは既定にして revert を足し、`noAuthors` を付ける。作者を消してから `generateMarkDown` に渡す。type が commitlint の type と合うことをテストする
-- 対応事項（#245）: deploy.yaml から `target` を外して `bump` を足し、`release: published` を外す。`verify-ci` に版の判定・前の CHANGELOG の PR の確かめ・まとめを足す（タグと履歴を取り、PR を読む権限を足す）。`release` job を足す（`needs: deploy`、`environment: release`、`if: github.ref_type == 'branch'`、依存を入れない）。release-please は同じ変更で外し、両方がタグを打つ期間を作らない。`deploy-workflow.test.ts`・runbook・operations.md・CLAUDE.md を直す。App の token の `issues` の権限と、App の Issues の権限・`autorelease` のラベルの扱いを手順に書く。deploy.md に、`release` が途中で失敗したときの動かし直し方と、v1.3.0 までのタグに戻すときは `target` に `all` を選ぶことを書く
+- 対応事項（#245）: deploy.yaml から `target` を外して `bump` を足し、`release: published` を外す。`verify-ci` に版の判定・前の CHANGELOG の PR の確かめ・まとめを足す（タグと履歴を取り、PR を読む権限を足す）。`deploy` の最初に、最新の `v*` タグが祖先か・前の CHANGELOG の PR が開いていないかを確かめ直す step を足す。`release` job を足す（`needs: deploy`、`environment: release`、`if: github.ref_type == 'branch'`、依存を入れない）。release-please は同じ変更で外し、両方がタグを打つ期間を作らない。`deploy-workflow.test.ts`・runbook・operations.md・CLAUDE.md を直す。App の token の `issues` の権限と、App の Issues の権限・`autorelease` のラベルの扱いを手順に書く。deploy.md に、`release` が途中で失敗したときの動かし直し方と、v1.3.0 までのタグに戻すときは `target` に `all` を選ぶことを書く
 - 対応事項（#244・#245）: 次のセキュリティと同時実行のケースを、自動テストで確かめる
   - App の token を作る step は `release` job にだけあり、`permission-issues` を渡さない。GITHUB_TOKEN の権限は、どの job でも書き込みを持たない
   - `release` job は `environment: release`・`needs: deploy`・`if: github.ref_type == 'branch'` を持ち、依存パッケージを入れる step（`pnpm install`、mise のキャッシュ）を持たない
   - production を使う job は `deploy` だけで、`verify-ci` は Environment も secret も使わない
   - `release: published` のきっかけがない。`concurrency` は `deploy-production`・`cancel-in-progress: false` のままで、`queue: max` を持たない（今あるテストを残す）
-  - `release` の各手順の判定（タグがない → 作る、同じコミットにある → 飛ばす、別のコミットにある → 止める。Release と PR も、あれば飛ばす）と、`verify-ci` の止める条件（auto で上げるものがない、前の CHANGELOG の PR が開いている）は、純粋関数にしてテストする。途中で失敗したあとの Re-run で重複ができないことは、この判定のテストで確かめる
+  - `release` の各手順の判定（タグがない → 作る、同じコミットにある → 飛ばす、別のコミットにある → 止める。Release と PR も、あれば飛ばす）と、`verify-ci` の止める条件（auto で上げるものがない、前の CHANGELOG の PR が開いている）と、`deploy` の最初の確かめ（最新の `v*` タグが `github.sha` の祖先でない、前の CHANGELOG の PR が開いている）は、純粋関数にしてテストする。途中で失敗したあとの Re-run で重複ができないことは、この判定のテストで確かめる
+  - `deploy` の確かめの step は、ブランチの上の run で、Cloudflare の secret を読むどの step よりも前にある
 - 対応事項（#246）: 本番で通して確かめる。Reject した run が production の Deployments に何を残すかも確かめる
 - 対応事項: #242・#244・#245・#246 の本文を、この ADR（target をなくす、bump の選択肢、出す type、見出し）に合わせて直す
 - 対応事項: ADR 0005・0009・0010 の置き換わった決定のところに、この ADR を指す一言を足す（Status は accepted のまま。置き換わるのは一部だけ）。docs/README.md の一覧と、CLAUDE.md の ADR の範囲を直す
