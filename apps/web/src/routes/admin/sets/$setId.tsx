@@ -6,7 +6,7 @@ import { pageTitle } from '@/lib/page-title';
 import { LoadErrorCard } from '@/shared/feedback/LoadErrorCard';
 
 /**
- * 問題セットの編集（F4・F7）。一覧の「問題セットを作る」と「編集」が、ここへ移る。
+ * 問題セットの編集（F4・F7）。一覧の「編集」と、新しい問題セットを初めて保存したとき（/admin/sets/new）が、ここへ移る。
  * 開くたびに読み直し、読めてから編集の画面を出す。下書きは読んだ値から1回だけ作る
  */
 export const Route = createFileRoute('/admin/sets/$setId')({
@@ -19,7 +19,7 @@ export const Route = createFileRoute('/admin/sets/$setId')({
 function QuestionSetEditPage() {
   const { setId } = Route.useParams();
   // key で、別のセットへ移ったときに下書きを作り直す
-  return <QuestionSetEditor key={setId} setId={setId} initial={Route.useLoaderData()} />;
+  return <QuestionSetEditor key={setId} initial={Route.useLoaderData()} />;
 }
 
 function QuestionSetLoadError({ error }: ErrorComponentProps) {

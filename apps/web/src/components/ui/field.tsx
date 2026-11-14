@@ -69,7 +69,8 @@ function Field({ label, hint, error, className, children }: FieldProps) {
  * - transition-colors: 動きは最速正解者と優勝の発表の1か所だけにする（docs/design/README.md）
  * - file:・disabled:・dark: の class: 使っていない
  * - Base UI の Input: Field.Control を包んだもので、Field.Root の外では検証の仕組みを持ち込むだけなので、input を描く
- * 枠は border-input ではなく muted-foreground にし、どちらの面でも背景に 3:1 以上にする（文字でない部品、WCAG 1.4.11）
+ * 枠は border-input ではなく muted-foreground にし、どちらの面でも背景に 3:1 以上にする（文字でない部品、WCAG 1.4.11）。
+ * placeholder の文字も muted-foreground にする。入れる値の例を読ませる文字なので、欄の背景（card）に 4.5:1 以上にする（test/contrast.test.ts）
  */
 function Input({ className, ...props }: ComponentProps<'input'>) {
   const control = use(FieldControlContext);

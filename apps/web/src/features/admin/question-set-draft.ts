@@ -63,6 +63,14 @@ export function newQuestion(key: string): QuestionDraft {
   };
 }
 
+/**
+ * 「問題セットを作る」（/admin/sets/new）で始める下書き。名前は空で、足したばかりと同じ1問だけを持つ。
+ * サーバーは空のセットを受け付けないので、最初の保存までは画面の中だけにある
+ */
+export function emptyDraft(): QuestionSetDraft {
+  return { title: '', questions: [newQuestion(newQuestionKey())] };
+}
+
 export type EditorAction =
   | { type: 'setTitle'; title: string }
   | { type: 'setText'; index: number; text: string }

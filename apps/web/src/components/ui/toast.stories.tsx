@@ -18,7 +18,7 @@ function ToastStory({ message }: { message: string }) {
 }
 
 /**
- * 成功を知らせる toast。スマホの幅では下に幅いっぱいで、広い画面（sm 以上）では右下に出る。
+ * 成功を知らせる toast。スマホの幅では上に幅いっぱいで、広い画面（sm 以上）では右上に出る。
  * 読み上げは「通知」の live region が受け持つ。失敗には使わない。
  * 画面に fixed で出るので、docs のページではストーリーごとに iframe で描き、重ならないようにする
  */

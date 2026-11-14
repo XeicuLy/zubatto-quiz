@@ -1,12 +1,11 @@
-import { questionSetSchema, type QuestionSetDetail, type QuestionSetSummary } from '@zubatto-quiz/protocol';
+import { type QuestionSetDetail, type QuestionSetSummary } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
 import { stubFakeApi } from '../../test/fake-api';
 import { ApiError } from './errors';
 import {
-  createDraftQuestionSet,
+  createQuestionSet,
   deleteQuestionSet,
-  DRAFT_QUESTION_SET,
   fetchQuestionSet,
   fetchQuestionSets,
   saveQuestionSet,
@@ -33,20 +32,19 @@ describe('fetchQuestionSets', () => {
   });
 });
 
-describe('createDraftQuestionSet', () => {
-  it('下書きを保存し、新しいセットの ID を返す', async () => {
+describe('createQuestionSet', () => {
+  it('問題セットを作り、新しいセットの ID を返す（F4）', async () => {
     const api = stubFakeApi();
+    const input = {
+      title: '内輪クイズ',
+      questions: [{ text: '部長の十八番は？', choices: ['演歌', 'アニソン'], correctIndex: 1, limitMs: 10_000 }],
+    };
 
-    const id = await createDraftQuestionSet();
+    const id = await createQuestionSet(input);
 
     expect(id).toMatch(/^[0-9a-f-]{36}$/);
-    expect(api.requestsTo('POST', '/api/question-sets')).toEqual([
-      expect.objectContaining({ body: DRAFT_QUESTION_SET }),
-    ]);
-  });
-
-  it('下書きは、API が受け付ける問題セットの形になっている', () => {
-    expect(questionSetSchema.safeParse(DRAFT_QUESTION_SET).success).toBe(true);
+    expect(api.requestsTo('POST', '/api/question-sets')).toEqual([expect.objectContaining({ body: input })]);
+    expect(await fetchQuestionSet(id)).toEqual({ id, ...input });
   });
 });
 
