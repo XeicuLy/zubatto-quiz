@@ -194,6 +194,23 @@ describe('host_allowlist（ADR 0003）', () => {
     expect(row!.createdAt).toBeInstanceOf(Date);
   });
 
+  // 今ある行も、コマンドで足した行も、管理者にしない。管理者にするのは runbook のコマンドだけ（ADR 0013）
+  it('足した行は管理者でない', async () => {
+    await env.DB.prepare("INSERT INTO host_allowlist (github_user_id) VALUES ('1234567')").run();
+
+    const [row] = await db.select().from(hostAllowlist);
+
+    expect(row!.isAdmin).toBe(false);
+  });
+
+  it('管理者の印を true にすると、true で読み戻せる', async () => {
+    await db.insert(hostAllowlist).values({ githubUserId: '1234567', isAdmin: true });
+
+    const [row] = await db.select().from(hostAllowlist);
+
+    expect(row!.isAdmin).toBe(true);
+  });
+
   it('同じ ID は2度入らない', async () => {
     await db.insert(hostAllowlist).values({ githubUserId: '1234567' });
 

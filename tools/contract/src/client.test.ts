@@ -75,6 +75,17 @@ describe('HTTP', () => {
     expect(new Headers(init?.headers).get('content-type')).toBe('application/json');
   });
 
+  it('request は cookie のない呼び手なら、Cookie を付けずに送る（ログインしていない人）', async () => {
+    fetchMock.mockResolvedValue(json(401, { error: 'unauthorized' }));
+
+    await expect(request({ origin }, 'GET /api/question-sets')).resolves.toEqual({
+      status: 401,
+      body: { error: 'unauthorized' },
+    });
+    const [, init] = fetchMock.mock.calls[0]!;
+    expect(new Headers(init?.headers).has('cookie')).toBe(false);
+  });
+
   it('request は応答を openapi.json で調べ、状態コードと読んだ本文を返す', async () => {
     fetchMock.mockResolvedValue(json(201, { id: questionSetId }));
 

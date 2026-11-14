@@ -157,6 +157,18 @@ describe.skipIf(!origin)('安全の約束', { timeout: 30_000 }, () => {
     });
   });
 
+  describe('S1: ホストだけの HTTP API は、ログインしていない人に 401 を返す', () => {
+    it('GET /api/me は、cookie がなければ 401 で、ログインしたホストには自分が管理者かを返す（ADR 0013）', async () => {
+      expect(await request({ origin }, 'GET /api/me')).toEqual({ status: 401, body: { error: 'unauthorized' } });
+
+      // テスト用のログインのホストは管理者でない。形は openapi.json の MeResponse で調べている
+      expect(await request(await loginAsHost(origin), 'GET /api/me')).toEqual({
+        status: 200,
+        body: { isAdmin: false },
+      });
+    });
+  });
+
   describe('S2: 締切の前に、正解の番号は誰にも届かない', () => {
     it('受付中につなぎ直したホストと回答者を含め、締切の前に届いたどのメッセージにも correctIndex がない', async () => {
       const { session, roomId, host } = await openRoom();

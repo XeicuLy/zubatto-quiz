@@ -1,4 +1,5 @@
 import { httpErrorSchema } from './http/errors.ts';
+import { meResponseSchema } from './http/me.ts';
 import {
   createQuestionSetResponseSchema,
   listQuestionSetsResponseSchema,
@@ -26,6 +27,7 @@ type PathItem = { parameters?: Ref[] } & Partial<Record<'get' | 'post' | 'put' |
  */
 export function buildOpenApiDocument() {
   const schemas = {
+    MeResponse: toDef(meResponseSchema, 'output'),
     QuestionSetInput: toDef(questionSetSchema, 'input'),
     QuestionSetDetail: toDef(questionSetDetailSchema, 'output'),
     ListQuestionSetsResponse: toDef(listQuestionSetsResponseSchema, 'output'),
@@ -60,6 +62,16 @@ export function buildOpenApiDocument() {
   const response = (name: keyof typeof responses) => ({ $ref: `#/components/responses/${name}` });
 
   const paths: Record<string, PathItem> = {
+    '/api/me': {
+      get: {
+        operationId: 'getMe',
+        summary: 'ログインしているホストが管理者かを返す（ADR 0013）。画面が管理者向けのリンクを出すかを決めるのに使う',
+        responses: {
+          '200': { description: '自分のこと', content: jsonBody('MeResponse') },
+          '401': response('Unauthorized'),
+        },
+      },
+    },
     '/api/question-sets': {
       get: {
         operationId: 'listQuestionSets',

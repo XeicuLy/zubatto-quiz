@@ -1,4 +1,5 @@
 export * from './http/errors.ts';
+export * from './http/me.ts';
 export * from './http/question-sets.ts';
 export * from './http/rooms.ts';
 export * from './question-set.ts';
