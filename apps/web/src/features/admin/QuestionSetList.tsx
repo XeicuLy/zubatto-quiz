@@ -6,6 +6,7 @@ import { useRef } from 'react';
 import { createDraftQuestionSet, deleteQuestionSet, questionSetsQueryOptions } from '@/api/question-sets';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { ConfirmDialog, useConfirm } from '@/components/ui/confirm-dialog';
+import { ActionError } from '@/shared/feedback/ActionError';
 import { describeApiError } from '@/shared/feedback/api-error';
 import { LoadErrorCard } from '@/shared/feedback/LoadErrorCard';
 import { notify } from '@/shared/feedback/notify';
@@ -85,9 +86,7 @@ function CreateButton({ align }: { align: keyof typeof createButtonAlign }) {
         問題セットを作る
       </Button>
       {create.isError && (
-        <p role="alert" className="text-body font-bold text-destructive">
-          問題セットを作れませんでした。もう一度押してください。
-        </p>
+        <ActionError error={create.error} failed="問題セットを作れませんでした。もう一度押してください。" />
       )}
     </div>
   );
@@ -148,9 +147,7 @@ function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
         </div>
       )}
       {remove.isError && describeApiError(remove.error) !== 'notFound' && (
-        <p role="alert" className="w-full text-body font-bold text-destructive">
-          消せませんでした。もう一度押してください。
-        </p>
+        <ActionError error={remove.error} failed="消せませんでした。もう一度押してください。" className="w-full" />
       )}
     </li>
   );
