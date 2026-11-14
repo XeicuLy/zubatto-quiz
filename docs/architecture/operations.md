@@ -36,7 +36,7 @@
 手順は [release.md](../runbooks/release.md) にある。版はデプロイの dispatch の `bump` で選び、デプロイが成功したコミットにタグと Release を作る（ADR 0012）。v1.3.0 までは release-please のリリース PR で版を決め、できた Release でデプロイしていた（ADR 0009・0010）。
 
 - タグ・Release・CHANGELOG の PR は、deploy.yaml の `release` の job が作る（`needs: [verify-ci, deploy]`・`if: github.ref_type == 'branch'`・`environment: release`）。`deploy` が失敗したとき、Reject したとき、タグの上で動かしたときは動かない。`verify-ci` の outputs を読むので、`verify-ci` も `needs` に書く（直接 `needs` に書いた job の outputs しか読めない）
-- 書き込みは GitHub App の token だけが持つ（`actions/create-github-app-token`、`permission-contents: write`・`permission-pull-requests: write`）。`client-id` は `vars.RELEASE_APP_CLIENT_ID`、鍵は `secrets.RELEASE_APP_PRIVATE_KEY` で、どちらも main だけが使える Environment `release` に置く。どの workflow の `GITHUB_TOKEN` にも書き込みを渡さない。App の token を使うのは、`GITHUB_TOKEN` で作った PR では ci / e2e が承認待ちのまま動かないため。ラベルを使わないので、`permission-issues` は渡さない。`.github/workflows/` を変えたコミットに Release を作るとき、GitHub が Workflows の権限を求めるかは確かめていない（git の push では求めると報告されている。#246 で確かめる）。求められたときの手順は release.md の「失敗したとき」にあり、要ると分かるまでは足さない。足すと、鍵が漏れたときに、main 以外のブランチの workflow を書き換えられるようになる
+- 書き込みは GitHub App の token だけが持つ（`actions/create-github-app-token`、`permission-contents: write`・`permission-pull-requests: write`）。`client-id` は `vars.RELEASE_APP_CLIENT_ID`、鍵は `secrets.RELEASE_APP_PRIVATE_KEY` で、どちらも main だけが使える Environment `release` に置く。どの workflow の `GITHUB_TOKEN` にも書き込みを渡さない。App の token を使うのは、`GITHUB_TOKEN` で作った PR では ci / e2e が承認待ちのまま動かないため。ラベルを使わないので、`permission-issues` は渡さない。Workflows の権限（`permission-workflows`）は渡さない。`.github/workflows/` を変えたコミットにも、Release の API でタグを作れた（2026-11-14 に v1.4.0 で確かめた。求められるのは、git の push で workflow のファイルを書き換えるとき）。渡すと、鍵が漏れたときに、main 以外のブランチの workflow を書き換えられるようになる
 - `release` は依存パッケージを入れず、`mise-action` で node だけを入れる（`install_args: node`・`cache: false`）。書き込みの token を持つ job で、依存の install スクリプトや、ほかの job が書けるキャッシュの中身が動かないようにする（ADR 0012 の DD2）。そのため、`release` が呼ぶ `tools/release/src/steps.ts` とそれが読み込むファイルは、changelogen も、ほかの npm のパッケージも読み込まない
 - 手順は [.github/scripts/release.sh](../../.github/scripts/release.sh) の `publish`。PR を先に、Release をあとに作る。どの手順も、すでにあれば飛ばす
   1. `check-release`: タグ `vX.Y.Z` がデプロイしたコミットにあれば、前の Re-run で終わっているので何もしない。別のコミットにあれば止まる。なく、最新の `v*` タグが基準のタグと違えば止まる
@@ -46,6 +46,11 @@
   5. PR を開く
   6. `gh release create --target "$GITHUB_SHA"` で Release を作り、タグも Release の API に作らせる
 - PR を先にするのは、途中で落ちたときに、開いた PR が次の dispatch を承認の前で止めるため。PR を作る前に落ちたときは何も残らず止まらないので、runbook の手順で Re-run する
+- 例外は1つだけ: Re-run では通らないとき（Re-run は最初の run の deploy.yaml の `permission-*` のまま動くので、それが足りなかったときなど）に、人がタグのルールセットを止めて Release を作る（[release.md の「Release を手で作る」](../runbooks/release.md#release-を手で作る)）。CHANGELOG の PR がなければ、それも人が作る。`check-release` を通らないので、代わりに人が確かめる
+  - 順は `release` の job と同じで、PR が先、Release があと
+  - 文面は落ちた run の Summary を正とする。CLI で作り直すなら、`baseTag` と文面が Summary と同じときだけ使う
+  - ルールセットを止めるのは `gh release create` の1つのコマンドの間だけにし、戻したら `enforcement` が `active` かを確かめる。止めている間は、書き込みの権限があれば誰でも `v*` のタグを打て、production はそのタグからデプロイできるため
+  - 作ったあと、タグと Release の `targetCommitish` がデプロイしたコミットか、ほかに `v*` のタグが増えていないかを確かめる
 - `CHANGELOG.md` は、`steps.ts` の `changelog`（`prependNotes`）が、見出し（`# Changelog`）のすぐ下に節を足す。同じ版の節（その見出しから次の `## ` の手前まで）がすでにあれば、今回の文面で置き換える。中身が同じなら結果も変わらないので、Re-run で2回足さず、残ったブランチが別の run の文面のままにもならない（CHANGELOG の PR と Release の文面がずれない）。`release` は oxfmt を動かさないので、`.oxfmtrc.json` は `CHANGELOG.md` を飛ばす。v1.3.0 までの節は release-please が書いた形（日本語の見出し、空行が3つ続く形）のまま残す
 - ルートの `package.json` の `"version"` は `"name"` のすぐ下に置く。`setPackageVersion` は、いちばん外の `"version"` の値だけを書き換え、ないと止まる。`release-workflow.test.ts` が確かめる
 - 開いた CHANGELOG の PR は、ブランチが `changelog/` で始まることで見分ける（`guard.ts` の `changelogPr`）。`release.sh` の `gh pr list` は、fork からの PR（`isCrossRepository`）を数えない。誰でも同じ名前のブランチの PR を開けるので、数えると dispatch を止めたり、CHANGELOG の PR を作らずに飛ばさせたりできてしまう（`release-workflow.test.ts`）。題名は scope のない `chore: vX.Y.Z の CHANGELOG を更新する` で、`guard.test.ts` が commitlint に通す

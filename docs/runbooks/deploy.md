@@ -132,6 +132,7 @@ gh run watch
 1. `verify-ci` が次の版を決め、main の CI が終わるのを待つ。マージの直後は CI が走っているので、数分かかる
 2. CI が通ると、`deploy` の前で run が止まり、「Waiting」になる
 3. run の画面の Summary で、`verify-ci` が書いた次の版とリリースノートを読む
+   - Summary は画面でしか読めない。`gh run view` にも job のログにも出ない。手元で同じものを見るなら、`git fetch --tags` してから `node tools/release/src/cli.ts --bump <その run で選んだ bump> --to <動かしたコミット>` を動かす（`verify-ci` も同じものを動かしている）。CLI は手元の最新の `v*` タグを基準にするので、出てきた `baseTag` が Summary の「基準のタグ」と同じときだけ、同じ版と文面になる
 4. **Review deployments** を押し、`production` を選んで、動いたコミットを見てから **Approve and deploy** を押す。版や文面が違うと思ったら **Reject** する。何も出ず、何も作られない
 5. `deploy` が終わると `release` が動く。数分たったら、Summary で決めた版 `vX.Y.Z` のタグ・Release・CHANGELOG の PR ができたことを確かめる。どれも版を書いて確かめる。書かないと、今回のものが作られていなくても、前の版のものが出てくる
 
@@ -141,6 +142,8 @@ gh run watch
    gh release view vX.Y.Z --json tagName,targetCommitish,url --jq '"\(.tagName) \(.targetCommitish) \(.url)"'
    gh pr list --head changelog/vX.Y.Z --json number,title,url --jq '.[] | "\(.number) \(.title) \(.url)"'
    ```
+
+   - Release を作った時刻は `publishedAt` で読む。`createdAt` は、Release を作った時刻ではなく、タグのコミットの時刻になる（v1.4.0 では、PR が 09:12:56、Release の `publishedAt` が 09:12:58 で、`createdAt` はコミットの 09:05:50 だった）
 
 6. Release ができたことを確かめてから、CHANGELOG の PR を squash でマージする（[release.md の「CHANGELOG の PR をマージする」](release.md#changelog-の-pr-をマージする)）
 
@@ -156,7 +159,8 @@ gh run watch
 ```
 
 - 使われる deploy.yaml も、そのタグのコミットのものになる（`bump` の欄は使われない）
-- **v1.3.0 までのタグに戻すときは、`target` に `all` を選ぶ**。そのころの deploy.yaml には `target` の欄があり、既定は `web`。既定のまま動かすと画面だけが戻り、API の Worker は新しいまま残る
+- 新しいタグ・Release・CHANGELOG の PR はできない。`verify-ci` の版を決める step と、`deploy` の `Recheck release base` は skipped になり、`release` も skipped になる（2026-11-14 に v1.4.0 で出し直して確かめた）
+- **v1.3.0 までのタグに戻すときは、`target` に `all` を選ぶ**。そのころの deploy.yaml には `target` の欄があり、既定は `web`。既定のまま動かすと画面だけが戻り、API の Worker は新しいまま残る（v1.0.0〜v1.3.0 のどのタグの deploy.yaml も、`web` と `all` の2つで、既定は `web`。2026-11-14 に確かめた）
 
   ```sh
   gh workflow run deploy.yaml --ref v1.3.0 -f target=all
@@ -170,7 +174,9 @@ gh run watch
 
 - 承認は1回。承認すると、`deploy` の job が、マイグレーション → API → 画面を続けて行う
 - 承認しないまま30日たつと、`deploy` は失敗する。出すのをやめるなら **Reject** を押す。job が1つなので、Reject すると何も出ない。マイグレーションも API も画面も前のままで、タグも Release も PR も作られない
-- Reject した run は、失敗として履歴に残る
+- Reject した run は、失敗として履歴に残る（`deploy` は failure、`release` は skipped）
+- Reject しても、production の Deployment は1つ残る。Deployment は承認を待ち始めたときにでき（状態は `waiting`）、Reject すると `failure` になる。job は何も動いていないが、Deployments の一覧の先頭は、この失敗した Deployment になる。前に成功した Deployment は `ACTIVE` のまま残る（2026-11-14 に v1.4.0 のタグの run で確かめた）
+- Reject した run も、**Re-run all jobs** で動かし直して承認すれば出せる。そのときは新しい Deployment ができ、Reject したときの Deployment は `failure` のまま残る（同じ日に確かめた）
 
 終わったら、[下の「デプロイのあとに確かめる」](#デプロイのあとに確かめる)を行う。
 
@@ -192,7 +198,7 @@ gh run watch
 
    - タグの上で動かした run（v1.3.0 までの Release で動いた run を含む）は、Branch がタグ（`vX.Y.Z`）になる。`--branch main` で絞ると見落とすので、絞らない
    - job を3つに分けていたころ（v1.0.0 まで）の run も、step の名前が同じなので、同じコマンドで読める
-   - Environments の `production`（リポジトリのトップの Deployments）の一覧は、いつ何を出そうとしたかを見るのに使う。ただし Deployment は `deploy` の job ごとに作られ、その job が失敗しても残る。`all` で API の step が失敗すると、いちばん新しい Deployment は、出ていないコミットになる。なので本番の版は、上のように step の結果から読む
+   - Environments の `production`（リポジトリのトップの Deployments）の一覧は、いつ何を出そうとしたかを見るのに使う。ただし Deployment は `deploy` の job ごとに作られ、その job が失敗しても、承認を Reject しても残る（[上の「承認するとき・しないとき」](#承認するときしないとき)）。`release` の job も、動くたびに Environment `release` に Deployment を1つ作る（Re-run でも増える）。`all` で API の step が失敗すると、いちばん新しい Deployment は、出ていないコミットになる。なので本番の版は、上のように step の結果から読む
    - 直近の20回の run に、成功した「Deploy API Worker」（「Deploy web Worker」）の step がなければ、何も出ない。`--limit` を増やす
    - `fatal: No names found` と出るときは、まだ1つもタグがない（最初のリリースの前）。SHA だけを見る
 
@@ -251,9 +257,9 @@ gh run watch
 - CHANGELOG の PR を作る前に落ちたとき（App の token を作る、ブランチを作る、ファイルを書き換えるなど）: PR も Release も残らず、次の dispatch も止まらない。run の失敗を見て、自分で Re-run する。そのままにすると、デプロイしたコミットにタグがないまま残る
   - 書き換えたあとで落ちると、ブランチ `changelog/vX.Y.Z` だけが残ることがある。Re-run すれば、そのブランチを使って続きから終わる
   - Re-run せずに次の版を出したときは、次の run が同じ番号を選ぶことがある。そのときは、次の run の `release` が残ったブランチを使い、同じ版の節を、次の run の文面（前のタグから次の run のコミットまで）で作り直す。落ちた run の変更も、この文面に入るので失われない。落ちた run の番号は、次の run が使う
-- Re-run では直らない落ち方もある。Re-run は最初の run の deploy.yaml（App の token に頼む権限を含む）のまま動くので、App の権限が足りずに落ちたときは、あとから deploy.yaml を直しても通らない。[release.md の「失敗したとき」](release.md#失敗したとき)の手順で、その版の Release を手で作る
+- Re-run では直らない落ち方もある。Re-run は最初の run の deploy.yaml（App の token に頼む権限を含む）のまま動くので、deploy.yaml の権限が足りずに落ちたときは、あとから deploy.yaml を直しても通らない。[release.md の「Release を手で作る」](release.md#release-を手で作る)の手順で、その版の Release を手で作る
 - Re-run は、いちばん新しい run にだけ使う。新しい run の `release` が PR を作る前に落ちた状態では、タグも PR もなく、最新のタグは前と同じままなので、それより古い run を Re-run すると、`deploy` の確かめ直しを素通りして、古いコミットで本番を上書きしてしまう
-- `release` の最初の確かめ（`check-release`）は、タグ `vX.Y.Z` がすでにデプロイしたコミットにあれば何もせずに終わる。タグが別のコミットにあるとき、または最新の `v*` タグが基準のタグと違うときは、何も作らずに止まる。止まったときは、あとから別の版が出ている。その run の変更は、次の版の CHANGELOG に入る
+- `release` の最初の確かめ（`check-release`）は、タグ `vX.Y.Z` がすでにデプロイしたコミットにあれば何もせずに終わる。成功した run の `release` だけを Re-run しても（run の画面で `release` の job を選ぶか、`gh run rerun <run の ID> --job <job の ID>`）、「vX.Y.Z はすでにこのコミットにある」と出て、PR・Release・タグは増えない（2026-11-14 に v1.4.0 で確かめた）。タグが別のコミットにあるとき、または最新の `v*` タグが基準のタグと違うときは、何も作らずに止まる。止まったときは、あとから別の版が出ている。その run の変更は、次の版の CHANGELOG に入る
 
 ## トークンを作り直す・やめる
 
