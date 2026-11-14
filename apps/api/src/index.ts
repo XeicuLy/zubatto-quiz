@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 
 import { createAuth } from './auth/create-auth';
+import { adminHostRoutes } from './routes/admin-hosts';
 import { meRoutes } from './routes/me';
 import { questionSetRoutes } from './routes/question-sets';
 import { roomRoutes } from './routes/rooms';
@@ -23,6 +24,8 @@ app.use('/auth/*', bodyLimit({ maxSize: 4 * 1024 }));
 app.on(['GET', 'POST'], '/auth/*', (c) => createAuth(c.env).handler(c.req.raw));
 
 app.route('/me', meRoutes);
+// 管理者だけの経路（ADR 0013）。/admin/ の下に足す経路は、どれも csrf()・requireHost・requireAdmin を通す（test/admin-routes.test.ts）
+app.route('/admin/hosts', adminHostRoutes);
 app.route('/question-sets', questionSetRoutes);
 // roomRoutes の csrf() と requireHost は /api/rooms/* の全体にかかる。WebSocket の入口を先に置き、
 // 回答者用の入口が requireHost に止められないようにする。入口の応答を返せば、あとのミドルウェアは動かない

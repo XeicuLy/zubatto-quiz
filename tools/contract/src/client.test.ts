@@ -53,6 +53,18 @@ describe('HTTP', () => {
     expect(init?.method).toBe('POST');
   });
 
+  it('loginAsHost は、admin を渡すと管理者のホストを頼み、渡さなければ本文を送らない（ADR 0013）', async () => {
+    fetchMock.mockImplementation(async () => json(200, { cookies: [{ name: 'a', value: 'b' }] }));
+
+    await loginAsHost(origin, { admin: true });
+    await loginAsHost(origin);
+
+    const [admin, plain] = fetchMock.mock.calls.map(([, init]) => init);
+    expect(admin?.body).toBe(JSON.stringify({ admin: true }));
+    expect(new Headers(admin?.headers).get('content-type')).toBe('application/json');
+    expect(plain?.body).toBeUndefined();
+  });
+
   it('loginAsHost は、ログインに失敗したら状態コードを書いて投げる', async () => {
     fetchMock.mockResolvedValue(new Response('nope', { status: 404 }));
 

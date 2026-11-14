@@ -3,7 +3,7 @@
   "info": {
     "title": "ズバクイの HTTP API",
     "version": "1.0.0",
-    "description": "ホストだけが使う HTTP API（S1）。部屋の進行は WebSocket で、その仕様は ws.schema.json にある。\n\nJSON Schema に出ない条件は、packages/protocol の zod のコードも合わせて読む。\n- 文字列は前後の空白を取り除いてから長さを数え、取り除いた値を保存する\n- 正解の番号は選択肢の数より小さい（Question の description にも書く）"
+    "description": "ホストだけが使う HTTP API（S1）。/api/admin/ の下は、ホストのうち管理者だけが使える（ADR 0013）。部屋の進行は WebSocket で、その仕様は ws.schema.json にある。\n\nJSON Schema に出ない条件は、packages/protocol の zod のコードも合わせて読む。\n- 文字列は前後の空白を取り除いてから長さを数え、取り除いた値を保存する\n- 正解の番号は選択肢の数より小さい（Question の description にも書く）"
   },
   "servers": [
     {
@@ -34,6 +34,137 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/admin/hosts": {
+      "get": {
+        "operationId": "listHosts",
+        "summary": "許可リストのホストを、足した順に返す（ADR 0013）。管理者だけが使える",
+        "responses": {
+          "200": {
+            "description": "一覧",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListHostsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminForbidden"
+          }
+        }
+      },
+      "post": {
+        "operationId": "addHost",
+        "summary": "GitHub の名前でホストを足す（ADR 0013）。サーバーが api.github.com で数値の ID に変えて許可リストに入れ、名前は note にメモとして入れる",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddHostRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "足した",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Host"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminForbidden"
+          },
+          "404": {
+            "description": "GitHub にその名前の User がない（Organization も含む）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "すでに許可リストにいる（already_exists）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "GitHub が答えなかった（github_unavailable）。上限や不調のときに起きるので、時間をおいて入れ直す",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/hosts/{githubUserId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/GithubUserId"
+        }
+      ],
+      "delete": {
+        "operationId": "removeHost",
+        "summary": "ホストを許可リストから外し、その人のセッションも一緒に消す（ADR 0013）。管理者の行は外せない",
+        "responses": {
+          "204": {
+            "description": "外した"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminForbidden"
+          },
+          "404": {
+            "description": "許可リストにない",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "管理者のホストは外せない（admin_host）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
           }
         }
       }
@@ -223,6 +354,15 @@
       }
     },
     "parameters": {
+      "GithubUserId": {
+        "name": "githubUserId",
+        "in": "path",
+        "required": true,
+        "description": "許可リストの GitHub のユーザー ID（数の文字列）。一覧の githubUserId をそのまま使う",
+        "schema": {
+          "type": "string"
+        }
+      },
       "QuestionSetId": {
         "name": "id",
         "in": "path",
@@ -243,6 +383,68 @@
         },
         "required": ["isAdmin"],
         "additionalProperties": false
+      },
+      "Host": {
+        "type": "object",
+        "properties": {
+          "githubUserId": {
+            "type": "string"
+          },
+          "note": {
+            "type": ["string", "null"]
+          },
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": ["githubUserId", "note", "isAdmin", "createdAt"],
+        "additionalProperties": false
+      },
+      "ListHostsResponse": {
+        "type": "object",
+        "properties": {
+          "hosts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "githubUserId": {
+                  "type": "string"
+                },
+                "note": {
+                  "type": ["string", "null"]
+                },
+                "isAdmin": {
+                  "type": "boolean"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": ["githubUserId", "note", "isAdmin", "createdAt"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["hosts"],
+        "additionalProperties": false
+      },
+      "AddHostRequest": {
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9-]{1,39}$"
+          }
+        },
+        "required": ["login"]
       },
       "QuestionSetInput": {
         "type": "object",
@@ -431,7 +633,15 @@
         "properties": {
           "error": {
             "type": "string",
-            "enum": ["unauthorized", "forbidden", "invalid_request", "not_found"]
+            "enum": [
+              "unauthorized",
+              "forbidden",
+              "invalid_request",
+              "not_found",
+              "already_exists",
+              "admin_host",
+              "github_unavailable"
+            ]
           }
         },
         "required": ["error"],
@@ -467,6 +677,21 @@
       "Forbidden": {
         "description": "csrf() が別のオリジンからのフォームの形の要求を断った。Hono がテキストで返す。本文が JSON の要求と、同じオリジンの要求では起きない",
         "content": {
+          "text/plain": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AdminForbidden": {
+        "description": "管理者でないホストには forbidden の JSON を返す（ADR 0013）。csrf() が別のオリジンからのフォームの形の要求を断ったときは、Hono がテキストで返す（ADR 0014）",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HttpError"
+            }
+          },
           "text/plain": {
             "schema": {
               "type": "string"

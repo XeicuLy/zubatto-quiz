@@ -32,7 +32,7 @@ describe('buildOpenApiDocument', () => {
   const statusesOf = (path: string, method: 'get' | 'post' | 'put' | 'delete') =>
     Object.keys(document.paths[path]?.[method]?.responses ?? {}).sort();
 
-  it('自分のことを返す1本、問題セットの5本、部屋を作る1本の経路を持つ', () => {
+  it('自分のことを返す1本、ホストの管理の3本、問題セットの5本、部屋を作る1本の経路を持つ', () => {
     const operations = Object.entries(document.paths).flatMap(([path, item]) =>
       Object.keys(item)
         .filter((key) => key !== 'parameters')
@@ -41,6 +41,9 @@ describe('buildOpenApiDocument', () => {
     expect(operations.sort()).toEqual(
       [
         'GET /api/me',
+        'GET /api/admin/hosts',
+        'POST /api/admin/hosts',
+        'DELETE /api/admin/hosts/{githubUserId}',
         'GET /api/question-sets',
         'POST /api/question-sets',
         'GET /api/question-sets/{id}',
@@ -53,6 +56,9 @@ describe('buildOpenApiDocument', () => {
 
   it('実際の経路が返す状態コードを書く（apps/api/src/routes）', () => {
     expect(statusesOf('/api/me', 'get')).toEqual(['200', '401']);
+    expect(statusesOf('/api/admin/hosts', 'get')).toEqual(['200', '401', '403']);
+    expect(statusesOf('/api/admin/hosts', 'post')).toEqual(['201', '400', '401', '403', '404', '409', '502']);
+    expect(statusesOf('/api/admin/hosts/{githubUserId}', 'delete')).toEqual(['204', '401', '403', '404', '409']);
     expect(statusesOf('/api/question-sets', 'get')).toEqual(['200', '401']);
     expect(statusesOf('/api/question-sets', 'post')).toEqual(['201', '400', '401', '403']);
     expect(statusesOf('/api/question-sets/{id}', 'get')).toEqual(['200', '401', '404']);
@@ -67,9 +73,28 @@ describe('buildOpenApiDocument', () => {
     expect(Object.keys(responses.BadRequest.content).sort()).toEqual(['application/json', 'text/plain']);
   });
 
-  it('管理者でないときの forbidden を、エラーのコードに持つ（ADR 0013）', () => {
-    expect(JSON.stringify(document.components.schemas.HttpError)).toContain('"forbidden"');
+  it('管理者だけの経路の 403 は、forbidden の JSON と csrf() のテキストの両方を書く（ADR 0014）', () => {
+    expect(Object.keys(document.components.responses.AdminForbidden.content).sort()).toEqual([
+      'application/json',
+      'text/plain',
+    ]);
+    for (const [path, method] of [
+      ['/api/admin/hosts', 'get'],
+      ['/api/admin/hosts', 'post'],
+      ['/api/admin/hosts/{githubUserId}', 'delete'],
+    ] as const) {
+      expect(document.paths[path]?.[method]?.responses['403']).toEqual({
+        $ref: '#/components/responses/AdminForbidden',
+      });
+    }
   });
+
+  it.each(['forbidden', 'already_exists', 'admin_host', 'github_unavailable'])(
+    '管理者だけの経路が返す %s を、エラーのコードに持つ（ADR 0013）',
+    (code) => {
+      expect(JSON.stringify(document.components.schemas.HttpError)).toContain(`"${code}"`);
+    },
+  );
 
   it('作成と更新の本文は入力の形で、limitMs を省ける（F9）', () => {
     const { QuestionSetInput, QuestionSetDetail } = document.components.schemas;

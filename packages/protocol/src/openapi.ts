@@ -1,4 +1,5 @@
 import { httpErrorSchema } from './http/errors.ts';
+import { addHostRequestSchema, hostSchema, listHostsResponseSchema } from './http/hosts.ts';
 import { meResponseSchema } from './http/me.ts';
 import {
   createQuestionSetResponseSchema,
@@ -28,6 +29,9 @@ type PathItem = { parameters?: Ref[] } & Partial<Record<'get' | 'post' | 'put' |
 export function buildOpenApiDocument() {
   const schemas = {
     MeResponse: toDef(meResponseSchema, 'output'),
+    Host: toDef(hostSchema, 'output'),
+    ListHostsResponse: toDef(listHostsResponseSchema, 'output'),
+    AddHostRequest: toDef(addHostRequestSchema, 'input'),
     QuestionSetInput: toDef(questionSetSchema, 'input'),
     QuestionSetDetail: toDef(questionSetDetailSchema, 'output'),
     ListQuestionSetsResponse: toDef(listQuestionSetsResponseSchema, 'output'),
@@ -54,6 +58,11 @@ export function buildOpenApiDocument() {
         'csrf() が別のオリジンからのフォームの形の要求を断った。Hono がテキストで返す。本文が JSON の要求と、同じオリジンの要求では起きない',
       content: { 'text/plain': { schema: { type: 'string' } } },
     },
+    AdminForbidden: {
+      description:
+        '管理者でないホストには forbidden の JSON を返す（ADR 0013）。csrf() が別のオリジンからのフォームの形の要求を断ったときは、Hono がテキストで返す（ADR 0014）',
+      content: { ...jsonBody('HttpError'), 'text/plain': { schema: { type: 'string' } } },
+    },
     NotFound: {
       description: 'ない、または他人のもの。どちらかは区別しない（S1）',
       content: jsonBody('HttpError'),
@@ -69,6 +78,53 @@ export function buildOpenApiDocument() {
         responses: {
           '200': { description: '自分のこと', content: jsonBody('MeResponse') },
           '401': response('Unauthorized'),
+        },
+      },
+    },
+    '/api/admin/hosts': {
+      get: {
+        operationId: 'listHosts',
+        summary: '許可リストのホストを、足した順に返す（ADR 0013）。管理者だけが使える',
+        responses: {
+          '200': { description: '一覧', content: jsonBody('ListHostsResponse') },
+          '401': response('Unauthorized'),
+          '403': response('AdminForbidden'),
+        },
+      },
+      post: {
+        operationId: 'addHost',
+        summary:
+          'GitHub の名前でホストを足す（ADR 0013）。サーバーが api.github.com で数値の ID に変えて許可リストに入れ、名前は note にメモとして入れる',
+        requestBody: requestBody('AddHostRequest'),
+        responses: {
+          '201': { description: '足した', content: jsonBody('Host') },
+          '400': response('BadRequest'),
+          '401': response('Unauthorized'),
+          '403': response('AdminForbidden'),
+          '404': {
+            description: 'GitHub にその名前の User がない（Organization も含む）',
+            content: jsonBody('HttpError'),
+          },
+          '409': { description: 'すでに許可リストにいる（already_exists）', content: jsonBody('HttpError') },
+          '502': {
+            description:
+              'GitHub が答えなかった（github_unavailable）。上限や不調のときに起きるので、時間をおいて入れ直す',
+            content: jsonBody('HttpError'),
+          },
+        },
+      },
+    },
+    '/api/admin/hosts/{githubUserId}': {
+      parameters: [{ $ref: '#/components/parameters/GithubUserId' }],
+      delete: {
+        operationId: 'removeHost',
+        summary: 'ホストを許可リストから外し、その人のセッションも一緒に消す（ADR 0013）。管理者の行は外せない',
+        responses: {
+          '204': { description: '外した' },
+          '401': response('Unauthorized'),
+          '403': response('AdminForbidden'),
+          '404': { description: '許可リストにない', content: jsonBody('HttpError') },
+          '409': { description: '管理者のホストは外せない（admin_host）', content: jsonBody('HttpError') },
         },
       },
     },
@@ -149,7 +205,7 @@ export function buildOpenApiDocument() {
       title: 'ズバクイの HTTP API',
       version: '1.0.0',
       description: [
-        'ホストだけが使う HTTP API（S1）。部屋の進行は WebSocket で、その仕様は ws.schema.json にある。',
+        'ホストだけが使う HTTP API（S1）。/api/admin/ の下は、ホストのうち管理者だけが使える（ADR 0013）。部屋の進行は WebSocket で、その仕様は ws.schema.json にある。',
         '',
         'JSON Schema に出ない条件は、packages/protocol の zod のコードも合わせて読む。',
         '- 文字列は前後の空白を取り除いてから長さを数え、取り除いた値を保存する',
@@ -171,6 +227,13 @@ export function buildOpenApiDocument() {
         },
       },
       parameters: {
+        GithubUserId: {
+          name: 'githubUserId',
+          in: 'path',
+          required: true,
+          description: '許可リストの GitHub のユーザー ID（数の文字列）。一覧の githubUserId をそのまま使う',
+          schema: { type: 'string' },
+        },
         QuestionSetId: {
           name: 'id',
           in: 'path',
