@@ -1,9 +1,6 @@
-import { useState } from 'react';
-
-import { githubSignInUrl } from '@/api/auth-client';
-import { GitHubMark } from '@/components/icons/github-mark';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { GithubSignInButton } from '@/shared/auth/GithubSignInButton';
+import { useGithubSignIn } from '@/shared/auth/use-github-sign-in';
 
 /** 許可リストの外で拒否されたときに、Better Auth が ?error= に入れる値（apps/api の HOST_NOT_ALLOWED） */
 const HOST_NOT_ALLOWED = 'host_not_allowed';
@@ -18,21 +15,9 @@ interface LoginPageProps {
  * 拒否されると Better Auth が ?error= を付けてここへ戻すので、その理由を出す
  */
 export function LoginPage({ error }: LoginPageProps) {
-  const [starting, setStarting] = useState(false);
-  const [startFailed, setStartFailed] = useState(false);
+  const signIn = useGithubSignIn();
+  const startFailed = signIn.startError !== null;
   const denied = error === HOST_NOT_ALLOWED;
-
-  async function signIn() {
-    setStarting(true);
-    setStartFailed(false);
-    try {
-      // GitHub へ移る。ページを離れるので、成功したら starting は戻さない
-      window.location.assign(await githubSignInUrl());
-    } catch {
-      setStarting(false);
-      setStartFailed(true);
-    }
-  }
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-16">
@@ -60,10 +45,9 @@ export function LoginPage({ error }: LoginPageProps) {
         </p>
       )}
 
-      <Button variant={denied ? 'outline' : 'default'} size="lg" onClick={signIn} disabled={starting} className="mt-8">
-        <GitHubMark />
+      <GithubSignInButton signIn={signIn} variant={denied ? 'outline' : 'default'} className="mt-8">
         {denied ? '別のアカウントでログイン' : 'GitHub でログイン'}
-      </Button>
+      </GithubSignInButton>
       <p className="mt-6 text-note text-muted-foreground">
         クイズに答えるだけなら、ログインは要りません。ホストから届いた URL を開いてください。
       </p>
