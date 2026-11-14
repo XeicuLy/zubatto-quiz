@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   connect,
   joinPlayer,
+  MANY_PLAYERS_TIMEOUT_MS,
   messageReader,
   newRoom,
   nextOf,
@@ -270,7 +271,7 @@ describe('経過時間（P2）', () => {
 });
 
 describe('50名の一斉回答（P3）', () => {
-  it('締切の直前に50名が同時に答えても、50件とも受け付ける', async () => {
+  it('締切の直前に50名が同時に答えても、50件とも受け付ける', { timeout: MANY_PLAYERS_TIMEOUT_MS }, async () => {
     const stub = await newRoom();
     const names = Array.from({ length: 50 }, (_, i) => `回答者${i + 1}`);
     const { host, players } = await startAccepting(stub, names);

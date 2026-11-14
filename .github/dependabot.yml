@@ -55,6 +55,15 @@ updates:
       commitlint:
         patterns: ['@commitlint/*']
         update-types: [major]
+      # 手で直すことがあるものは、minor と patch でも別の PR にする。ほかの更新の ci を止めない
+      # wrangler は worker-configuration.d.ts の作り直しが毎回要る。plugin も同じ workerd に合わせて一緒に上げる
+      cloudflare:
+        patterns: ['wrangler', '@cloudflare/*']
+        update-types: [major, minor, patch]
+      # 整形の変わり方や新しいルールで、リポジトリ全体に直しが出る
+      oxc:
+        patterns: ['oxlint', 'oxfmt']
+        update-types: [minor, patch]
       # ほかの major はどのグループにも入らず、パッケージごとの PR になる
       minor-and-patch:
         patterns: ['*']
