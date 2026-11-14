@@ -132,6 +132,13 @@ export function newToken(): string {
     .replace(/=+$/, '');
 }
 
+/**
+ * 50名を joinPlayer で1人ずつ入室させるテストの時間の上限。接続と SHA-256 を50回くり返すので、
+ * CI では web のテストと並んで動くと遅くなり、通るときでも 0.7〜3.2 秒かかった。
+ * 既定の5秒では時々落ちるので、止まったときだけ落ちる長さにする
+ */
+export const MANY_PLAYERS_TIMEOUT_MS = 20_000;
+
 /** 回答者用の入口につなぎ、join を通して participantId を返す */
 export async function joinPlayer(stub: RoomStub, name: string, token = newToken()) {
   const ws = await connect(stub, { role: 'player' });
