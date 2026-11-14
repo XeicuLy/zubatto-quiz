@@ -255,7 +255,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 
 ## ページタイトル
 
-- どのルートも `head: () => pageTitle('<画面名>')` を書く（`src/lib/page-title.ts`、「<画面名> | ズバクイ」）（#109）。`__root` が `<HeadContent />` を描き、既定は `APP_NAME` にする。トップページと、ない URL はこれを出す。いちばん内側のルートのタイトルが勝つ
+- どのルートも `head: () => pageTitle('<画面名>')` を書く（`src/lib/page-title.ts`、「<画面名> | ズバクイ」）（#109）。`__root` が `<HeadContent />` を描き、既定は `APP_NAME` にする。ない URL はこれを出す（入口は「はじめに」）。いちばん内側のルートのタイトルが勝つ
 - タイトルには、部屋の ID、回答者の名前、問題セットの名前を入れない（S3）
 - React 19 は、ルートの `<title>` を `index.html` の `<title>` より前に入れる。`index.html` のほうは、JavaScript が動く前の代わりとして残る
 - ルートのテストは `document.title` を `waitFor` で確かめる。`csp.spec.ts` は、`HeadContent` がインラインのスクリプトやスタイルを足さないことを確かめる
@@ -310,6 +310,9 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - `src/api/auth-client.ts` が、Better Auth（`better-auth/client`）を import する唯一のファイル。Go へ作り直すときは、このファイルだけを置き換える。出すのは `fetchHostSession`、`githubSignInUrl`、`signOut`
 - `githubSignInUrl` は `errorCallbackURL: '/login'` を送る。そのため、許可リストで断られると `/login?error=host_not_allowed` へ戻る。jsdom は移動できないので `disableRedirect` を使い、呼ぶ側が `location.assign` する
 - クライアントは `customFetchImpl` で、呼ぶたびに全体の `fetch` を引く。そうしないと、テストで差し替えた `fetch` が使われない
+- ログインを始めるのは `src/shared/auth/` の `useGithubSignIn`（hook）と `GithubSignInButton`（GitHub のマーク付きの `Button`）。ログインの画面と入口が使う（feature 同士は import できないので shared に置く）。始められなかったときは `startError` に入れ、文は呼ぶ側が出す（ログインの画面は誤りのカード、入口は `ActionError`）
+- GitHub へ移ったあと「戻る」で bfcache からページが戻ると、`starting` が残ってボタンを押せなくなる。そのため `pageshow` の `persisted` で戻す。jsdom の `location.assign` は上書きできない（`vi.spyOn` は Cannot redefine property になる）ので、テストは `vi.stubGlobal('location', …)` で差し替える
+- 入口（`routes/index.tsx`）の `loader` も `hostSessionQueryOptions` を読むが、「ホストとしてログイン」と「問題セットへ」を出し分けるためだけ。`.catch(() => null)` で包み、読めなくてもログインしていないとして入口を出す。ログイン済みでも `/admin` へは移さない
 - `routes/admin/route.tsx` の `beforeLoad` は `requireHost`（`src/shared/auth/require-host.ts`）。`queryClient.query(hostSessionQueryOptions)`（`src/api/host-session.ts`）を呼び、セッションがなければ `redirect({ to: '/login' })`。ホストだけのルートでは、これを使い回す
 - キャッシュしたセッションは信じない（既定の `staleTime: 0` で毎回読み直す）。そのため、ほかのタブやサーバーで終わったセッションのまま `/admin` の中を移り、キャッシュした一覧を見ることはできない。`/login` の `beforeLoad` も同じことをし、ログイン済みのホストを `/admin` へ送る
 - ログアウトは `queryClient.clear()` を呼ぶので、セッションも一覧も残らない
@@ -357,7 +360,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 
 ## 使い方のページ
 
-- `/guide`（`src/routes/guide.tsx` と `src/features/guide/`）は、ホストと回答者の流れを、画面の画像と一緒に順に見せる（#285）。ログインせずに開け、API を読まない。今のトップ（`/`）からは「使い方を見る」でつなぐ
+- `/guide`（`src/routes/guide.tsx` と `src/features/guide/`）は、ホストと回答者の流れを、画面の画像と一緒に順に見せる（#285）。ログインせずに開け、API を読まない。入口（`/`、`src/features/landing/`）からは「使い方を見る」でつなぐ。ホストの最初の手順（ログイン）の画像は、入口のページを撮る
 - 手順は `guide-steps.ts` の配列（見出し・説明・画像の名前・alt・`device`）だけに書く。DOM にも Vite にも頼らない値だけにし、撮影のスクリプトと node のテストからも読む
 - 画像は `images/<名前>.png` に置き、`GuidePage.tsx` の `import.meta.glob`（`eager`・`?url`）で URL にする。`assetsInlineLimit: 0` なので同じオリジンのハッシュ付きの URL になり、CSP の `default-src 'self'` を通る。`csp.spec.ts` が、全部の画像が `/assets/` から読めることを確かめる
 - `new URL(`` `./images/${name}.png` ``, import.meta.url)` の形は使わない。Vite はこれも glob に変えるが、ソースに glob の呼び出しの文字がないので、vitest 5 の `fsModuleCache` が前の一覧を残し、画像を足しても `src` が `undefined` になる（[Storybook](#storybook) の `story-files.ts` と同じ。vitest 5.0.5 で確かめた、2026-11-12）
