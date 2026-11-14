@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContractSocket, handshakeStatus, loginAsHost, request, roomSocketUrl, type HostSession } from './client.ts';
 
 const origin = 'http://localhost:4173';
-const session: HostSession = { origin, cookie: 'better-auth.session_token=abc' };
+const session: HostSession = { origin, cookie: 'better-auth.session_token=abc', githubUserId: '9b2f' };
 const questionSetId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const roomId = 'a'.repeat(64);
 
@@ -41,12 +41,14 @@ describe('HTTP', () => {
           { name: 'better-auth.session_token', value: 'abc', domain: 'localhost' },
           { name: 'other', value: 'x', domain: 'localhost' },
         ],
+        githubUserId: '9b2f',
       }),
     );
 
     await expect(loginAsHost(origin)).resolves.toEqual({
       origin,
       cookie: 'better-auth.session_token=abc; other=x',
+      githubUserId: '9b2f',
     });
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toBe(`${origin}/api/e2e/login`);

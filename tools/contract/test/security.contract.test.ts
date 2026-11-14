@@ -170,7 +170,7 @@ describe.skipIf(!origin)('安全の約束', { timeout: 30_000 }, () => {
   });
 
   describe('S1: 管理者だけの経路（ADR 0013）', () => {
-    /** 許可リストの GitHub のユーザー ID。テスト用のログインは ID を返さないので、ログインの前後の一覧の差で見つける */
+    // 一覧にはほかのファイルのテストが作ったホストも並ぶので、自分のホストはログインが返した githubUserId で見分ける
     type Host = { githubUserId: string; isAdmin: boolean };
     const listHosts = async (admin: HostSession) => {
       const listed = await request(admin, 'GET /api/admin/hosts');
@@ -194,29 +194,25 @@ describe.skipIf(!origin)('安全の約束', { timeout: 30_000 }, () => {
 
     it('画面から外したホストは、そのときのセッションで次の要求から 401 になる', async () => {
       const admin = await loginAsHost(origin, { admin: true });
-      const before = new Set((await listHosts(admin)).map((host) => host.githubUserId));
       const target = await loginAsHost(origin);
-      const added = (await listHosts(admin)).filter((host) => !before.has(host.githubUserId));
-      expect(added).toEqual([
-        { githubUserId: expect.any(String), isAdmin: false, note: null, createdAt: expect.any(String) },
-      ]);
+      const params = { githubUserId: target.githubUserId };
+      expect(await listHosts(admin)).toContainEqual(expect.objectContaining({ ...params, isAdmin: false }));
       expect((await request(target, 'GET /api/question-sets')).status).toBe(200);
 
-      const removed = await request(admin, 'DELETE /api/admin/hosts/{githubUserId}', {
-        params: { githubUserId: added[0]!.githubUserId },
-      });
+      const removed = await request(admin, 'DELETE /api/admin/hosts/{githubUserId}', { params });
 
       expect(removed).toEqual({ status: 204, body: undefined });
+      expect((await listHosts(admin)).map((host) => host.githubUserId)).not.toContain(target.githubUserId);
       expect(await request(target, 'GET /api/question-sets')).toEqual({ status: 401, body: { error: 'unauthorized' } });
     });
 
     it('管理者の行は外せず 409、許可リストにない ID は 404、形の違う名前は GitHub に問い合わせずに 400 を返す', async () => {
       const admin = await loginAsHost(origin, { admin: true });
-      const adminRow = (await listHosts(admin)).find((host) => host.isAdmin);
 
+      // 自分の行（管理者）を外そうとする
       expect(
         await request(admin, 'DELETE /api/admin/hosts/{githubUserId}', {
-          params: { githubUserId: adminRow!.githubUserId },
+          params: { githubUserId: admin.githubUserId },
         }),
       ).toEqual({ status: 409, body: { error: 'admin_host' } });
       expect(

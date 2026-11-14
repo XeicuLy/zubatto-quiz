@@ -82,6 +82,16 @@ describe('E2E 用のログインの入口（ADR 0003）', () => {
     expect(await isAdminOf(host)).toBe(false);
   });
 
+  // 契約テストは、ほかのテストと並んで走っても、自分が作ったホストを許可リストの中で見分ける（ADR 0013）
+  it('作ったホストの GitHub のユーザー ID を返し、それは許可リストの行の ID と同じ', async () => {
+    const response = await request(E2E_LOGIN_PATH, { method: 'POST' });
+    const { githubUserId } = await response.json<{ githubUserId: string }>();
+
+    expect(await db.select({ githubUserId: hostAllowlist.githubUserId }).from(hostAllowlist)).toEqual([
+      { githubUserId },
+    ]);
+  });
+
   it('本番の経路もそのまま通る', async () => {
     const response = await request('/api/health');
 
