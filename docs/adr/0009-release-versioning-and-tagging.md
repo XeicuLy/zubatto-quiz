@@ -52,6 +52,8 @@ R1 の中で決めること
 
 採用する選択肢: 「R1（release-please + GitHub App。本番に何があるかは Deployments で答え、本番に出す前に Required reviewers で承認する）」。あわせて W1・V1・bootstrap を選び、v\* タグの ruleset は入れない。
 
+- ADR 0012 で、R1 の release-please をやめ、デプロイの dispatch で版を選び、デプロイが成功したコミットにタグと Release を作る形（R4 に近い）に変えた。R4・R5 を採らなかった下の理由には、ADR 0012 で答えている。W1・V1・GitHub App・Required reviewers・Deployments で本番を答えることは残す
+
 理由:
 
 - R1 は、版（タグと Release）と本番（Deployments）を別々に記録する。DD1 を満たすのに、タグに「本番に出た」という意味を持たせなくてよい
@@ -62,6 +64,7 @@ R1 の中で決めること
 - R2 は DD2 を満たさない。本番中にリリース PR をマージすると、API の Worker が出てしまう
 - R3 は DD2 を満たさない。main への push はルールセットに拒まれる。動かすには bypass か PAT が要る
 - R4 は DD1〜DD3 を満たすが、DD4（手元の状態に左右される）と DD7 で R1 に劣る。また、上に書いた2つの仕組みが要る
+  - ADR 0012 で、判定を workflow の中に移し（手元の状態に左右されない）、デプロイを全体だけにしてタグをデプロイの成功でしか作らないことで（2つの仕組みが要らない）、この形に近いものに変えた
 - R5 は R4 の DD4 を直すが、DD7 と、タグに2つの意味がある点は R4 と同じ
 - R6 は DD3 を満たさない。「Allow GitHub Actions to create and approve pull requests」を有効にすると、workflow が PR を承認できるようになる。いまは承認0件でマージできるので害はないが、承認を必須にしたときの抜け道になる。手の数も R5 と変わらない（PR を作る代わりに、承認待ちの CI を動かすボタンを押す）
 - W1（squash マージだけ）: 2026-10-27 に release-please 17.11.2 の dry-run を main に向けて実行したところ、すべての変更が2行ずつ出た。GitHub のマージコミットは本文に PR の題名を入れ、release-please は本文に `feat: ` で始まる段落があると別の変更として切り出す（`splitMessages`）ため、PR の題名と PR の中のコミットの両方が数えられる。W1 なら PR 1つが CHANGELOG の1行になり、release-please と多くのチームの前提にも合う
