@@ -26,6 +26,9 @@
 
 - Better Auth の GitHub ログインを使う（[ADR 0003](../adr/0003-host-identification-and-host-connection.md)）。`owner_id` は Better Auth の `user.id`
 - GitHub のユーザー ID の許可リストは、新規登録のときに `user.validateUserInfo` で、行を書く前に確かめる。D1 にはトランザクションがないので、`account.create.before` で断ると `user` の行が残ってしまう。セッションを作るたびに、`databaseHooks.session.create.before` でもう一度確かめる
+- 管理者の印は `host_allowlist.is_admin` に持つ（[ADR 0013](../adr/0013-host-admin-role.md)）。許可リストの行にあるので、管理者は必ずホストになる。印はコマンドでだけ付け外しする（[host-allowlist.md](../runbooks/host-allowlist.md#管理者)）。`auth/allowlist.ts` の `isAllowedUser` と `isAdminUser` は、同じ `account` と `host_allowlist` の join（`provider_id = 'github'` で絞る）を使い、`isAdminUser` は `is_admin` の条件を足すだけにしている
+- 管理者だけの経路は `.use(csrf(), requireHost, requireAdmin)` を使う。`auth/require-admin.ts` の `requireAdmin` は、`requireHost` が決めた `ownerId` で、要求のたびに `isAdminUser` を D1 に問い合わせる。キャッシュしないので、印を外せば同じセッションでも次の要求から断る。管理者でないホストには 403 `{ "error": "forbidden" }` を返す。経路は `GET /api/me` と画面から分かるので、S1 の 404 では隠さない
+- `GET /api/me`（`routes/me.ts`）は `requireHost` だけを通り、`{ isAdmin }` を返す。画面が管理者向けのリンクを出すかを決めるためのもので、守りの本体は `requireAdmin`。状態を変えないので `csrf()` は置かない
 - `apps/api/src/auth` の `createAuthOptions(env)` を、本番の `createAuth` と、テスト専用の `test/auth/create-test-auth.ts` で共有する。テスト用のほうは `testUtils` を足すだけ。oxlint は、テストのコードの外で `testUtils` と `better-auth/test` を import すると落とす。`testUtils.saveUser` は `validateUserInfo` を通って断られるので、テストでは drizzle で `user` と `account` の行を入れる
 - `/api/auth/*` の本文は、`bodyLimit` で4KiBまでにする。ログイン前に届く経路で、Better Auth の `scopes` は `z.array(z.string())` と長さの上限がない。zod は不正な要素の数だけ誤りを作るので（4.6.7 でも同じ。2026-11-07 に確かめた）、大きな本文で CPU とメモリを使わせられる。`Content-Length` のない本文も数えて止める
 - `BETTER_AUTH_URL`（画面の Worker の URL）と秘密の値は、`apps/api/wrangler.jsonc` の `secrets.required` に並べている。こうすると `wrangler types` が `.dev.vars` に頼らず、どれかを入れ忘れると `wrangler deploy` が失敗する。URL は秘密ではないが、`vars` の値はデプロイのたびにファイルの値へ戻るので、上書きを忘れると GitHub のコールバックが黙って localhost へ飛んでしまう。手元では `apps/api/.dev.vars` に、テストでは `vitest.config.ts` で値を渡す

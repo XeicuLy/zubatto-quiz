@@ -17,7 +17,7 @@
 - `format`（uuid・date-time・uri）は ajv-formats で確かめる。uuid と date-time は zod が `pattern` も書き出すが、参加用の URL（`joinUrl`）の uri は `format` でしか捕まらない
 - `src/client.ts`: サーバーにつなぐ部品。受け取ったものはすべて `validate.ts` で調べる
   - `loginAsHost(origin)`: テスト用のログイン（`POST /api/e2e/login`）で新しいホストになり、Cookie ヘッダーの値を返す
-  - `request(session, 'PUT /api/question-sets/{id}', { params, body })`: openapi.json のキーをそのまま URL のひな形にして送り、応答を `validateResponse` で調べて `{ status, body }` を返す
+  - `request(session, 'PUT /api/question-sets/{id}', { params, body })`: openapi.json のキーをそのまま URL のひな形にして送り、応答を `validateResponse` で調べて `{ status, body }` を返す。`{ origin }` だけを渡すと、Cookie を付けずに、ログインしていない人として送る
   - `ContractSocket`: 部屋の WebSocket。届いたメッセージをすべて `validateServerMessage` で調べてためる。合わないものが1つでも届いたら、`waitFor` はすぐその理由で失敗する（数えて捨てると、最初のずれがほかの待ちの時間切れに埋もれる）。閉じたときの code を返す `closed` も、それまでに合わないものが届いていれば失敗するので、最後の `waitFor` のあとに届いたものも見逃さない。`messages` は届いた順のメッセージを返す
   - `handshakeStatus(url, headers)`: WebSocket の握手を node:http で1つ送り、状態コードを返す（受け付けられたら 101 で、すぐ閉じる）。Node の WebSocket は断られたときの状態コードを見せず、Origin のない握手も作れないため。応答を返さずに切られたら `null` を返す
 
