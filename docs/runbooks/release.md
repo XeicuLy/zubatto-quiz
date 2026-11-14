@@ -19,10 +19,11 @@ deploy.yaml を main の上で動かすと、版とリリースのために次�
 2. `deploy` が、最初に基準のタグを確かめ直してから、本番に出す
 3. `release` が、次の順に作る。どの手順も、すでにあれば飛ばすので、途中で落ちても **Re-run failed jobs** で続きから動かせる
    1. タグ `vX.Y.Z` がすでにデプロイしたコミットにあれば、前の Re-run で終わっているので、何もしない。別のコミットにあるか、最新の `v*` タグが基準のタグと違えば、何も作らずに止まる
-   2. main の先頭から、ブランチ `changelog/vX.Y.Z` を切る
-   3. そのブランチの `CHANGELOG.md` の先頭に文面を足し、ルートの `package.json` の `version` を書き換える。GitHub の API（contents API）でコミットするので、コミットには GitHub の署名（Verified）が付く
-   4. PR（`chore: vX.Y.Z の CHANGELOG を更新する`）を開く
-   5. GitHub Release `vX.Y.Z` を、デプロイしたコミット（`target_commitish` が `github.sha`）に作る。タグも、このとき Release の API が作る
+   2. ブランチ `changelog/vX.Y.Z` の PR が、開いているかマージ済みなら、3〜5 は前の run で済んでいるので飛ばす（閉じただけの PR は数えない）
+   3. main の先頭から、ブランチ `changelog/vX.Y.Z` を切る。前の run が PR を作る前に落ちて残したブランチがあれば、それを使う
+   4. そのブランチの `CHANGELOG.md` の先頭に文面を置き、ルートの `package.json` の `version` を書き換える。同じ版の節がすでにあれば、今回の文面で置き換える（残ったブランチが、別のコミットの run の文面のままにならないように）。GitHub の API（contents API）でコミットするので、コミットには GitHub の署名（Verified）が付く
+   5. PR（`chore: vX.Y.Z の CHANGELOG を更新する`）を開く
+   6. GitHub Release `vX.Y.Z` を、デプロイしたコミット（`target_commitish` が `github.sha`）に作る。タグも、このとき Release の API が作る
 
 - PR を先に作るのは、途中で落ちたときに、タグだけが残らないようにするため。開いたままの PR が残り、次の dispatch はそれを見て承認の前に止まる
 - `release` は GitHub App の token で書く。GITHUB_TOKEN で作った PR では、ci / e2e が「承認待ち」になって自動では動かないため。GITHUB_TOKEN には、どの job でも書き込みの権限を渡さない
@@ -169,7 +170,7 @@ v1.3.0 までの release-please の流れから、この流れに切り替えた
 - **Release ができる前にマージしない**。`release` が PR を作ったあとで落ちたとき、開いた PR が次の dispatch を止めて知らせる。先にマージすると、この止める仕組みが効かなくなる（[deploy.md の「release が途中で失敗したとき」](deploy.md#release-が途中で失敗したとき)）
 - 開いている間は、次の dispatch が承認の前に止まる。マージを忘れない
 - 題名は `chore:` なので、次の CHANGELOG に出ず、版も上げない
-- 行を直したいときは、マージする前に、PR のブランチで `CHANGELOG.md` を直してよい。`release` はすでに足した節を書き戻さない。Release の本文も同じに直すときは、`gh release edit vX.Y.Z --notes-file <ファイル>` か、Release の画面の Edit で直す
+- 行を直したいときは、マージする前に、PR のブランチで `CHANGELOG.md` を直してよい。PR があれば、`release` を Re-run してもブランチとファイルには触れないので、直した節は書き戻されない。Release の本文も同じに直すときは、`gh release edit vX.Y.Z --notes-file <ファイル>` か、Release の画面の Edit で直す
 - 件名が利用者に通じない行が出ないよう、元の PR の題名を、利用者から見て何が変わったかで書く
 
 ## 失敗したとき

@@ -40,12 +40,13 @@
 - `release` は依存パッケージを入れず、`mise-action` で node だけを入れる（`install_args: node`・`cache: false`）。書き込みの token を持つ job で、依存の install スクリプトや、ほかの job が書けるキャッシュの中身が動かないようにする（ADR 0012 の DD2）。そのため、`release` が呼ぶ `tools/release/src/steps.ts` とそれが読み込むファイルは、changelogen も、ほかの npm のパッケージも読み込まない
 - 手順は [.github/scripts/release.sh](../../.github/scripts/release.sh) の `publish`。PR を先に、Release をあとに作る。どの手順も、すでにあれば飛ばす
   1. `check-release`: タグ `vX.Y.Z` がデプロイしたコミットにあれば、前の Re-run で終わっているので何もしない。別のコミットにあれば止まる。なく、最新の `v*` タグが基準のタグと違えば止まる
-  2. main の先頭から `changelog/vX.Y.Z` のブランチを、git の refs の API で切る
-  3. contents API で `CHANGELOG.md` と `package.json` を書き換える。git で push しないので、checkout に token を残さずに済み、コミットには GitHub の署名が付く。本文は `--input` の JSON で渡す（引数1つの長さには 128KB の上限がある）。中身が変わらなければコミットしない
-  4. 閉じたものも含めて、そのブランチの PR がなければ開く
-  5. `gh release create --target "$GITHUB_SHA"` で Release を作り、タグも Release の API に作らせる
+  2. このリポジトリの、そのブランチの PR が、開いているかマージ済みなら、3〜5 を飛ばす。PR があることを「ブランチとファイルは済んだ」印にする。PR ができてから手で直した節を、Re-run で書き戻さないため。閉じただけの PR は数えずに作り直す
+  3. main の先頭から `changelog/vX.Y.Z` のブランチを、git の refs の API で切る。すでにあれば使う。ブランチ名は版しか持たないので、PR を作る前に落ちた別の run（別のコミット）が残したものでありうる。そのため、ブランチがあることは「済んだ」印にしない
+  4. contents API で `CHANGELOG.md` と `package.json` を書き換える。git で push しないので、checkout に token を残さずに済み、コミットには GitHub の署名が付く。本文は `--input` の JSON で渡す（引数1つの長さには 128KB の上限がある）。中身が変わらなければコミットしない
+  5. PR を開く
+  6. `gh release create --target "$GITHUB_SHA"` で Release を作り、タグも Release の API に作らせる
 - PR を先にするのは、途中で落ちたときに、開いた PR が次の dispatch を承認の前で止めるため。PR を作る前に落ちたときは何も残らず止まらないので、runbook の手順で Re-run する
-- `CHANGELOG.md` は、`steps.ts` の `changelog`（`prependNotes`）が、見出し（`# Changelog`）のすぐ下に節を足す。同じ版の見出しがすでにあれば変えない。`release` は oxfmt を動かさないので、`.oxfmtrc.json` は `CHANGELOG.md` を飛ばす。v1.3.0 までの節は release-please が書いた形（日本語の見出し、空行が3つ続く形）のまま残す
+- `CHANGELOG.md` は、`steps.ts` の `changelog`（`prependNotes`）が、見出し（`# Changelog`）のすぐ下に節を足す。同じ版の節（その見出しから次の `## ` の手前まで）がすでにあれば、今回の文面で置き換える。中身が同じなら結果も変わらないので、Re-run で2回足さず、残ったブランチが別の run の文面のままにもならない（CHANGELOG の PR と Release の文面がずれない）。`release` は oxfmt を動かさないので、`.oxfmtrc.json` は `CHANGELOG.md` を飛ばす。v1.3.0 までの節は release-please が書いた形（日本語の見出し、空行が3つ続く形）のまま残す
 - ルートの `package.json` の `"version"` は `"name"` のすぐ下に置く。`setPackageVersion` は、いちばん外の `"version"` の値だけを書き換え、ないと止まる。`release-workflow.test.ts` が確かめる
 - 開いた CHANGELOG の PR は、ブランチが `changelog/` で始まることで見分ける（`guard.ts` の `changelogPr`）。`release.sh` の `gh pr list` は、fork からの PR（`isCrossRepository`）を数えない。誰でも同じ名前のブランチの PR を開けるので、数えると dispatch を止めたり、CHANGELOG の PR を作らずに飛ばさせたりできてしまう（`release-workflow.test.ts`）。題名は scope のない `chore: vX.Y.Z の CHANGELOG を更新する` で、`guard.test.ts` が commitlint に通す
 - マージを squash だけにしているのは、マージコミットだと本文に PR の題名とコミットの一覧が入り、どの変更も2回ずつ数えられるため（ADR 0009）
