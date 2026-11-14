@@ -77,9 +77,10 @@ test('接続が切れると「再接続中」を出し、つなぎ直したら�
   await joinRoom(page, room.joinUrl, '切れる');
 
   relay.cut();
-  // 見える帯には role="status" を付けず、読み上げは __root に常にある領域が受け持つ（#110）
+  // 見える帯には role="status" を付けず、読み上げは __root に常にある領域が受け持つ（#110）。
+  // toast の Viewport も aria-live="polite" を持つが role="region" なので、role のない Announcer の領域だけを見る
   const reconnecting = page.getByRole('paragraph').filter({ hasText: '接続が切れました。つなぎ直しています' });
-  const announced = page.locator('[aria-live="polite"]');
+  const announced = page.locator('[aria-live="polite"]:not([role])');
   await expect(reconnecting).toBeVisible();
   await expect(announced).toHaveText('接続が切れました。つなぎ直しています');
 

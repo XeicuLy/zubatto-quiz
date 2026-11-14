@@ -4,9 +4,11 @@ import type { QuestionSetSummary } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
 import { DRAFT_QUESTION_SET, questionSetsQueryOptions } from '@/api/question-sets';
+import { ANNOUNCE_DELAY_MS } from '@/components/a11y/announce';
 import { createAppRouter } from '@/router';
 
 import { stubFakeApi } from '../../../test/fake-api';
+import { liveRegion } from '../../../test/live-region';
 
 const QUIZ: QuestionSetSummary = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -121,6 +123,35 @@ describe('問題セットの一覧（F7）', () => {
     await waitFor(() => expect(screen.queryByRole('heading', { name: QUIZ.title })).not.toBeInTheDocument());
     expect(api.requestsTo('DELETE', `/api/question-sets/${QUIZ.id}`)).toHaveLength(1);
     expect(screen.getByRole('heading', { level: 2, name: WELCOME.title })).toBeInTheDocument();
+  });
+
+  it('消せたら、消した問題セットの名前を toast で知らせる。読み上げは toast の領域だけが受け持つ', async () => {
+    stubFakeApi({ questionSets: [QUIZ, WELCOME] });
+    await openAdmin();
+    const row = await rowOf(QUIZ.title);
+
+    fireEvent.click(within(row).getByRole('button', { name: '消す' }));
+    fireEvent.click(within(row).getByRole('button', { name: '本当に消す' }));
+
+    const toasts = screen.getByRole('region', { name: '通知' });
+    expect(await within(toasts).findByText('「2026 内輪クイズ」を消しました')).toBeVisible();
+    // Announcer にも渡すと2回読まれる
+    await act(() => new Promise((resolve) => setTimeout(resolve, ANNOUNCE_DELAY_MS)));
+    expect(liveRegion('polite')).toBeEmptyDOMElement();
+  });
+
+  it('別のタブで先に消していた（404）なら、一覧から消えるだけで、toast は出さない', async () => {
+    stubFakeApi({ questionSets: [QUIZ, WELCOME] });
+    await openAdmin();
+    const row = await rowOf(QUIZ.title);
+    // 一覧を読んだあとに、別のタブで消された
+    stubFakeApi({ questionSets: [WELCOME] });
+
+    fireEvent.click(within(row).getByRole('button', { name: '消す' }));
+    fireEvent.click(within(row).getByRole('button', { name: '本当に消す' }));
+
+    await waitFor(() => expect(screen.queryByRole('heading', { name: QUIZ.title })).not.toBeInTheDocument());
+    expect(screen.getByRole('region', { name: '通知' })).toBeEmptyDOMElement();
   });
 
   it('一覧を開いているあいだにログインが切れたら、読み直したときにログインし直すよう促す', async () => {

@@ -1,11 +1,16 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { act, cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
 import { clearAnnouncements } from '@/components/a11y/announce';
+import { toastManager } from '@/components/ui/toast';
 
-// globals を使わないので、Testing Library は描いたものを自動では片付けない
+// globals を使わないので、Testing Library は描いたものを自動では片付けない。
+// toast の manager はモジュールに1つなので、片付ける前に全部閉じ、消えるまでの timer を次のテストに残さない
 afterEach(() => {
+  act(() => {
+    toastManager.close();
+  });
   cleanup();
 });
 

@@ -8,6 +8,7 @@ import { createDraftQuestionSet, deleteQuestionSet, questionSetsQueryOptions } f
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog, useConfirm } from '@/components/ui/confirm-dialog';
+import { notify } from '@/shared/feedback/notify';
 
 import { CreateRoomButton } from './CreateRoomButton';
 
@@ -92,7 +93,9 @@ function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
   const deleteButton = useRef<HTMLButtonElement>(null);
   const remove = useMutation({
     mutationFn: () => deleteQuestionSet(set.id),
-    // 失敗しても読み直す。別のタブで先に消していた（404）なら、一覧から消える
+    // 行ごと消えるので、行の中では知らせられない。画面の隅に出す
+    onSuccess: () => notify(`「${set.title}」を消しました`),
+    // 失敗しても読み直す。別のタブで先に消していた（404）なら、一覧から消える（知らせは出さない）
     onSettled: () => queryClient.invalidateQueries({ queryKey: questionSetsQueryOptions.queryKey }),
   });
 
