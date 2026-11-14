@@ -29,7 +29,7 @@ describe('fetchQuestionSets', () => {
   it('ログインが切れていたら、401 の ApiError を投げる', async () => {
     stubFakeApi({ hostName: null });
 
-    await expect(fetchQuestionSets()).rejects.toEqual(new ApiError(401));
+    await expect(fetchQuestionSets()).rejects.toEqual(new ApiError(401, 'unauthorized'));
   });
 });
 
@@ -63,7 +63,7 @@ describe('deleteQuestionSet', () => {
   it('ない問題セットなら、404 の ApiError を投げる', async () => {
     stubFakeApi();
 
-    await expect(deleteQuestionSet(set.id)).rejects.toEqual(new ApiError(404));
+    await expect(deleteQuestionSet(set.id)).rejects.toEqual(new ApiError(404, 'not_found'));
   });
 });
 
@@ -83,7 +83,7 @@ describe('fetchQuestionSet', () => {
   it('ない（または他人の）問題セットなら、404 の ApiError を投げる', async () => {
     stubFakeApi();
 
-    await expect(fetchQuestionSet(detail.id)).rejects.toEqual(new ApiError(404));
+    await expect(fetchQuestionSet(detail.id)).rejects.toEqual(new ApiError(404, 'not_found'));
   });
 });
 
@@ -106,6 +106,6 @@ describe('saveQuestionSet', () => {
   it('ない（または他人の）問題セットなら、404 の ApiError を投げる', async () => {
     stubFakeApi();
 
-    await expect(saveQuestionSet(detail.id, detail)).rejects.toEqual(new ApiError(404));
+    await expect(saveQuestionSet(detail.id, detail)).rejects.toEqual(new ApiError(404, 'not_found'));
   });
 });

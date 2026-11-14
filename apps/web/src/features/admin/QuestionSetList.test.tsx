@@ -71,6 +71,18 @@ describe('問題セットの一覧（F7）', () => {
     expect(await screen.findByRole('heading', { level: 1, name: '問題セットの編集' })).toBeInTheDocument();
   });
 
+  it('問題セットを作るときにログインが切れていたら、移らずにログインし直すよう促す', async () => {
+    const api = stubFakeApi({ questionSets: [] });
+    const router = await openAdmin();
+
+    api.expireSession();
+    fireEvent.click(await screen.findByRole('button', { name: '問題セットを作る' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('ログインが切れました。');
+    expect(screen.getByRole('link', { name: 'ログインし直す' })).toHaveAttribute('href', '/login');
+    expect(router.state.location.pathname).toBe('/admin');
+  });
+
   it('消すときは確かめ、「やめる」を押せば何も消さない', async () => {
     const api = stubFakeApi({ questionSets: [QUIZ] });
     await openAdmin();

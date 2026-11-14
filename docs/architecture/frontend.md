@@ -128,7 +128,7 @@
 - ひとまとまりの知らせや内容を囲む面。`rounded-panel border-2 bg-card p-5 text-card-foreground` で、枠の色を `variant` で選ぶ。`default`（`border-border`）と `destructive`（誤りの知らせ。`border-destructive`）
 - shadcn/ui の `card` のひな形から、`Card` 本体だけを写した。`CardHeader`・`CardTitle` などは写していない。中身の見出しは画面ごとに要素（`<p>`・`<h1>`）も大きさも違うので、画面が書く
 - `role` は画面が渡す。誤りの知らせなら `role="alert"`。外側の余白（`mt-8` など）も `className` で渡す
-- 置き換えたのは、class がそろっていた誤りの知らせ（ログイン画面、問題セットの一覧と編集画面の読み込みの失敗）だけ。一覧の `<ul>`（1px の枠と `divide-y` で行を区切る）、空のときの点線の枠、問題の編集のカード（誤りで枠の太さが変わる）は形が違うので、まだ `Card` にしていない
+- 置き換えたのは、class がそろっていた誤りの知らせ（ログイン画面と、問題セットの一覧と編集画面の読み込みの失敗。後者はいま `LoadErrorCard` の中にある）だけ。一覧の `<ul>`（1px の枠と `divide-y` で行を区切る）、空のときの点線の枠、問題の編集のカード（誤りで枠の太さが変わる）は形が違うので、まだ `Card` にしていない
 
 `ConfirmDialog`・`useConfirm`（`confirm-dialog.tsx`）:
 
@@ -151,6 +151,15 @@
 - `Toaster` は `__root` の `Announcer` の隣に置く。経路の外にあるので、保存して一覧へ移るときも toast は消えない
 - 画面は `toastManager` を直接触らず、`notify(message)` を呼ぶ。`notify` は hook ではないので、mutation の `onSuccess` からそのまま呼べる。消えるまでの時間は `notifyTimeoutOf` が文の長さで決める（最低 6 秒、1文字 150 ms。WCAG 2.2.1）。hover とフォーカスのあいだは止まり、Esc で閉じる（どちらも Base UI が持つ）。読み上げは[読み上げ](#読み上げ)の節
 - テストでは `setup.ts` が、テストのたびに `toastManager.close()` で全部閉じる。manager はモジュールに1つなので、消えるまでの timer を次のテストに残さない。ストーリーは、ストーリーごとに `createToastManager()` で manager を作って `Toaster` に渡し、`useEffect` から `timeout: 0` で1つ出す。Provider は `useEffect` で manager を購読し、子の effect は親より先に走るので取りこぼさない（`useLayoutEffect` だと購読の前に出して消える）
+
+`ActionError`・`LoadErrorCard`・`describeApiError`（`shared/feedback/`）:
+
+- 失敗の知らせ（#288）。toast にせず、次の操作か読み直しまで消えない `role="alert"` で、原因の近くに残す。入力の誤り（欄の下と保存の帯の要約）は `Field` と `errorSummaryOf` のままで、これらは使わない
+- `describeApiError(error)` は投げられた値を `unauthorized`（401）・`notFound`（404）・`conflict`（409）・`unavailable`（5xx と、fetch が届かなかったときの `TypeError`）・`other`（400・403、応答の形が違う `ZodError`、ログアウトの失敗など）に分ける純粋な関数。分けるのは状態コードだけで、同じ状態コードの中を本文の `code`（`ApiError.code`）で分けるのは呼ぶ側が決める。画面は `ApiError` の `status` を直接見ず、これを通す
+- `ActionError` は、操作（保存・作る・部屋を作る・消す・ログアウト）のボタンのそばに出す `<p>`。文は呼ぶ側が渡す。`failed` は必ず渡し、「〇〇できませんでした。もう一度押してください。」のように、やり直し方まで書く（`conflict`・`unavailable`・`other` はこれを出す）。401 は既定で「ログインが切れました。ログインし直す」（同じタブの `/login`）を出し、`unauthorized` で差し替えられる。問題セットの編集は下書きを持つので、`LoginLink newTab` で別のタブに開く（このタブで GitHub へ移ると下書きが消える。Cookie はタブで共有される）。404 は `notFound` を渡せばその文、なければ `failed`。404 で何も出さない（一覧を読み直して行が消える）ときは、呼ぶ側が描かない
+- `LoadErrorCard` は、画面の中身を読めなかったときに中身の場所に出す `Card`（`destructive`）。問題セットの一覧（`titleAs="p"`、画面の `h1` の下）と、編集画面のルートの `errorComponent`（`titleAs="h1"`、カードが画面の中身のすべて）が使う。401 は「ログインし直す」、`notFound` を渡した 404 は見出し・説明・戻るリンク、ほかは `failed` の見出しと「もう一度読む」（`retry`。query なら `refetch`、loader なら `router.invalidate`）
+- `error` はどちらも `unknown` で受ける。ルートの `errorComponent` の `error` が `unknown` なので、そのまま渡せる
+- どちらも `<Link>` を含むので、部品のテストは `test/render-in-router.tsx` の `renderInRouter` で、根のルートだけの router の中で描く。Storybook には router がないので、ストーリーは置かない
 
 ## Storybook
 
@@ -309,9 +318,9 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 
 ## 問題セットの編集
 
-- HTTP の呼び出しは `src/api/` に置く。`question-sets.ts` と `rooms.ts` は、`request.ts` を通して `/api/question-sets` と `/api/rooms` を呼び、応答を protocol のスキーマで読む。2xx 以外は `ApiError(status)`（`errors.ts`）を投げる。`questionSetsQueryOptions` は 4xx をやり直さないので、401 ならすぐに「ログインが切れました」を出す
+- HTTP の呼び出しは `src/api/` に置く。`question-sets.ts` と `rooms.ts` は、`request.ts` を通して `/api/question-sets` と `/api/rooms` を呼び、応答を protocol のスキーマで読む。2xx 以外は `ApiError(status, code)`（`errors.ts`）を投げる。`code` は本文の `error`（protocol の `httpErrorSchema`）で、`safeParse` で読めたときだけ入り、csrf() の 403 のように本文が JSON でない応答では `null`。`questionSetsQueryOptions` は 4xx をやり直さないので、401 ならすぐに「ログインが切れました」を出す
 - 問題セットには1問以上が要るので、「問題セットを作る」は `DRAFT_QUESTION_SET` を保存して `/admin/sets/$setId` へ移る
-- 編集画面（`/admin/sets/$setId`）の loader は、`questionSetQueryOptions(setId)` を読む（訪れるたびに新しく読む）。ルートの `errorComponent` が 401/404 を出す。`QuestionSetEditor`（`setId` を key にする）は、loader のデータから下書きを1回だけ作る
+- 編集画面（`/admin/sets/$setId`）の loader は、`questionSetQueryOptions(setId)` を読む（訪れるたびに新しく読む）。ルートの `errorComponent` が `LoadErrorCard` で 401/404 を出す。`QuestionSetEditor`（`setId` を key にする）は、loader のデータから下書きを1回だけ作る
 - 下書き（`question-set-draft.ts`）は `QuestionSetInput` ではない。`correctIndex` は `null`（まだ正解を選んでいない）でもよく、制限時間は入力欄の秒の文字列
 - 編集はすべて純粋な関数 `editorReducer` を通す。選択肢が2〜4個、問題が1〜100問の外に出る編集には、同じ状態を返す
 - `validateDraft` は protocol の `questionSetSchema` を動かし、問題の場所（`'questions.1.correctIndex'`）ごとに日本語のメッセージを1つ当てる。自分では決まりを持たない

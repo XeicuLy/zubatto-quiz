@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { signOut, type HostSession } from '@/api/auth-client';
+import { ActionError } from '@/shared/feedback/ActionError';
 
 interface AdminLayoutProps {
   host: HostSession;
@@ -13,16 +14,16 @@ export function AdminLayout({ host }: AdminLayoutProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
-  const [signOutFailed, setSignOutFailed] = useState(false);
+  const [signOutError, setSignOutError] = useState<unknown>(null);
 
   async function logout() {
     setSigningOut(true);
-    setSignOutFailed(false);
+    setSignOutError(null);
     try {
       await signOut();
-    } catch {
+    } catch (error) {
       setSigningOut(false);
-      setSignOutFailed(true);
+      setSignOutError(error);
       return;
     }
     // セッションと問題セットの一覧を、覚えた値ごと捨てる。残すと、戻る操作で前のホストの画面が見えてしまう
@@ -49,10 +50,12 @@ export function AdminLayout({ host }: AdminLayoutProps) {
             </button>
           </div>
         </div>
-        {signOutFailed && (
-          <p role="alert" className="mx-auto max-w-4xl px-5 pb-3 text-body font-bold text-destructive">
-            ログアウトできませんでした。もう一度押してください。
-          </p>
+        {signOutError !== null && (
+          <ActionError
+            error={signOutError}
+            failed="ログアウトできませんでした。もう一度押してください。"
+            className="mx-auto max-w-4xl px-5 pb-3"
+          />
         )}
       </header>
       <Outlet />

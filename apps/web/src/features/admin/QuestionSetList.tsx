@@ -3,11 +3,12 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import type { QuestionSetSummary } from '@zubatto-quiz/protocol';
 import { useRef } from 'react';
 
-import { ApiError } from '@/api/errors';
 import { createDraftQuestionSet, deleteQuestionSet, questionSetsQueryOptions } from '@/api/question-sets';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { ConfirmDialog, useConfirm } from '@/components/ui/confirm-dialog';
+import { ActionError } from '@/shared/feedback/ActionError';
+import { describeApiError } from '@/shared/feedback/api-error';
+import { LoadErrorCard } from '@/shared/feedback/LoadErrorCard';
 import { notify } from '@/shared/feedback/notify';
 
 import { CreateRoomButton } from './CreateRoomButton';
@@ -34,7 +35,13 @@ export function QuestionSetList() {
       {sets.isPending ? (
         <p className="mt-8 text-muted-foreground">読み込んでいます…</p>
       ) : sets.isError ? (
-        <LoadError error={sets.error} retry={() => void sets.refetch()} />
+        <LoadErrorCard
+          error={sets.error}
+          failed="問題セットを読めませんでした"
+          retry={() => void sets.refetch()}
+          titleAs="p"
+          className="mt-8"
+        />
       ) : sets.data.length === 0 ? (
         <div className="mt-8 rounded-panel border-2 border-dashed border-border p-10 text-center">
           <p className="text-heading font-bold">まだ問題セットがありません</p>
@@ -79,9 +86,7 @@ function CreateButton({ align }: { align: keyof typeof createButtonAlign }) {
         問題セットを作る
       </Button>
       {create.isError && (
-        <p role="alert" className="text-body font-bold text-destructive">
-          問題セットを作れませんでした。もう一度押してください。
-        </p>
+        <ActionError error={create.error} failed="問題セットを作れませんでした。もう一度押してください。" />
       )}
     </div>
   );
@@ -141,32 +146,9 @@ function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
           </Button>
         </div>
       )}
-      {remove.isError && !(remove.error instanceof ApiError && remove.error.status === 404) && (
-        <p role="alert" className="w-full text-body font-bold text-destructive">
-          消せませんでした。もう一度押してください。
-        </p>
+      {remove.isError && describeApiError(remove.error) !== 'notFound' && (
+        <ActionError error={remove.error} failed="消せませんでした。もう一度押してください。" className="w-full" />
       )}
     </li>
-  );
-}
-
-function LoadError({ error, retry }: { error: Error; retry: () => void }) {
-  if (error instanceof ApiError && error.status === 401) {
-    return (
-      <Card variant="destructive" role="alert" className="mt-8">
-        <p className="font-bold text-destructive">ログインが切れました</p>
-        <Link to="/login" className="mt-3 inline-block font-bold underline">
-          ログインし直す
-        </Link>
-      </Card>
-    );
-  }
-  return (
-    <Card variant="destructive" role="alert" className="mt-8">
-      <p className="font-bold text-destructive">問題セットを読めませんでした</p>
-      <button type="button" onClick={retry} className="mt-3 font-bold underline">
-        もう一度読む
-      </button>
-    </Card>
   );
 }

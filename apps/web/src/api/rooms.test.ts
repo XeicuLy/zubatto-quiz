@@ -27,6 +27,6 @@ describe('createRoom', () => {
   it('ない（または他人の）問題セットなら、404 の ApiError を投げる', async () => {
     stubFakeApi();
 
-    await expect(createRoom(set.id)).rejects.toEqual(new ApiError(404));
+    await expect(createRoom(set.id)).rejects.toEqual(new ApiError(404, 'not_found'));
   });
 });
