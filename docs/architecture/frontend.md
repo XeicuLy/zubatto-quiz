@@ -31,7 +31,7 @@
   - `@babel/core` は 7 系のままにする。8 系では、`{ size = 'md' }` のように既定値を付けた props を持つ部品を Compiler が読めず、エラーなしで飛ばす。ビルドもテストも通るので、効果がなくなったことが見えない（2026-11-05 に Babel 8.1.0 と Compiler 1.0.0 で確かめた）。`src/lib/react-compiler.test.tsx` は、既定値付きの部品の描画回数で、この変換が vitest で動いていることを確かめる
   - `useMemo`・`useCallback`・`memo` は手で書かない。Compiler は手書きのものも尊重するので残っていても動くが、残すと「書くべきなのか」が読み手に分からなくなる。計算し直さないことが大事な部品は、計算の回数をテストで確かめる（`JoinQrCode.test.tsx`。`encode` の回数を数える）
 - DOM と Workers の型がぶつかるので、tsconfig を3つに分ける。`tsconfig.app.json`（DOM、`src/`）、`tsconfig.worker.json`（`src/server.ts` とそのテスト、Workers の型）、`tsconfig.node.json`（設定ファイルと `test/*.test.ts`）。ファイルを読むテストは `// @vitest-environment node` で node で動かし、`test/` に置く
-- `vite dev` は `auxiliaryWorkers` で2つの Worker を両方動かす。`apps/web/wrangler.jsonc` か `src/server.ts` を変えたら、次で型を作り直す
+- `vite dev` は `auxiliaryWorkers` で2つの Worker を両方動かす。API の Worker の設定は `api-worker.ts` が返し、`vite dev` のときだけ入口を Swagger UI を足した `apps/api/test/dev-entry.ts` に替える（[testing.md の「Swagger UI で HTTP API を試す」](testing.md#swagger-ui-で-http-api-を試す)）。`apps/web/wrangler.jsonc` か `src/server.ts` を変えたら、次で型を作り直す
 
   ```sh
   pnpm --filter @zubatto-quiz/web run types

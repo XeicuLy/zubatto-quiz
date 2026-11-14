@@ -1,5 +1,3 @@
-import { swaggerUI } from '@hono/swagger-ui';
-import openapi from '@zubatto-quiz/protocol/openapi.json' with { type: 'json' };
 import { Hono } from 'hono';
 
 import { createDb } from '@/db';
@@ -7,7 +5,7 @@ import app from '@/index';
 
 import { allowGithubUser, createTestAuth, insertGithubUser } from './auth/create-test-auth';
 import { E2E_LOGIN_PATH } from './e2e-login-path';
-import { SWAGGER_UI_PATH } from './swagger-path';
+import { addSwaggerRoutes } from './swagger-routes';
 
 /**
  * E2E 専用の API の Worker の入口（ADR 0003）。wrangler.jsonc の env.e2e の main だけがこのファイルを指す。
@@ -45,17 +43,8 @@ e2e.post(E2E_LOGIN_PATH, async (c) => {
   return c.json({ cookies });
 });
 
-/**
- * HTTP API の仕様（packages/protocol/schema/openapi.json）を Swagger UI で見て、試せるようにする（ADR 0011）。
- * 返す仕様は、Go 版と契約テストが読むのと同じコミットしたファイルで、ここでは作り直さない。
- * Swagger UI の本体は jsDelivr から読む。読むスクリプトが知らないうちに変わらないよう、版を固定する（Dependabot は上げないので手で上げる）。
- * /api/* の応答には _headers の CSP が付かないので、CDN とインラインのスクリプトも動く
- */
-e2e.get(
-  SWAGGER_UI_PATH,
-  swaggerUI({ url: `${SWAGGER_UI_PATH}/openapi.json`, version: '5.34.1', title: 'ズバクイの HTTP API' }),
-);
-e2e.get(`${SWAGGER_UI_PATH}/openapi.json`, (c) => c.json(openapi));
+// HTTP API の仕様を見る Swagger UI（ADR 0011）。開発の入口（dev-entry.ts）と同じ経路を足す
+addSwaggerRoutes(e2e);
 
 e2e.route('/', app);
 
