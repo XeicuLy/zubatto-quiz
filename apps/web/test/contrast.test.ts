@@ -122,6 +122,10 @@ const borderPairs = [
   // 誤りのときの入力欄の枠
   ['destructive', 'card'],
   ['destructive', 'background'],
+  // toast（components/ui/toast.tsx）は枠を持たず、bg-primary の面そのものが下の画面と接する。
+  // 画面の背景にもカードの上にも重なる。文字の primary-foreground と primary の組は、文字の組で測る
+  ['primary', 'background'],
+  ['primary', 'card'],
 ] as const;
 
 /** 面で変わらない色で描く枠を、暗い面の上に置くもの。[枠, 暗い面の役割の色] */

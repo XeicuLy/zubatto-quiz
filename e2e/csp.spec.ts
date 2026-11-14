@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
+import { a11yViolations } from './helpers/axe';
 import { collectCspViolations } from './helpers/csp';
+import { loginAsHost } from './helpers/login';
 
 // full-game.spec.ts の「CSP の違反がない」が空振りしていないことを確かめる。違反を起こせば、ちゃんと集まる
 test('インラインのスクリプトを入れると、CSP の違反として集まる', async ({ context, page }) => {
@@ -38,5 +40,29 @@ test('使い方のページは、画像をすべて同じオリジンから読�
     await image.scrollIntoViewIfNeeded();
     await expect(image).toHaveJSProperty('naturalWidth', Number(await image.getAttribute('width')));
   }
+  expect(violations).toEqual([]);
+});
+
+// toast（Base UI）は位置などの値を style prop（CSSOM）で入れ、<style> を作らない。shadcn の sonner は <style> を差し込むので CSP に止められる（#287）
+test('問題セットを消したときの toast は、<style> を足さず、CSP の違反を出さない', async ({ context, page }) => {
+  const violations = collectCspViolations(context);
+  await loginAsHost(context);
+  const created = await context.request.post('/api/question-sets', {
+    data: {
+      title: '消す問題セット',
+      questions: [{ text: '1 + 1 は？', choices: ['1', '2'], correctIndex: 1, limitMs: 10_000 }],
+    },
+  });
+  expect(created.status()).toBe(201);
+  await page.goto('/admin');
+
+  await page.getByRole('button', { name: '消す' }).click();
+  await page.getByRole('button', { name: '本当に消す' }).click();
+
+  const toasts = page.getByRole('region', { name: '通知' });
+  await expect(toasts.getByText('「消す問題セット」を消しました')).toBeVisible();
+  expect(await page.locator('script:not([src]), style').count()).toBe(0);
+  // 色の組は contrast.test.ts で測る。ここでは本物の画面に重なった toast を、axe の color-contrast などで確かめる
+  expect(await a11yViolations(page)).toEqual([]);
   expect(violations).toEqual([]);
 });
