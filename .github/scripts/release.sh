@@ -136,32 +136,35 @@ publish() {
   title=$(jq -r '.title' <<<"$pr")
   body=$(jq -r '.body' <<<"$pr")
 
-  # 1. CHANGELOG の PR のブランチを、main の先頭から切る
-  local existing main_sha
-  existing=$(gh api "${repo_api}/git/matching-refs/heads/${branch}" --jq "map(select(.ref == \"refs/heads/${branch}\")) | length")
-  if ((existing == 0)); then
-    main_sha=$(gh api "${repo_api}/git/ref/heads/main" --jq '.object.sha')
-    gh api -X POST "${repo_api}/git/refs" -f ref="refs/heads/${branch}" -f sha="$main_sha" >/dev/null
-  else
-    echo "${branch} はすでにある"
-  fi
-
-  # 2. CHANGELOG.md とルートの package.json の version を書き換える
-  update_file CHANGELOG.md changelog --notes-file "${work}/notes.md"
-  update_file package.json package-version --version "$VERSION"
-
-  # 3. PR を開く。閉じたものも含めて、このリポジトリのこのブランチの PR がすでにあれば作らない。
-  #    fork の同じ名前のブランチの PR は数えない（数えると、CHANGELOG の PR を作らずに飛ばしてしまう）
+  # 1. このリポジトリのこのブランチの PR が、開いているかマージ済みなら、ブランチとファイルは前の run で済んでいるので、2〜4 を飛ばす。
+  #    PR ができてから手で直した CHANGELOG を、Re-run で書き戻さないため。
+  #    fork の同じ名前のブランチの PR は数えない（数えると、CHANGELOG の PR を作らずに飛ばしてしまう）。閉じただけの PR は数えずに作り直す
   local prs
-  prs=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --state all --json isCrossRepository \
-    --jq 'map(select(.isCrossRepository | not)) | length')
-  if ((prs == 0)); then
-    gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" --title "$title" --body "$body"
-  else
+  prs=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --state all --json isCrossRepository,state \
+    --jq 'map(select((.isCrossRepository | not) and .state != "CLOSED")) | length')
+  if ((prs > 0)); then
     echo "${branch} の PR はすでにある"
+  else
+    # 2. CHANGELOG の PR のブランチを、main の先頭から切る。前の run が PR を作る前に落ちて残したブランチなら、そのまま使い、
+    #    3 で今回の文面に作り直す（ブランチ名は版しか持たないので、別のコミットの run が残したものでありうる）
+    local existing main_sha
+    existing=$(gh api "${repo_api}/git/matching-refs/heads/${branch}" --jq "map(select(.ref == \"refs/heads/${branch}\")) | length")
+    if ((existing == 0)); then
+      main_sha=$(gh api "${repo_api}/git/ref/heads/main" --jq '.object.sha')
+      gh api -X POST "${repo_api}/git/refs" -f ref="refs/heads/${branch}" -f sha="$main_sha" >/dev/null
+    else
+      echo "${branch} はすでにある。今回の文面で作り直す"
+    fi
+
+    # 3. CHANGELOG.md とルートの package.json の version を書き換える。同じ版の節があれば、今回の文面で置き換える
+    update_file CHANGELOG.md changelog --notes-file "${work}/notes.md"
+    update_file package.json package-version --version "$VERSION"
+
+    # 4. PR を開く
+    gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" --title "$title" --body "$body"
   fi
 
-  # 4. Release を作る。タグも Release API に作らせ、デプロイしたコミット（github.sha）に打つ
+  # 5. Release を作る。タグも Release API に作らせ、デプロイしたコミット（github.sha）に打つ
   if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
     echo "${tag} の Release はすでにある"
   else

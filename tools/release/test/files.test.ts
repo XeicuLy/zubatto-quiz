@@ -35,9 +35,26 @@ ${NOTES}
 `);
   });
 
-  it('同じ版の節がすでにあれば、何も変えない（release を Re-run しても2回足さない）', () => {
+  it('同じ版の同じ節がすでにあれば、何も変えない（release を Re-run しても2回足さない）', () => {
     const once = prependNotes(CHANGELOG, NOTES);
     expect(prependNotes(once, NOTES)).toBe(once);
+  });
+
+  it('同じ版の節が今回の文面と違えば、その節だけを今回の文面に置き換える（前の run が残したブランチを作り直す）', () => {
+    // run A が書いたあと PR を作る前に落ち、あとの run B が同じ版を選んだとき。A の文面のままだと、
+    // CHANGELOG の PR は A、Release は B の文面になり、B で足した変更が CHANGELOG から抜ける
+    const stale = prependNotes(CHANGELOG, NOTES.replace('何かを足す', '前の run の文面'));
+    const rebuilt = NOTES.replace('何かを足す', '何かを足す\n- もう1つ足す');
+    expect(prependNotes(stale, rebuilt)).toBe(prependNotes(CHANGELOG, rebuilt));
+  });
+
+  it('置き換えるのは同じ版の節だけで、前の版の節には触れない', () => {
+    const older = prependNotes(CHANGELOG, NOTES.replaceAll('v1.4.0', 'v1.3.1').replace('何かを足す', '前の版'));
+    const stale = prependNotes(older, NOTES.replace('何かを足す', '前の run の文面'));
+    const result = prependNotes(stale, NOTES);
+    expect(result).toBe(prependNotes(older, NOTES));
+    expect(result).toContain('- 前の版');
+    expect(result).not.toContain('前の run の文面');
   });
 
   it('文面の末尾の空行の数によらず、節のあいだは空行1つにする', () => {

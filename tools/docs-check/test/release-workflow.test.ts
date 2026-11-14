@@ -112,7 +112,20 @@ describe('前の CHANGELOG の PR を探す（.github/scripts/release.sh）', ()
     expect(prLists.length).toBeGreaterThanOrEqual(2);
     for (const line of prLists) {
       expect(line).toContain('isCrossRepository');
-      expect(line).toContain('select(.isCrossRepository | not)');
+      expect(line).toMatch(/select\(\(?\.isCrossRepository \| not\)/);
+    }
+  });
+
+  it('publish は、PR があるかを確かめてから、ブランチを切り、ファイルを書き換える', () => {
+    // 開いているかマージ済みの PR があれば、ブランチとファイルは済んでいる。PR がなければ、前の run が残したブランチでも、
+    // 今回の文面で作り直す（ブランチ名は版しか持たないので、別のコミットの run が残したものでありうる）
+    const publish = commands.slice(commands.findIndex((line) => line.startsWith('publish()')));
+    const indexOf = (pattern: RegExp) => publish.findIndex((line) => pattern.test(line));
+    const prCheck = indexOf(/gh pr list .*--head "\$branch"/);
+    expect(prCheck).toBeGreaterThanOrEqual(0);
+    expect(publish[prCheck]).toContain('.state != "CLOSED"');
+    for (const step of [/git\/refs" -f ref=/, /update_file CHANGELOG\.md/, /gh pr create/]) {
+      expect(indexOf(step)).toBeGreaterThan(prCheck);
     }
   });
 });
