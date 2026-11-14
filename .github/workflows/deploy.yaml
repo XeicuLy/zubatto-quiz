@@ -1,46 +1,47 @@
 name: Deploy
 
-# 本番のデプロイは、Release ができたとき（release: published）と、手で動かしたとき（workflow_dispatch）に動く（ADR 0010）。
-# どちらも、本番に出す前に production の承認を待つ（ADR 0009）。承認しなければ本番には何も出ない。
-# main にマージしただけでは動かない。本番の最中は API の Worker をデプロイしない決まり（ADR 0006）を、マージで破らないため（ADR 0005）
+# 本番のデプロイは、手で動かしたとき（workflow_dispatch）にだけ動く（ADR 0012）。
+# 本番に出す前に production の承認を待つ（ADR 0009）。承認しなければ本番には何も出ず、タグも Release も作らない。
+# main にマージしただけでは動かない。本番の最中は何もデプロイしない（ADR 0006・0012）
+# いつも全体（マイグレーション → API → 画面）を出す。画面だけを出す道はない（ADR 0012 の K1）
+#
+# ブランチ（ふつうは main）の上で動かすと、最新の v* タグから次の版を決め、デプロイが成功したら、
+# そのコミットにタグ vX.Y.Z と GitHub Release を作り、CHANGELOG の PR を開く（release job）。
+# タグの上で動かすと（前の版に戻すとき）、版を決めず、release job も動かない
 # 動かし方と、Cloudflare の API トークンの入れ方は docs/runbooks/deploy.md
 on:
   workflow_dispatch:
     inputs:
-      target:
-        description: 'web: 画面だけ（本番の最中でも部屋の接続は切れない） / all: マイグレーション → API → 画面（本番の最中は選ばない）'
+      bump:
+        description: '版の上げ方。auto: 前のタグからの commit で決める（feat・fix・perf・破壊的変更がなければ止まる）。タグの上で動かすときは使わない'
         type: choice
         options:
-          - web
-          - all
-        default: web
+          - auto
+          - major
+          - minor
+          - patch
+        default: auto
         required: true
-  # release-please が App の token で Release を作るので、workflow が動く（GITHUB_TOKEN で作った Release では動かない）。
-  # run はタグのコミット（GITHUB_SHA）を checkout し、この workflow のファイルもそのコミットのものを使う
-  release:
-    types: [published]
 
 permissions:
   contents: read
 
 # 2つのデプロイを同時に走らせない。動いているデプロイは途中で止めない。
 # 待てる run は1つだけで、さらに動かすと、待っていた run は取り消されて新しいほうに置き換わる（docs/runbooks/deploy.md）。
-# queue: max（すべてを並べて順に動かす）は付けない。並んだ順に動く保証がなく、古いコミットがあとからデプロイされうる
+# queue: max（すべてを並べて順に動かす）は付けない。並んだ順に動く保証がなく、古いコミットがあとからデプロイされうる。
+# 1つずつ動くので、次の run が版を数えるのは、前の run の release がタグを打ったあとになる（ADR 0012）
 concurrency:
   group: deploy-production
   cancel-in-progress: false
 
-# Release で動くときは all にする（ADR 0010 の N1）。release のイベントには inputs がない。
-# 手で動かしたときは、選んだ target をそのまま使う
-env:
-  TARGET: ${{ github.event_name == 'release' && 'all' || inputs.target }}
-
 # Cloudflare の API トークンとアカウント ID は、Environment（production）の secret にだけ置く。
 # environment: production を書いた job だけが読める。PR の CI（ci.yaml）からは読めない（ADR 0005 の DD4）
+# outputs の文面（commit の題名を含む）や基準のタグは、run: に ${{ }} で埋め込まず、env で渡す
 jobs:
-  # このコミットが main の履歴にあり、main のルールセットの必須のチェック（ci・e2e・pr-title）がどれも成功しているかを確かめる。
-  # まだ終わっていないものは、終わるまで待つ（上限は CI_WAIT_SECONDS）。main にないか、失敗したものがあるか、上限を過ぎたら止まり、
-  # 本番の job は動かない（docs/runbooks/deploy.md）
+  # 1. ブランチの上なら、次の版を決め、続けられない状態なら止める（release.sh plan）
+  # 2. このコミットが main の履歴にあり、main のルールセットの必須のチェック（ci・e2e・pr-title）がどれも成功しているかを確かめる。
+  #    まだ終わっていないものは、終わるまで待つ（上限は CI_WAIT_SECONDS）。main にないか、失敗したものがあるか、上限を過ぎたら止まる
+  # どちらかで止まれば、承認の画面まで来ない。版と文面は run のまとめに出るので、読んでから承認する（docs/runbooks/deploy.md）
   # 本番には触らないので、Environment を使わず、Cloudflare の secret も読まない。待っている間に、トークンを読める job はない
   verify-ci:
     runs-on: ubuntu-latest
@@ -49,16 +50,42 @@ jobs:
     permissions:
       contents: read
       checks: read
+      # 前の CHANGELOG の PR が開いていないかを読む
+      pull-requests: read
+    outputs:
+      base-tag: ${{ steps.plan.outputs.base-tag }}
+      version: ${{ steps.plan.outputs.version }}
+      notes-base64: ${{ steps.plan.outputs.notes-base64 }}
     steps:
-      # 確かめるスクリプトと、必須のチェックの名前を読むルールセットのファイルだけを取ってくる
+      # 版を決めるのに、v* のタグと、基準のタグからの履歴が要る
       - name: Checkout
         uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-          sparse-checkout: |
-            .github/scripts/verify-required-checks.sh
-            docs/runbooks/main-ruleset.json
-          sparse-checkout-cone-mode: false
+          fetch-depth: 0
+
+      # 出す版と文面は、App の token を持つ release job にそのまま渡る。ci と e2e が書き込めるキャッシュは読まない
+      - name: Install tools via mise
+        if: github.ref_type == 'branch'
+        uses: jdx/mise-action@v5.2.7
+        with:
+          version: 2026.11.0
+          cache: false
+
+      - name: Install dependencies
+        if: github.ref_type == 'branch'
+        run: pnpm install --frozen-lockfile --filter @zubatto-quiz/release
+        env:
+          HUSKY: '0'
+
+      # 上げるものがない auto で、CI を 30 分待ってから止まることがないように、先に版を決める
+      - name: Plan release
+        id: plan
+        if: github.ref_type == 'branch'
+        run: bash .github/scripts/release.sh plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUMP: ${{ inputs.bump }}
 
       - name: Verify required checks
         run: bash .github/scripts/verify-required-checks.sh docs/runbooks/main-ruleset.json
@@ -76,11 +103,16 @@ jobs:
     # 3つを1つの job で行う。2026-10-28 の all では、job ごとに 20 秒ほどだった
     timeout-minutes: 30
     environment: production
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
+      # 最新の v* タグを読むので、タグも取る
       - name: Checkout
         uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       # main の ci と e2e で動くパッケージのコードは、同じキャッシュに書き込める。トークンを扱う job では読まない（operations.md）
       - name: Install tools via mise
@@ -89,6 +121,15 @@ jobs:
           version: 2026.11.0
           cache: false
 
+      # Re-run failed jobs は、成功済みの verify-ci を動かし直さない。古い run を動かし直したときに、あとから出た版を
+      # 古いコミットで上書きしないよう、本番に出す直前に確かめ直す。依存のコードが動く install と、secret を読むどの step よりも前に置く
+      - name: Recheck release base
+        if: github.ref_type == 'branch'
+        run: bash .github/scripts/release.sh guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_TAG: ${{ needs.verify-ci.outputs.base-tag }}
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
@@ -96,7 +137,6 @@ jobs:
 
       # D1 は名前（zubakui）で探す。ないとここで止まるので、初回だけ手元で wrangler d1 create を実行しておく（ADR 0005）
       - name: Apply D1 migrations
-        if: env.TARGET == 'all'
         run: pnpm run db:migrate:remote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -104,7 +144,6 @@ jobs:
 
       # アプリのシークレットは手元の wrangler secret put で入れてあり、デプロイで引き継がれる（docs/runbooks/secrets.md）
       - name: Deploy API Worker
-        if: env.TARGET == 'all'
         run: pnpm run deploy:api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -115,3 +154,50 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  # デプロイが成功したコミットに、タグ vX.Y.Z と GitHub Release を作り、CHANGELOG の PR を開く（ADR 0012 の J2）。
+  # 先に PR を作り、次に Release を作る。途中で失敗しても、開いた PR が残って次の dispatch を承認の前で止める。
+  # どの手順も、すでにあれば飛ばすので、Re-run failed jobs で続きから動かせる（デプロイはやり直さない）
+  # App の秘密鍵は、main だけに絞った Environment（release）の secret に置く。production の job には持ち込まない。
+  # 書き込みの token を持つので、依存パッケージを入れず、ほかの job が書けるキャッシュも読まない。node だけで動く
+  release:
+    # verify-ci の outputs を読むので、verify-ci も needs に書く（needs に書いた job の outputs しか読めない）
+    needs: [verify-ci, deploy]
+    if: github.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install Node via mise
+        uses: jdx/mise-action@v5.2.7
+        with:
+          version: 2026.11.0
+          cache: false
+          install_args: node
+
+      # GITHUB_TOKEN で作った PR では ci / e2e が承認待ちになり、GITHUB_TOKEN に contents: write を渡すことにもなる。
+      # token の権限は、App に許した中からさらに絞る。ラベルは使わないので issues は渡さない
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Publish release
+        run: bash .github/scripts/release.sh publish
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BASE_TAG: ${{ needs.verify-ci.outputs.base-tag }}
+          VERSION: ${{ needs.verify-ci.outputs.version }}
+          NOTES_BASE64: ${{ needs.verify-ci.outputs.notes-base64 }}

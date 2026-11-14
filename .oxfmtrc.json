@@ -14,7 +14,7 @@
   // wrangler types が作るファイル。整形すると wrangler types --check が「古い」と判定する
   // routeTree.gen.ts は TanStack Router のプラグインが作り直すので、整形しても戻される
   // migrations/meta は drizzle-kit がスキーマの差分をとるための写し。手で触らないので、出力のまま置く
-  // CHANGELOG.md と .release-please-manifest.json は release-please がリリース PR で丸ごと書き直す（ADR 0009）。整えても次の更新で戻される
+  // CHANGELOG.md は deploy.yaml の release job が、oxfmt を動かさずに changelogen の文面を書き足す（ADR 0012）。v1.3.0 までの節は release-please が書いた形のまま残す
   // デザインのモックの HTML は、T24 までの記録として直さずに残す（docs/design/README.md）。今の styles.css にない前の名前（bg-stage など）を
   // 使うので、styles.css で並べるとその class を知らない名前とみなして並べ替えてしまう
   "ignorePatterns": [
@@ -22,7 +22,6 @@
     "**/routeTree.gen.ts",
     "apps/api/migrations/meta/**",
     "CHANGELOG.md",
-    ".release-please-manifest.json",
     "docs/design/mock/*.html"
   ]
 }
