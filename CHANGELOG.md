@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.4.0
+
+[compare changes](https://github.com/XeicuLy/zubatto-quiz/compare/v1.3.0...v1.4.0)
+
+### 🚀 Enhancements
+
+- 成功を toast で知らせる部品を作る ([#317](https://github.com/XeicuLy/zubatto-quiz/pull/317))
+
+### 📖 Documentation
+
+- デプロイが成功したコミットにタグを打つ流れを ADR 0012 に記録する ([#307](https://github.com/XeicuLy/zubatto-quiz/pull/307))
+- ホストの管理者の役割と ADR 0011 の見直しを ADR 0013・0014 に記録する ([#314](https://github.com/XeicuLy/zubatto-quiz/pull/314))
+
 ## [1.3.0](https://github.com/XeicuLy/zubatto-quiz/compare/v1.2.1...v1.3.0) (2026-11-12)
 
 
