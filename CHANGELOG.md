@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/XeicuLy/zubatto-quiz/compare/v1.3.0...v1.4.0) (2026-11-14)
+
+
+### 新機能
+
+* 成功を toast で知らせる部品を作る ([#317](https://github.com/XeicuLy/zubatto-quiz/issues/317)) ([b54f6a8](https://github.com/XeicuLy/zubatto-quiz/commit/b54f6a8a8ce24c9c52d8e144b601221669d5488c))
+
 ## [1.3.0](https://github.com/XeicuLy/zubatto-quiz/compare/v1.2.1...v1.3.0) (2026-11-12)
 
 
