@@ -311,6 +311,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - `githubSignInUrl` は `errorCallbackURL: '/login'` を送る。そのため、許可リストで断られると `/login?error=host_not_allowed` へ戻る。jsdom は移動できないので `disableRedirect` を使い、呼ぶ側が `location.assign` する
 - クライアントは `customFetchImpl` で、呼ぶたびに全体の `fetch` を引く。そうしないと、テストで差し替えた `fetch` が使われない
 - ログインを始めるのは `src/shared/auth/` の `useGithubSignIn`（hook）と `GithubSignInButton`（GitHub のマーク付きの `Button`）。ログインの画面と入口が使う（feature 同士は import できないので shared に置く）。始められなかったときは `startError` に入れ、文は呼ぶ側が出す（ログインの画面は誤りのカード、入口は `ActionError`）
+- URL を受け取るまでのあいだに別の画面へ移ったら（部品が消えたら）、届いた応答では GitHub へ移らない。`await` のあとに `mounted` の ref を確かめる
 - GitHub へ移ったあと「戻る」で bfcache からページが戻ると、`starting` が残ってボタンを押せなくなる。そのため `pageshow` の `persisted` で戻す。jsdom の `location.assign` は上書きできない（`vi.spyOn` は Cannot redefine property になる）ので、テストは `vi.stubGlobal('location', …)` で差し替える
 - 入口（`routes/index.tsx`）の `loader` も `hostSessionQueryOptions` を読むが、「ホストとしてログイン」と「問題セットへ」を出し分けるためだけ。`.catch(() => null)` で包み、読めなくてもログインしていないとして入口を出す。ログイン済みでも `/admin` へは移さない
 - `routes/admin/route.tsx` の `beforeLoad` は `requireHost`（`src/shared/auth/require-host.ts`）。`queryClient.query(hostSessionQueryOptions)`（`src/api/host-session.ts`）を呼び、セッションがなければ `redirect({ to: '/login' })`。ホストだけのルートでは、これを使い回す
