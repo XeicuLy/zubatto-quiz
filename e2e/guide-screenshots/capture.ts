@@ -89,10 +89,10 @@ const choiceButton = (player: Page, choiceIndex: number, choice: string) =>
 test('使い方の画像を撮る', async ({ browser }) => {
   test.setTimeout(120_000);
 
-  // ログインの画面は、ログインしていない人の画面で撮る
+  // ログインの入口は、ログインしていない人の入口のページで撮る
   const visitor = await newPage(browser, 'pc');
-  await visitor.page.goto('/login');
-  await expect(visitor.page.getByRole('button', { name: 'GitHub でログイン' })).toBeVisible();
+  await visitor.page.goto('/');
+  await expect(visitor.page.getByRole('button', { name: 'ホストとしてログイン' })).toBeVisible();
   await shot(visitor.page, 'host-login');
 
   // 問題セットを作る

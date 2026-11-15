@@ -73,15 +73,24 @@ test('参加フォーム・回答中・ホストのロビーと進行に、WCAG 
   await playerContext.close();
 });
 
-// 使い方のページは、スマホと PC の幅で並びが変わる（スマホの画像の幅など）ので、両方で調べる
-for (const viewport of [PHONE, PROJECTOR]) {
-  test(`使い方のページに、${viewport.width}×${viewport.height} で WCAG 2 の A と AA の違反がない`, async ({ page }) => {
-    await page.setViewportSize(viewport);
-    await page.goto('/guide');
-    await expect(page.getByRole('heading', { level: 1, name: '使い方' })).toBeVisible();
+// ログインせずに開くページは、スマホと PC の幅で並びが変わる（使い方の画像の幅、文の折り返しなど）ので、両方で調べる
+const PUBLIC_PAGES = [
+  { name: '入口', path: '/', heading: 'ズバクイ' },
+  { name: '使い方', path: '/guide', heading: '使い方' },
+] as const;
 
-    expect(await a11yViolations(page)).toEqual([]);
-  });
+for (const { name, path, heading } of PUBLIC_PAGES) {
+  for (const viewport of [PHONE, PROJECTOR]) {
+    test(`${name}のページに、${viewport.width}×${viewport.height} で WCAG 2 の A と AA の違反がない`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport);
+      await page.goto(path);
+      await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
+
+      expect(await a11yViolations(page)).toEqual([]);
+    });
+  }
 }
 
 // 上の「違反がない」が空振りしていないことを確かめる。違反を起こせば、ちゃんと集まる

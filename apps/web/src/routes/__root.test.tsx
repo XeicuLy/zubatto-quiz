@@ -22,7 +22,7 @@ describe('画面の経路', () => {
 
   // タイトルに部屋の ID や名前を入れない（S3）
   it.each([
-    ['/', 'ズバクイ', 'ズバクイ'],
+    ['/', 'ズバクイ', 'はじめに | ズバクイ'],
     ['/guide', '使い方', '使い方 | ズバクイ'],
     ['/admin', 'ホストの管理画面', 'ログイン | ズバクイ'],
     [`/rooms/${'a'.repeat(64)}/host`, 'ホストの管理画面', 'ログイン | ズバクイ'],
@@ -49,7 +49,7 @@ describe('画面の経路', () => {
 
   it('画面を移ると、タイトルも移った先の画面の名前に替わる', async () => {
     const router = await renderAt('/');
-    await waitFor(() => expect(document.title).toBe('ズバクイ'));
+    await waitFor(() => expect(document.title).toBe('はじめに | ズバクイ'));
 
     await act(() => router.navigate({ to: '/login' }));
 

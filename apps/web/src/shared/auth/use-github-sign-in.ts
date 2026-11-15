@@ -1,0 +1,59 @@
+import { useEffect, useRef, useState } from 'react';
+
+import { githubSignInUrl } from '@/api/auth-client';
+
+export interface GithubSignIn {
+  /** GitHub へ移るあいだ。ボタンを押せなくする */
+  starting: boolean;
+  /** ログインを始められなかったときに投げられた値。始められたか、まだ押していなければ null */
+  startError: unknown;
+  signIn: () => Promise<void>;
+}
+
+/**
+ * GitHub のログインを始める（ADR 0003）。ログインの画面と入口が使う。
+ * 始められなかったときの文は、呼ぶ側が置く場所に合わせて出す
+ */
+export function useGithubSignIn(): GithubSignIn {
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<unknown>(null);
+
+  // GitHub から「戻る」で戻ると、ブラウザは離れる前のページを bfcache からそのまま戻すことがあり、
+  // starting が true のまま残ってボタンを押せなくなる。persisted の pageshow は bfcache から戻ったときだけ届く
+  useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) {
+        setStarting(false);
+      }
+    }
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, []);
+
+  // 画面に出ているあいだだけ true。応答を待つあいだに別の画面へ移ったら、届いた応答で GitHub へ移らない
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  async function signIn() {
+    setStarting(true);
+    setStartError(null);
+    try {
+      const url = await githubSignInUrl();
+      if (!mounted.current) {
+        return;
+      }
+      // GitHub へ移る。ページを離れるので、成功したら starting は戻さない
+      window.location.assign(url);
+    } catch (error) {
+      setStarting(false);
+      setStartError(error);
+    }
+  }
+
+  return { starting, startError, signIn };
+}
