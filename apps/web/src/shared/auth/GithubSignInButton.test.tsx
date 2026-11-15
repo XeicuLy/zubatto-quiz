@@ -62,6 +62,30 @@ describe('GitHub のログインのボタン', () => {
     expect(assign).not.toHaveBeenCalled();
   });
 
+  it('ログインの応答を待つあいだに画面を離れたら、応答が届いても GitHub へは移らない', async () => {
+    // 応答を手で返せる fetch。Better Auth が fetch を呼ぶのは押してから何拍かあとなので、呼ばれるのを待ってから返す
+    const responses: ((response: Response) => void)[] = [];
+    const fetch = vi.fn<() => Promise<Response>>(() => new Promise<Response>((resolve) => responses.push(resolve)));
+    vi.stubGlobal('fetch', fetch);
+    const assign = stubAssign();
+    const { unmount } = render(<SignIn />);
+    fireEvent.click(screen.getByRole('button', { name: 'GitHub でログイン' }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+    unmount();
+    // 比べるために、離れていない2つ目の画面でも押す。1つ目の応答を先に返し、2つ目が移り終えるのを待つ。
+    // 応答のあとの処理は同じ長さなので、2つ目が移った時には、1つ目の応答の処理も終わっている
+    render(<SignIn />);
+    fireEvent.click(screen.getByRole('button', { name: 'GitHub でログイン' }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    for (const respond of responses) {
+      respond(Response.json({ url: GITHUB_URL, redirect: true }));
+    }
+    await waitFor(() => expect(assign).toHaveBeenCalled());
+
+    expect(assign).toHaveBeenCalledTimes(1);
+  });
+
   it('GitHub から「戻る」で bfcache のページに戻ると、また押せる', async () => {
     stubFakeApi({ hostName: null });
     const assign = stubAssign();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { githubSignInUrl } from '@/api/auth-client';
 
@@ -30,12 +30,25 @@ export function useGithubSignIn(): GithubSignIn {
     return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
 
+  // 画面に出ているあいだだけ true。応答を待つあいだに別の画面へ移ったら、届いた応答で GitHub へ移らない
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   async function signIn() {
     setStarting(true);
     setStartError(null);
     try {
+      const url = await githubSignInUrl();
+      if (!mounted.current) {
+        return;
+      }
       // GitHub へ移る。ページを離れるので、成功したら starting は戻さない
-      window.location.assign(await githubSignInUrl());
+      window.location.assign(url);
     } catch (error) {
       setStarting(false);
       setStartError(error);
