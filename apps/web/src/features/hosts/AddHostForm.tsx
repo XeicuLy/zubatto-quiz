@@ -53,13 +53,13 @@ export function AddHostForm() {
       setInputError('GitHub のユーザー名を入れてください。');
       return;
     }
-    const result = githubLoginSchema.safeParse(value);
-    if (!result.success) {
+    if (!githubLoginSchema.safeParse(value).success) {
       setInputError(INVALID_LOGIN);
       return;
     }
     setInputError(null);
-    add.mutate(result.data);
+    // スキーマは確かめるだけにし、整えた値をそのまま送る。add.variables と normalizeLogin(login) を比べて見分けるため
+    add.mutate(value);
   }
 
   return (
@@ -102,10 +102,11 @@ export function AddHostForm() {
 
 /**
  * 欄の値を、送る名前の形に整える。前後の空白を除き、先頭の @ を1つだけ外す（GitHub のページでは名前が @octocat と出るため）。
+ * @ のあとの空白（「@ octocat」）も除く。送る名前はこの値そのもので、成功・誤りの見分けも、この値と送った名前を比べる。
  * ほかの形の誤りは githubLoginSchema に任せる
  */
 function normalizeLogin(raw: string): string {
-  return raw.trim().replace(/^@/, '');
+  return raw.trim().replace(/^@/, '').trim();
 }
 
 /** API の失敗のうち、入れた名前を直せば通るものを、欄の下に出す文にする。それ以外は null（ボタンのそばに出す） */

@@ -118,6 +118,31 @@ describe('ホストを足す（ADR 0013）', () => {
     expect(screen.getByRole('link', { name: 'ログインし直す' })).toHaveAttribute('href', '/login');
   });
 
+  it('「@ octocat」のように @ のあとに空白があっても、送る名前と欄の名前をそろえて扱う', async () => {
+    const api = stubFakeApi({
+      isAdmin: true,
+      hosts: [ADMIN, ALICE],
+      githubUsers: { octocat: '583231', alice: '1001' },
+    });
+    await openHosts();
+
+    // 404・409 の誤りは、送った名前についての誤りとして欄の下に出る
+    submit('@ nobody');
+    expect(await screen.findByRole('alert')).toHaveTextContent('GitHub にこのユーザーが見つかりません。');
+    submit('@ alice');
+    expect(await screen.findByRole('alert')).toHaveTextContent('この人はもうホストです。');
+
+    // 追加できたら、欄を空にする
+    submit('@ octocat');
+    expect(await screen.findByRole('heading', { level: 2, name: 'octocat' })).toBeInTheDocument();
+    expect(input()).toHaveValue('');
+    expect(api.requestsTo('POST', '/api/admin/hosts').map((r) => r.body)).toEqual([
+      { login: 'nobody' },
+      { login: 'alice' },
+      { login: 'octocat' },
+    ]);
+  });
+
   it.each([
     ['形の誤り', '../x'],
     ['GitHub にいない（404）', 'nobody'],
