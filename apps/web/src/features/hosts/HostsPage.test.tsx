@@ -121,6 +121,33 @@ describe('ホストの一覧（ADR 0013）', () => {
     expect(api.received.filter((r) => r.method === 'DELETE')).toEqual([]);
   });
 
+  it('外せたら、消える行の中にあったフォーカスを、見出しへ移す', async () => {
+    stubFakeApi({ isAdmin: true, hosts: [ADMIN, ALICE] });
+    await openAt('/admin/hosts');
+    const row = await rowOf('alice');
+
+    fireEvent.click(within(row).getByRole('button', { name: '外す' }));
+    // 開いた確かめは「やめる」にフォーカスする。行の中にフォーカスがあるまま確定する
+    fireEvent.click(within(row).getByRole('button', { name: '本当に外す' }));
+
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'alice' })).not.toBeInTheDocument());
+    expect(screen.getByRole('heading', { level: 1, name: 'ホストの管理' })).toHaveFocus();
+  });
+
+  it('外すあいだにほかの所へフォーカスを移していたら、見出しへは移さない', async () => {
+    stubFakeApi({ isAdmin: true, hosts: [ADMIN, ALICE] });
+    await openAt('/admin/hosts');
+    const row = await rowOf('alice');
+    const input = screen.getByRole('textbox', { name: 'GitHub のユーザー名' });
+
+    fireEvent.click(within(row).getByRole('button', { name: '外す' }));
+    fireEvent.click(within(row).getByRole('button', { name: '本当に外す' }));
+    input.focus();
+
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'alice' })).not.toBeInTheDocument());
+    expect(input).toHaveFocus();
+  });
+
   it('確かめてから外すと、一覧から消え、外した人の名前を toast で知らせる', async () => {
     const api = stubFakeApi({ isAdmin: true, hosts: [ADMIN, ALICE] });
     await openAt('/admin/hosts');
@@ -174,6 +201,8 @@ describe('ホストの一覧（ADR 0013）', () => {
     // 一覧を読み直して行ごと消し、誤りを流してしまわない
     await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
     expect(within(row).getByRole('alert')).toHaveTextContent('ログインが切れました');
+    // 行は残るので、フォーカスも確かめの中に残る
+    expect(within(row).getByRole('button', { name: 'やめる' })).toHaveFocus();
     expect(screen.getAllByRole('alert')).toHaveLength(1);
   });
 

@@ -28,7 +28,8 @@ export function AddHostForm() {
     onSuccess: async (host, sent) => {
       // メモには GitHub が返した書き方の名前が入る（octocat と打っても Octocat）
       notify(`「${host.note ?? sent}」をホストに追加しました`);
-      setLogin('');
+      // 送っているあいだに打ち替えた名前は、まだ送っていないので残す。送った名前のままのときだけ空にする
+      setLogin((current) => (normalizeLogin(current) === sent ? '' : current));
       await refreshHosts();
     },
     // 409 は別のタブなどで先に足されていたので、一覧を読み直して見せる。
@@ -43,8 +44,7 @@ export function AddHostForm() {
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    // GitHub のページでは名前が @octocat と出るので、先頭の @ を1つだけ外す。ほかの形の誤りは githubLoginSchema に任せる
-    const value = login.trim().replace(/^@/, '');
+    const value = normalizeLogin(login);
     add.reset();
     if (value === '') {
       setInputError('GitHub のユーザー名を入れてください。');
@@ -91,6 +91,14 @@ export function AddHostForm() {
       )}
     </form>
   );
+}
+
+/**
+ * 欄の値を、送る名前の形に整える。前後の空白を除き、先頭の @ を1つだけ外す（GitHub のページでは名前が @octocat と出るため）。
+ * ほかの形の誤りは githubLoginSchema に任せる
+ */
+function normalizeLogin(raw: string): string {
+  return raw.trim().replace(/^@/, '');
 }
 
 /** API の失敗のうち、入れた名前を直せば通るものを、欄の下に出す文にする。それ以外は null（ボタンのそばに出す） */

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useRef } from 'react';
 
 import { hostsQueryOptions } from '@/api/hosts';
 import { LoadErrorCard } from '@/shared/feedback/LoadErrorCard';
@@ -12,10 +13,14 @@ import { HostRow } from './HostRow';
  */
 export function HostsPage() {
   const hosts = useQuery(hostsQueryOptions);
+  // 外した行が消えたときのフォーカスの行き先。tabIndex={-1} で Tab の順番には入れず、スクリプトからだけ受ける
+  const heading = useRef<HTMLHeadingElement>(null);
 
   return (
     <main className="mx-auto max-w-4xl px-5 py-10">
-      <h1 className="text-title font-bold">ホストの管理</h1>
+      <h1 ref={heading} tabIndex={-1} className="text-title font-bold focus-target">
+        ホストの管理
+      </h1>
       <p className="mt-3 text-note text-muted-foreground">
         ここにいる人だけが、GitHub でログインして問題セットを作り、部屋を開けます。
       </p>
@@ -35,7 +40,7 @@ export function HostsPage() {
       ) : (
         <ul aria-label="ホスト" className="mt-8 divide-y divide-border rounded-panel border border-border bg-card">
           {hosts.data.map((host) => (
-            <HostRow key={host.githubUserId} host={host} />
+            <HostRow key={host.githubUserId} host={host} onRemoved={() => heading.current?.focus()} />
           ))}
         </ul>
       )}

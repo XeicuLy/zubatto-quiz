@@ -118,6 +118,17 @@ describe('ホストを足す（ADR 0013）', () => {
     expect(screen.getByRole('link', { name: 'ログインし直す' })).toHaveAttribute('href', '/login');
   });
 
+  it('送っているあいだに打ち替えた名前は、先の成功で消さない', async () => {
+    stubFakeApi({ isAdmin: true, hosts: [ADMIN], githubUsers: { octocat: '583231' } });
+    await openHosts();
+
+    submit('octocat');
+    fireEvent.change(input(), { target: { value: 'bob' } });
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'octocat' })).toBeInTheDocument();
+    expect(input()).toHaveValue('bob');
+  });
+
   it('前の誤りは、もう一度押したときに消す', async () => {
     stubFakeApi({ isAdmin: true, hosts: [ADMIN], githubUsers: { octocat: '583231' } });
     await openHosts();

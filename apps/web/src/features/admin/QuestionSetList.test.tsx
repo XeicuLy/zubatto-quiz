@@ -125,6 +125,36 @@ describe('問題セットの一覧（F7）', () => {
     expect(screen.getByRole('heading', { level: 2, name: WELCOME.title })).toBeInTheDocument();
   });
 
+  it('消せたら、消える行の中にあったフォーカスを、見出しへ移す', async () => {
+    stubFakeApi({ questionSets: [QUIZ, WELCOME] });
+    await openAdmin();
+    const row = await rowOf(QUIZ.title);
+
+    fireEvent.click(within(row).getByRole('button', { name: '消す' }));
+    fireEvent.click(within(row).getByRole('button', { name: '本当に消す' }));
+
+    await waitFor(() => expect(screen.queryByRole('heading', { name: QUIZ.title })).not.toBeInTheDocument());
+    expect(screen.getByRole('heading', { level: 1, name: '問題セット' })).toHaveFocus();
+  });
+
+  it('消せなかったら、一覧を読み直さず、行の中の誤りと確かめのフォーカスを残す', async () => {
+    const api = stubFakeApi({ questionSets: [QUIZ, WELCOME] });
+    await openAdmin();
+    const row = await rowOf(QUIZ.title);
+    const listReads = api.requestsTo('GET', '/api/question-sets').length;
+    api.expireSession();
+
+    fireEvent.click(within(row).getByRole('button', { name: '消す' }));
+    fireEvent.click(within(row).getByRole('button', { name: '本当に消す' }));
+
+    expect(await within(row).findByRole('alert')).toHaveTextContent('ログインが切れました');
+    // 401 で読み直すと、一覧ごと誤りに替わって行が消え、フォーカスも body に落ちる
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(within(row).getByRole('button', { name: 'やめる' })).toHaveFocus();
+    expect(api.requestsTo('GET', '/api/question-sets')).toHaveLength(listReads);
+  });
+
   it('消せたら、消した問題セットの名前を toast で知らせる。読み上げは toast の領域だけが受け持つ', async () => {
     stubFakeApi({ questionSets: [QUIZ, WELCOME] });
     await openAdmin();
