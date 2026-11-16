@@ -320,9 +320,23 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - この確かめは画面を隠すだけで、データを守るのは API の `requireHost`（S1）
 - TanStack Query 5.104 は `fetchQuery`、`prefetchQuery`、`ensureQueryData` を非推奨にし、`queryClient.query(options)` に置き換えた（先読みには `.catch` を足し、ensure には `staleTime: 'static'` を使う）。`fetchQuery` と同じく、`query` は options に `retry` がなければやり直さない
 
+## ホストの管理
+
+- `/admin/hosts`（`src/routes/admin/hosts.tsx` と `src/features/hosts/`）は、管理者が許可リストを見て、GitHub のユーザー名でホストを足し、外す画面（ADR 0013、#293）。HTTP は `src/api/hosts.ts`（`/api/admin/hosts`）と `src/api/me.ts`（`/api/me`）が呼び、応答は protocol のスキーマで読む（ADR 0011）
+- `beforeLoad` は `requireAdmin`（`src/shared/auth/require-admin.ts`）。親の `/admin` の `requireHost` のあとに動き、`queryClient.query(meQueryOptions)` で移るたびに読み直す。管理者でなければ `/admin` へ、401 なら `/login` へ移し、それ以外の失敗は投げてエラーの画面を出す。これは画面を隠すだけで、守りは API の `requireAdmin`（毎回 D1 を読む）
+- 上の帯（`AdminLayout`）は `useQuery(meQueryOptions)` で読み、管理者にだけ「問題セット」と「ホストの管理」のリンク（`<nav aria-label="管理画面">`）を出す。読めないあいだと失敗したときは出さない。いまの画面のリンクには TanStack Router が `aria-current="page"` を付ける。「問題セット」は `activeOptions: { exact: true }` にし、`/admin/sets/…` では印を付けない。`features/hosts` は `features/admin` を読まず、帯からは `<Link to="/admin/hosts">` だけでつなぐ
+- 一覧は足した順（API の順）。見出しは `note`（足したときの GitHub の名前）で、コマンドで足してメモがなければ、薄い色の「メモなし」。GitHub の名前は変えられるので、どの行にも「GitHub ID ○○ / 足した日」を添える。日は日本の時刻で、年も出す。管理者の行には「管理者」の印を出し、外すボタンは出さない
+- 追加のフォーム（`AddHostForm`）は、先頭の `@` を1つ外してから protocol の `githubLoginSchema` に通す。GitHub のページは名前を `@octocat` と出すため。誤りは直す場所で出し分ける
+  - 入れた名前で直せるもの（空、形の誤り、GitHub にいない 404、もういる 409）: `Field` の `error`（欄の下）。入れた名前は残す
+  - やり直せば通るかもしれないもの（GitHub が答えない 502、通信の失敗、401 など）: ボタンのそばの `ActionError`。502 は本文の `code`（`github_unavailable`）を見て、「少し待ってから」と添える
+- 外すときは、行の中の `ConfirmDialog` で「その人のログインも切れます。作った問題セットは残り、追加し直せばまた使えます。」と添える。API は許可リストの行とセッションだけを消すので、問題セットは残る
+- 成功（足した、外した）は `notify` の toast で知らせる。名前は GitHub が返した書き方（`note`）で、メモがなければ GitHub ID で出す。タブのタイトルは「ホストの管理」で、名前は入れない（S3）
+- 一覧を読み直すのは、サーバーの一覧が画面とずれたと分かるときだけ（足せた、外せた、外すときの 404、足すときの 409）。401 などで読み直すと、一覧の場所にも同じ誤りが出て、外すときは行ごと消えて誤りも流れる
+- テストの偽の API（`test/fake-api.ts`）は `isAdmin`・`hosts`・`githubUsers`・`githubUnavailable` を受け取る。管理者でなければ `/api/admin/*` は 403 `forbidden` を返す。e2e の `loginAsHost(context, { admin: true })` は管理者のホストでログインし、`a11y.spec.ts` がこの画面を両方の幅で調べる。e2e では GitHub に問い合わせないよう、足す操作は形の誤りまでにする
+
 ## 問題セットの編集
 
-- HTTP の呼び出しは `src/api/` に置く。`question-sets.ts` と `rooms.ts` は、`request.ts` を通して `/api/question-sets` と `/api/rooms` を呼び、応答を protocol のスキーマで読む。2xx 以外は `ApiError(status, code)`（`errors.ts`）を投げる。`code` は本文の `error`（protocol の `httpErrorSchema`）で、`safeParse` で読めたときだけ入り、csrf() の 403 のように本文が JSON でない応答では `null`。`questionSetsQueryOptions` は 4xx をやり直さないので、401 ならすぐに「ログインが切れました」を出す
+- HTTP の呼び出しは `src/api/` に置く。`question-sets.ts` と `rooms.ts` は、`request.ts` を通して `/api/question-sets` と `/api/rooms` を呼び、応答を protocol のスキーマで読む。2xx 以外は `ApiError(status, code)`（`errors.ts`）を投げる。`code` は本文の `error`（protocol の `httpErrorSchema`）で、`safeParse` で読めたときだけ入り、csrf() の 403 のように本文が JSON でない応答では `null`。`questionSetsQueryOptions` は 4xx をやり直さないので、401 ならすぐに「ログインが切れました」を出す。やり直しの決まり（`retryUnlessClientError`）は `request.ts` にあり、どの `queryOptions` も `retry` にこれを渡す
 - 一覧の「問題セットを作る」は、`/admin/sets/new` への `<Link>`（`buttonVariants()`）で、何も保存しない。サーバーは空のセット（0問や空の値）を受け付けないので、保存前の新規は画面の中だけで持ち、API は変えない。作らずに離れても、一覧に仮のセットは増えない。`/admin/sets/new` は静的な経路なので、TanStack Router は `$setId` より先に一致させる（index > 静的 > 動的。2026-11-14 に確かめた）
 - `/admin/sets/new` は何も読まず、`QuestionSetEditor` に `initial={undefined}` を渡す。下書きは `emptyDraft()`（名前は空、`newQuestion` の1問）から始まり、見出しとタイトルは「問題セットを作る」
 - 編集画面（`/admin/sets/$setId`）の loader は、`questionSetQueryOptions(setId)` を読む（訪れるたびに新しく読む）。ルートの `errorComponent` が `LoadErrorCard` で 401/404 を出す。`QuestionSetEditor`（`setId` を key にする）は、loader のデータから下書きを1回だけ作る（`useReducer` の初期化の関数で、`initial` がなければ `emptyDraft()`、あれば `draftOf`）
