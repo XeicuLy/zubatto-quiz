@@ -328,7 +328,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - `beforeLoad` は `requireAdmin`（`src/shared/auth/require-admin.ts`）。親の `/admin` の `requireHost` のあとに動き、`queryClient.query(meQueryOptions)` で移るたびに読み直す。管理者でなければ `/admin` へ、401 なら `/login` へ移し、それ以外の失敗は投げてエラーの画面を出す。これは画面を隠すだけで、守りは API の `requireAdmin`（毎回 D1 を読む）
 - 上の帯（`AdminLayout`）は `useQuery(meQueryOptions)` で読み、管理者にだけ「問題セット」と「ホストの管理」のリンク（`<nav aria-label="管理画面">`）を出す。読めないあいだと失敗したときは出さない。いまの画面のリンクには TanStack Router が `aria-current="page"` を付ける。「問題セット」は `activeOptions: { exact: true }` にし、`/admin/sets/…` では印を付けない。`features/hosts` は `features/admin` を読まず、帯からは `<Link to="/admin/hosts">` だけでつなぐ
 - 一覧は足した順（API の順）。見出しは `note`（足したときの GitHub の名前）で、コマンドで足してメモがなければ、薄い色の「メモなし」。GitHub の名前は変えられるので、どの行にも「GitHub ID ○○ / 足した日」を添える。日は日本の時刻で、年も出す。管理者の行には「管理者」の印を出し、外すボタンは出さない
-- 追加のフォーム（`AddHostForm`）は、先頭の `@` を1つ外してから protocol の `githubLoginSchema` に通す。GitHub のページは名前を `@octocat` と出すため。誤りは直す場所で出し分ける
+- 追加のフォーム（`AddHostForm`）は、`normalizeLogin` で前後の空白を除き、先頭の `@` を1つ外し、そのあとの空白（`@ octocat`）も除いてから、protocol の `githubLoginSchema` で確かめる。GitHub のページは名前を `@octocat` と出すため。送るのはこの整えた値そのもので、スキーマは確かめるだけ。欄を空にするか・誤りを出すかは、この値と送った名前を比べて決めるので、2つは同じ関数から出す。誤りは直す場所で出し分ける
   - 入れた名前で直せるもの（空、形の誤り、GitHub にいない 404、もういる 409）: `Field` の `error`（欄の下）。入れた名前は残す
   - やり直せば通るかもしれないもの（GitHub が答えない 502、通信の失敗、401 など）: ボタンのそばの `ActionError`。502 は本文の `code`（`github_unavailable`）を見て、「少し待ってから」と添える
 - 外すときは、行の中の `ConfirmDialog` で「その人のログインも切れます。作った問題セットは残り、追加し直せばまた使えます。」と添える。API は許可リストの行とセッションだけを消すので、問題セットは残る
