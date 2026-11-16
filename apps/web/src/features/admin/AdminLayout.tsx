@@ -1,17 +1,23 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { Outlet, useNavigate } from '@tanstack/react-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { signOut, type HostSession } from '@/api/auth-client';
+import { meQueryOptions } from '@/api/me';
 import { ActionError } from '@/shared/feedback/ActionError';
 
 interface AdminLayoutProps {
   host: HostSession;
 }
 
-/** 管理画面（楽屋）の枠。上の帯にホストの名前とログアウトを置き、中に子の経路を出す */
+/**
+ * 管理画面（楽屋）の枠。上の帯にホストの名前とログアウトを置き、中に子の経路を出す。
+ * 管理者には、帯に問題セットとホストの管理へのリンクを出す（ADR 0013）。読めなかったら出さない。
+ * リンクを出すかは見た目だけで、/admin/hosts は requireAdmin（beforeLoad）と API の requireAdmin が守る
+ */
 export function AdminLayout({ host }: AdminLayoutProps) {
   const queryClient = useQueryClient();
+  const me = useQuery(meQueryOptions);
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<unknown>(null);
@@ -50,6 +56,31 @@ export function AdminLayout({ host }: AdminLayoutProps) {
             </button>
           </div>
         </div>
+        {me.data?.isAdmin === true && (
+          // いまの画面のリンク（aria-current="page"、TanStack Router が付ける）は、下線を外して濃い色にする
+          <nav aria-label="管理画面" className="mx-auto max-w-4xl px-5 pb-3">
+            <ul className="flex flex-wrap gap-x-5 gap-y-1 text-note">
+              <li>
+                {/* /admin/sets/… でも印を付けないよう、/admin と同じときだけにする */}
+                <Link
+                  to="/admin"
+                  activeOptions={{ exact: true }}
+                  className="text-muted-foreground underline underline-offset-4 aria-[current=page]:font-bold aria-[current=page]:text-foreground aria-[current=page]:no-underline"
+                >
+                  問題セット
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/admin/hosts"
+                  className="text-muted-foreground underline underline-offset-4 aria-[current=page]:font-bold aria-[current=page]:text-foreground aria-[current=page]:no-underline"
+                >
+                  ホストの管理
+                </Link>
+              </li>
+            </ul>
+          </nav>
+        )}
         {signOutError !== null && (
           <ActionError
             error={signOutError}

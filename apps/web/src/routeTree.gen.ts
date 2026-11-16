@@ -14,6 +14,7 @@ import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as GuideRouteImport } from './routes/guide'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminHostsRouteImport } from './routes/admin/hosts'
 import { Route as RRoomIdRouteImport } from './routes/r/$roomId'
 import { Route as AdminSetsSetIdRouteImport } from './routes/admin/sets/$setId'
 import { Route as AdminSetsNewRouteImport } from './routes/admin/sets/new'
@@ -44,6 +45,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminHostsRoute = AdminHostsRouteImport.update({
+  id: '/hosts',
+  path: '/hosts',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const RRoomIdRoute = RRoomIdRouteImport.update({
   id: '/r/$roomId',
   path: '/r/$roomId',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteRouteWithChildren
   '/guide': typeof GuideRoute
   '/login': typeof LoginRoute
+  '/admin/hosts': typeof AdminHostsRoute
   '/r/$roomId': typeof RRoomIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/sets/$setId': typeof AdminSetsSetIdRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/guide': typeof GuideRoute
   '/login': typeof LoginRoute
+  '/admin/hosts': typeof AdminHostsRoute
   '/r/$roomId': typeof RRoomIdRoute
   '/admin': typeof AdminIndexRoute
   '/admin/sets/$setId': typeof AdminSetsSetIdRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteRouteWithChildren
   '/guide': typeof GuideRoute
   '/login': typeof LoginRoute
+  '/admin/hosts': typeof AdminHostsRoute
   '/r/$roomId': typeof RRoomIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/sets/$setId': typeof AdminSetsSetIdRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/guide'
     | '/login'
+    | '/admin/hosts'
     | '/r/$roomId'
     | '/admin/'
     | '/admin/sets/$setId'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/'
     | '/guide'
     | '/login'
+    | '/admin/hosts'
     | '/r/$roomId'
     | '/admin'
     | '/admin/sets/$setId'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/guide'
     | '/login'
+    | '/admin/hosts'
     | '/r/$roomId'
     | '/admin/'
     | '/admin/sets/$setId'
@@ -179,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/hosts': {
+      id: '/admin/hosts'
+      path: '/hosts'
+      fullPath: '/admin/hosts'
+      preLoaderRoute: typeof AdminHostsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/r/$roomId': {
       id: '/r/$roomId'
       path: '/r/$roomId'
@@ -211,12 +230,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteRouteChildren {
+  AdminHostsRoute: typeof AdminHostsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminSetsSetIdRoute: typeof AdminSetsSetIdRoute
   AdminSetsNewRoute: typeof AdminSetsNewRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminHostsRoute: AdminHostsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminSetsSetIdRoute: AdminSetsSetIdRoute,
   AdminSetsNewRoute: AdminSetsNewRoute,

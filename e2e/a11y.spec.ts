@@ -93,6 +93,42 @@ for (const { name, path, heading } of PUBLIC_PAGES) {
   }
 }
 
+// 管理者の画面も、スマホと PC の幅で調べる。E2E のログインは呼ぶたびにホストを足すので、一覧には管理者でない行も並び、
+// 「外す」の確かめも開ける。外すまではしない（ほかのテストのホストのログインが切れる）
+for (const viewport of [PHONE, PROJECTOR]) {
+  test(`ホストの管理の画面に、${viewport.width}×${viewport.height} で WCAG 2 の A と AA の違反がない`, async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({ viewport });
+    await loginAsHost(context, { name: '管理者', admin: true });
+    // もう1人足し、外すボタンのある行を必ず作る。ログインで許可リストに入れば足りるので、コンテキストはすぐ閉じる
+    const other = await browser.newContext();
+    await loginAsHost(other);
+    await other.close();
+    const page = await context.newPage();
+
+    await page.goto('/admin/hosts');
+    await expect(page.getByRole('heading', { level: 1, name: 'ホストの管理' })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: '管理画面' })).toBeVisible();
+    expect(await a11yViolations(page)).toEqual([]);
+
+    await test.step('外す前の確かめ', async () => {
+      await page.getByRole('button', { name: '外す' }).last().click();
+      await expect(page.getByRole('alertdialog', { name: '本当に外しますか？' })).toBeVisible();
+      expect(await a11yViolations(page)).toEqual([]);
+    });
+
+    await test.step('欄の下の誤り', async () => {
+      await page.getByRole('textbox', { name: 'GitHub のユーザー名' }).fill('../x');
+      await page.getByRole('button', { name: 'ホストに追加する' }).click();
+      await expect(page.getByRole('alert')).toHaveText('GitHub のユーザー名は、英数字とハイフンの39文字までです。');
+      expect(await a11yViolations(page)).toEqual([]);
+    });
+
+    await context.close();
+  });
+}
+
 // 上の「違反がない」が空振りしていないことを確かめる。違反を起こせば、ちゃんと集まる
 test('名前のないボタンを入れると、違反として集まる', async ({ page }) => {
   await page.goto('/');
