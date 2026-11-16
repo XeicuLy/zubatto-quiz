@@ -1,6 +1,8 @@
 import {
+  addHostRequestSchema,
   createRoomRequestSchema,
   questionSetSchema,
+  type Host,
   type QuestionSetDetail,
   type QuestionSetSummary,
 } from '@zubatto-quiz/protocol';
@@ -20,21 +22,39 @@ interface FakeApiOptions {
   questionSets?: QuestionSetSummary[];
   /** 中身まで持つ問題セット。一覧にも出る */
   questionSetDetails?: QuestionSetDetail[];
+  /** ログインしているホストが管理者か（GET /api/me の isAdmin）。管理者でなければ /api/admin/* は 403 forbidden */
+  isAdmin?: boolean;
+  /** 許可リスト（GET /api/admin/hosts）。足した順に並べる */
+  hosts?: Host[];
+  /** GitHub にいるユーザー。GitHub のログイン名から数値の ID（文字列）を引く。名前の大文字と小文字は区別しない */
+  githubUsers?: Record<string, string>;
+  /** GitHub が答えない（POST /api/admin/hosts が 502 github_unavailable を返す） */
+  githubUnavailable?: boolean;
 }
 
 /**
  * 画面のテスト用の、偽の API。グローバルの fetch を差し替えて、Better Auth（/api/auth/*）と
- * 問題セットの HTTP API（/api/question-sets）と部屋の作成（POST /api/rooms）に答える。作成と更新の本文は、本物と同じく questionSetSchema で確かめ、
+ * 問題セットの HTTP API（/api/question-sets）と部屋の作成（POST /api/rooms）、
+ * ホスト自身のこと（GET /api/me）と管理者のホストの管理（/api/admin/hosts）に答える。作成と更新の本文は、本物と同じく protocol のスキーマで確かめ、
  * 通らなければ 400 を返す。Better Auth のクライアントも fetch を通るので、
  * 本物のクライアントの要求の形のまま確かめられる。
  *
  * テストの終わりに vi.unstubAllGlobals() で戻す（setup.ts）。
  */
-export function stubFakeApi({ hostName = 'XeicuLy', questionSets = [], questionSetDetails = [] }: FakeApiOptions = {}) {
+export function stubFakeApi({
+  hostName = 'XeicuLy',
+  questionSets = [],
+  questionSetDetails = [],
+  isAdmin = false,
+  hosts = [],
+  githubUsers = {},
+  githubUnavailable = false,
+}: FakeApiOptions = {}) {
   const state = {
     hostName,
     questionSets: [...questionSetDetails.map((set) => summaryOf(set.id, set)), ...questionSets],
     details: new Map(questionSetDetails.map((set) => [set.id, set])),
+    hosts: [...hosts],
   };
   const received: ReceivedRequest[] = [];
   let nextId = 1;
@@ -56,6 +76,12 @@ export function stubFakeApi({ hostName = 'XeicuLy', questionSets = [], questionS
     }
     if (state.hostName === null) {
       return Response.json({ error: 'unauthorized' }, { status: 401 });
+    }
+    if (path === '/api/me' && method === 'GET') {
+      return Response.json({ isAdmin });
+    }
+    if (path.startsWith('/api/admin/')) {
+      return isAdmin ? handleAdmin(method, path, body) : Response.json({ error: 'forbidden' }, { status: 403 });
     }
     if (path === '/api/question-sets' && method === 'GET') {
       return Response.json({ questionSets: state.questionSets });
@@ -104,6 +130,47 @@ export function stubFakeApi({ hostName = 'XeicuLy', questionSets = [], questionS
       return state.questionSets.length < before
         ? new Response(null, { status: 204 })
         : Response.json({ error: 'not_found' }, { status: 404 });
+    }
+    return Response.json({ error: 'not_found' }, { status: 404 });
+  }
+
+  /** 本物（apps/api の routes/admin-hosts.ts）と同じ順に確かめる。GitHub に問い合わせる前に、本文の形を確かめる */
+  function handleAdmin(method: string, path: string, body: unknown): Response {
+    if (path === '/api/admin/hosts' && method === 'GET') {
+      return Response.json({ hosts: state.hosts });
+    }
+    if (path === '/api/admin/hosts' && method === 'POST') {
+      const input = addHostRequestSchema.safeParse(body);
+      if (!input.success) {
+        return Response.json({ error: 'invalid_request' }, { status: 400 });
+      }
+      if (githubUnavailable) {
+        return Response.json({ error: 'github_unavailable' }, { status: 502 });
+      }
+      const login = Object.keys(githubUsers).find((name) => name.toLowerCase() === input.data.login.toLowerCase());
+      if (login === undefined) {
+        return Response.json({ error: 'not_found' }, { status: 404 });
+      }
+      const githubUserId = githubUsers[login];
+      if (state.hosts.some((host) => host.githubUserId === githubUserId)) {
+        return Response.json({ error: 'already_exists' }, { status: 409 });
+      }
+      // note は、GitHub が返した名前（大文字と小文字は GitHub のもの）
+      const added: Host = { githubUserId, note: login, isAdmin: false, createdAt: new Date().toISOString() };
+      state.hosts.push(added);
+      return Response.json(added, { status: 201 });
+    }
+    const githubUserId = /^\/api\/admin\/hosts\/([^/]+)$/.exec(path)?.[1];
+    if (githubUserId !== undefined && method === 'DELETE') {
+      const host = state.hosts.find((row) => row.githubUserId === githubUserId);
+      if (host === undefined) {
+        return Response.json({ error: 'not_found' }, { status: 404 });
+      }
+      if (host.isAdmin) {
+        return Response.json({ error: 'admin_host' }, { status: 409 });
+      }
+      state.hosts = state.hosts.filter((row) => row !== host);
+      return new Response(null, { status: 204 });
     }
     return Response.json({ error: 'not_found' }, { status: 404 });
   }

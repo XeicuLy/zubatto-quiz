@@ -21,11 +21,15 @@ const updatedDate = new Intl.DateTimeFormat('ja-JP', { month: 'long', day: 'nume
  */
 export function QuestionSetList() {
   const sets = useQuery(questionSetsQueryOptions);
+  // 消した行が消えたときのフォーカスの行き先。tabIndex={-1} で Tab の順番には入れず、スクリプトからだけ受ける
+  const heading = useRef<HTMLHeadingElement>(null);
 
   return (
     <main className="mx-auto max-w-4xl px-5 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-title font-bold">問題セット</h1>
+        <h1 ref={heading} tabIndex={-1} className="text-title font-bold focus-target">
+          問題セット
+        </h1>
         {sets.data !== undefined && sets.data.length > 0 && <CreateLink />}
       </div>
       <p className="mt-3 text-note text-muted-foreground">
@@ -53,7 +57,7 @@ export function QuestionSetList() {
       ) : (
         <ul className="mt-8 divide-y divide-border rounded-panel border border-border bg-card">
           {sets.data.map((set) => (
-            <QuestionSetRow key={set.id} set={set} />
+            <QuestionSetRow key={set.id} set={set} onRemoved={() => heading.current?.focus()} />
           ))}
         </ul>
       )}
@@ -73,20 +77,37 @@ function CreateLink() {
   );
 }
 
-function QuestionSetRow({ set }: { set: QuestionSetSummary }) {
+interface QuestionSetRowProps {
+  set: QuestionSetSummary;
+  /** 消せて行が消えるとき、フォーカスが行の中にあれば呼ぶ。呼ぶ側が、行の外（画面の見出し）へフォーカスを移す */
+  onRemoved: () => void;
+}
+
+function QuestionSetRow({ set, onRemoved }: QuestionSetRowProps) {
   const queryClient = useQueryClient();
   const confirm = useConfirm<'delete'>();
+  const row = useRef<HTMLLIElement>(null);
   const deleteButton = useRef<HTMLButtonElement>(null);
   const remove = useMutation({
     mutationFn: () => deleteQuestionSet(set.id),
     // 行ごと消えるので、行の中では知らせられない。画面の隅に出す
     onSuccess: () => notify(`「${set.title}」を消しました`),
-    // 失敗しても読み直す。別のタブで先に消していた（404）なら、一覧から消える（知らせは出さない）
-    onSettled: () => queryClient.invalidateQueries({ queryKey: questionSetsQueryOptions.queryKey }),
+    onSettled: async (_, error) => {
+      // 消せたときと、別のタブで先に消していた（404）ときだけ読み直し、一覧から消す（404 は知らせない）。
+      // ほかの失敗では読み直さない。401 で読み直すと一覧ごと誤りに替わり、この行の誤りとフォーカスが消える
+      if (error === null || describeApiError(error) === 'notFound') {
+        // 行はフォーカスのある「本当に消す」ごと消え、フォーカスが body に落ちる。消える前に、行の外へ渡す。
+        // 消しているあいだにほかの所へ移っていたら、奪わない
+        if (row.current?.contains(document.activeElement)) {
+          onRemoved();
+        }
+        await queryClient.invalidateQueries({ queryKey: questionSetsQueryOptions.queryKey });
+      }
+    },
   });
 
   return (
-    <li className="flex flex-wrap items-center gap-x-6 gap-y-3 p-5">
+    <li ref={row} className="flex flex-wrap items-center gap-x-6 gap-y-3 p-5">
       <div className="min-w-0 flex-1 basis-56">
         <h2 className="text-heading font-bold wrap-anywhere">{set.title}</h2>
         <p className="mt-1 text-note text-muted-foreground">

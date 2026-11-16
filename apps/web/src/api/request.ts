@@ -27,3 +27,14 @@ async function errorCodeOf(response: Response): Promise<HttpError['error'] | nul
   const parsed = httpErrorSchema.safeParse(body);
   return parsed.success ? parsed.data.error : null;
 }
+
+/**
+ * query の retry に渡す。4xx はやり直しても同じ答えなので、やり直さない。ログインが切れた（401）ことを、待たせずに知らせる。
+ * 通信の失敗と 5xx は、TanStack Query の既定と同じく3回までやり直す
+ */
+export function retryUnlessClientError(failureCount: number, error: Error): boolean {
+  if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
+    return false;
+  }
+  return failureCount < 3;
+}
