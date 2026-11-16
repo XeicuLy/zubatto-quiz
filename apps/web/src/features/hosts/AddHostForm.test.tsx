@@ -118,6 +118,35 @@ describe('ホストを足す（ADR 0013）', () => {
     expect(screen.getByRole('link', { name: 'ログインし直す' })).toHaveAttribute('href', '/login');
   });
 
+  it.each([
+    ['形の誤り', '../x'],
+    ['GitHub にいない（404）', 'nobody'],
+  ])('%s を欄の下に出したあと、打ち直したら誤りを消す', async (_, login) => {
+    stubFakeApi({ isAdmin: true, hosts: [ADMIN] });
+    await openHosts();
+    submit(login);
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+
+    fireEvent.change(input(), { target: { value: 'bob' } });
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(input()).not.toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('送っているあいだに打ち替えたら、先の 404 を打ち替えた名前の下に出さない', async () => {
+    const api = stubFakeApi({ isAdmin: true, hosts: [ADMIN] });
+    await openHosts();
+
+    submit('nobody');
+    fireEvent.change(input(), { target: { value: 'bob' } });
+    // 先の要求の答え（404）が届くのを待つ
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+    expect(api.requestsTo('POST', '/api/admin/hosts')).toHaveLength(1);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(input()).toHaveValue('bob');
+  });
+
   it('送っているあいだに打ち替えた名前は、先の成功で消さない', async () => {
     stubFakeApi({ isAdmin: true, hosts: [ADMIN], githubUsers: { octocat: '583231' } });
     await openHosts();

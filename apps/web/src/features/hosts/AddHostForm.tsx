@@ -40,7 +40,10 @@ export function AddHostForm() {
       }
     },
   });
-  const fieldError = inputError ?? fieldErrorOf(add.error);
+  // API の誤り（404・409）は、送った名前（add.variables）についてのもの。打ち替えたあとの名前の下には出さない。
+  // 送っているあいだに打ち替えて、あとから届いた誤りも同じ
+  const sentIsShown = add.variables !== undefined && normalizeLogin(login) === add.variables;
+  const fieldError = inputError ?? (sentIsShown ? fieldErrorOf(add.error) : null);
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,7 +72,11 @@ export function AddHostForm() {
         <Input
           name="login"
           value={login}
-          onChange={(event) => setLogin(event.target.value)}
+          onChange={(event) => {
+            setLogin(event.target.value);
+            // 形の誤りは打ち直した名前には当たらないので消す。送るときに確かめ直す
+            setInputError(null);
+          }}
           autoComplete="off"
           autoCapitalize="none"
           spellCheck={false}
