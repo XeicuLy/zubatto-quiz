@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.5.0
+
+[compare changes](https://github.com/XeicuLy/zubatto-quiz/compare/v1.4.0...v1.5.0)
+
+### 🚀 Enhancements
+
+- 問題セットを保存して一覧へ戻れるようにする ([#323](https://github.com/XeicuLy/zubatto-quiz/pull/323))
+- ホストの管理者の印と、自分が管理者かを返す API を足す ([#324](https://github.com/XeicuLy/zubatto-quiz/pull/324))
+- 問題セットを空の状態から作れるようにする ([#325](https://github.com/XeicuLy/zubatto-quiz/pull/325))
+- GitHub のユーザー名でホストを足し・外す管理者の API を作る ([#326](https://github.com/XeicuLy/zubatto-quiz/pull/326))
+- 入口のページを作る ([#327](https://github.com/XeicuLy/zubatto-quiz/pull/327))
+- 管理者がホストを一覧・追加・外せる画面を作る ([#329](https://github.com/XeicuLy/zubatto-quiz/pull/329))
+
+### 🩹 Fixes
+
+- 失敗の表示を共通の部品にまとめ、ログインが切れたときの導線をそろえる ([#322](https://github.com/XeicuLy/zubatto-quiz/pull/322))
+- 部屋の作成の応答を待つあいだに一覧を離れたら、進行画面へ移さない ([#330](https://github.com/XeicuLy/zubatto-quiz/pull/330))
+
+### 📖 Documentation
+
+- 新しいリリースの流れを本番で通して確かめた結果を runbook に残す ([#321](https://github.com/XeicuLy/zubatto-quiz/pull/321))
+
 ## v1.4.0
 
 [compare changes](https://github.com/XeicuLy/zubatto-quiz/compare/v1.3.0...v1.4.0)
