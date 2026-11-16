@@ -263,6 +263,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 ## ホストの部屋
 
 - `/rooms/$roomId/host`（`features/host/`）: 問題セットの一覧の `CreateRoomButton`（`features/admin/`）が `createRoom`（`src/api/rooms.ts`）を呼び、`roomId` を持ってそこへ移る
+- 部屋の作成の応答を待つあいだに一覧を離れたら（部品が消えたら）、できた部屋へは移さず、知らせもしない（#328）。自分で離れたのに連れ戻さないため。部屋の一覧はなく、toast にはリンクを置かないので、知らせてもその部屋へは行けない。部屋の ID は推測できず（S3）誰にも届かないので、使われないまま残っても害はない。移るのは `mutate(undefined, { onSuccess })` に渡したコールバックで、`useMutation` のオプションの `onSuccess` には書かない。前者は部品が消えると呼ばれず、後者は消えても呼ばれる（TanStack Query の Mutation Side Effects。2026-11-15 に確かめた）。404 で一覧を読み直す `onError` は、離れたあとでもしてよいのでオプションに残す。問題セットの保存（`use-question-set-save.ts`）も、移るのは `mutate` 側で行う
 - `beforeLoad` は、`requireHost` より先に `roomIdSchema` を確かめる。そのため、形の悪い ID で `get-session` を呼ぶことはない
 - loader は1つの `createHostRoom`（`host-room.ts`）を作り、回答者と同じく `onEnter`/`onLeave` が `connect`/`leave` を呼ぶ。ホストは最初のメッセージを送らない
 - 参加の URL は `roomJoinUrl(roomId, location)` で、API の `joinUrl` と同じ値（同じオリジン、ADR 0006）。そのため、再読み込みしても出せる
