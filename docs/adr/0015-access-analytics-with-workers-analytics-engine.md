@@ -99,7 +99,7 @@ gtag.js と GA4 を直に入れる場合（GTM なし）も、CSP の緩め方�
 #### 書き込みの窓口
 
 - 書き込みは `apps/api/src/analytics/record.ts` の1か所に絞る。引数は決まったキーの型（出来事の名前の `as const` の配列から作る型）だけを受けるので、部屋 ID や名前を渡す口がない
-- binding は `{ ANALYTICS?: AnalyticsEngineDataset }` で受け、なければ何もしない（`wrangler types` は必須の型を作るが、E2E では実際に `undefined` になる）
+- binding は `{ ANALYTICS?: AnalyticsEngineDataset }` で受け、なければ何もしない。E2E では実際に `undefined` になる。`wrangler types` も、`env.e2e` にない binding を `ANALYTICS?: AnalyticsEngineDataset` の省略できる型にするので、`?.` を付け忘れると型エラーになる（`wrangler` 4.160.0 で 2026-11-19 に確かめた）
 - `writeDataPoint` は `await` せず、`try/catch` で包む。失敗しても投げ返さず、ログにも出さない。解析のために進行を止めない（A1）
 - binding は外向きの `fetch` ではない。「外向きの `fetch` は `lookupGithubUser` だけ」という約束（ADR 0013）は変わらない
 

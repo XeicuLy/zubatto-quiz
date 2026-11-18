@@ -6,12 +6,17 @@
 
 ## インフラの管理
 
-- インフラの設定は `wrangler.jsonc` だけで書く（ADR 0005）。Worker、DO の `new_sqlite_classes` のマイグレーション、D1 の binding がここにある。本番は Cloudflare に残すので（ADR 0008）、本番には Terraform を入れない。Terraform は Go 版の練習用の環境（本番と別の GCP プロジェクト）だけで使う
+- インフラの設定は `wrangler.jsonc` だけで書く（ADR 0005）。Worker、DO の `new_sqlite_classes` のマイグレーション、D1 と Analytics Engine の binding がここにある。本番は Cloudflare に残すので（ADR 0008）、本番には Terraform を入れない。Terraform は Go 版の練習用の環境（本番と別の GCP プロジェクト）だけで使う
 - 設定で表せないものは、`docs/runbooks/` の runbook に書く。GitHub の OAuth App（手元用と本番用）、シークレット、ホストの許可リスト、使用量の確かめ方と止め方、main と `v*` のタグのルールセット。シークレット・テーブル・コマンド・CI の job 名など、runbook に関わるものを変えたら、同じ変更で runbook も直す
 - シークレットは `wrangler secret put` で入れる。`secrets.required` があると、シークレットのない Worker の最初のデプロイは止まる。そこで本番では、先に `secret put` で空の Worker を作ってからデプロイする。こうすると、デプロイの workflow はアプリのシークレットを持たずに済む。順番と理由は [secrets.md の「はじめて入れるとき」](../runbooks/secrets.md#はじめて入れるとき)にある。Worker を消すとシークレットも消えるが、D1 は残る
 - `wrangler secret put`・`secret list` には `--env=""` を付けて、`wrangler.jsonc` の先頭の設定を選ぶ。付けないと、`env.e2e` があるので警告が出る（`d1 execute` は警告しない）。値をパイプで渡すと末尾の空白が削られるので、`BETTER_AUTH_SECRET` は `openssl rand -base64 32` からパイプで入れ、画面に出さない（[secrets.md の「本番: wrangler secret put」](../runbooks/secrets.md#本番-wrangler-secret-put)）
 - `apps/api/.dev.vars.example` は、`secrets.required` の名前を値なしで並べたひな形（`BETTER_AUTH_URL` だけは手元の URL が入る）。`.gitignore` で戻している。名前が `wrangler.jsonc` とずれたり、シークレットに値が入ったりすると、`dev-vars-example.test.ts` が落ちる
 - `host_allowlist.github_user_id` は TEXT の列。`'12345'` と文字列で書く。数で書くと `account.account_id` と合わない（[host-allowlist.md](../runbooks/host-allowlist.md)）
+- アクセス解析の Analytics Engine の binding（`ANALYTICS`、dataset `zubakui_events`）は、`apps/api/wrangler.jsonc` の先頭（本番）にだけ書く（[ADR 0015](../adr/0015-access-analytics-with-workers-analytics-engine.md)）。画面の Worker には書かない。dataset は最初の書き込みで作られるので、ダッシュボードで先に作る手順はない（2026-11-19 に Cloudflare の文書で確かめた）
+  - `env.e2e` には書かない。binding は env に引き継がれないので、E2E では `env.ANALYTICS` が `undefined` になり、何も記録しない。`env.e2e` に別の dataset を書けば次の WARNING は消えるが、そうすると「本番以外で記録しない」守りが、ローカルの書き込みを捨てる miniflare の作りに頼る形になる。binding がなければ何もしない、というコードの形で守るほうを選んだ
+  - そのため wrangler は、`--env e2e` で動かすたびに「`analytics_engine_datasets` が先頭にあるのに `env.e2e` にない」という WARNING を出す。止まりはしないので、受け入れている
+  - `vite dev` と Workers のテストは先頭の設定を読むので binding があるが、`remote: true` がないので書き込みは捨てられる。そのため、開発の入口（`test/dev-entry.ts`）からは binding を外さない
+  - 本番の設定に binding があり、`env.e2e` にないことは、`api-bundle` の `production-bundle.test.ts` が `wrangler deploy --dry-run` の binding の表で確かめる。何を書くかは [backend.md の「計測」](backend.md#計測)にある
 - 本番の D1 は `--update-config=false` を付けて作る。付けないと、`wrangler.jsonc` に足すかを聞かれ、既定が yes なので D1 の ID がリポジトリに入ってしまう（[README の「本番の環境を一から作る」](../../README.md#本番の環境を一から作る)）
 
 ## 本番の環境

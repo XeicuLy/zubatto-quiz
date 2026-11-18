@@ -68,6 +68,20 @@ grep -n '"outcome": "exception"' logs/api-*.json
 - 管理者がホストを外す経路は、GitHub のユーザー ID を URL の経路に持つので、その ID は Workers Logs に残る。GitHub の ID は誰でも引ける公開の値で、ログを見られるのは開発者だけなので、受け入れている。足すときの名前は本文で送るので残らない。Worker から `api.github.com` への fetch の URL（名前が入る）は、traces を有効にしたときだけ記録される（`url.full`。2026-11-14 に Cloudflare の文書で確かめた）。今は `observability.traces` を有効にしていない。有効にするときは、この表を見直す
 - アプリにログを足すときは、`{ event: 'join_rejected', roomId, code }` のように決まったキーの値だけを出す。秘密とそのハッシュ、メッセージの本文、回答者の名前、Cookie やセッションの値は出さない（ADR 0005）
 
+### 解析のデータに残るもの
+
+アクセス解析（O4）のデータは、ログとは別に、Workers Analytics Engine の dataset `zubakui_events` に入る（ADR 0015）。Workers Logs や `wrangler tail` には出ず、書き込みに失敗してもログは出ない。書くのは本番の API の Worker だけで、E2E・`vite dev`・テストでは記録されない。データは3か月で消える。
+
+| もの                                                                    | 解析のデータでは                                            |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------- |
+| 出来事の名前（`room_created`・`question_set_created` など）と、その時刻 | 残る。時刻は Analytics Engine が付ける                      |
+| `source`（`app`）                                                       | 残る。負荷試験のボットを見分ける `bot` は #369 で足す       |
+| 部屋 ID・`participantId`・回答者の名前・問題セットの名前・問題文        | 残らない。書き込みの窓口（`record.ts`）の型に、渡す口がない |
+| IP アドレス・国・User-Agent・ホストの `user.id`・GitHub の名前          | 残らない。ログと違い、要求のヘッダーは入らない              |
+| 端末や人を見分ける値（UU を数える ID や Cookie）                        | 残らない。何人が使ったかは数えない                          |
+
+何をどこで書くかは [backend.md の「計測」](../architecture/backend.md#計測)にある。
+
 ## 本番のあとに
 
 本番が終わったら、その日のうちに次を行う。

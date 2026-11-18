@@ -165,3 +165,23 @@
 - 経過時間は `normalizeElapsedMs` で1回だけ正規化し、その値を表示・得点・ボーナス・最速の回答に使う（P2）
 - 同点のときの決め方は、要件定義書の[「同点のとき」](../requirements/zubatto-quiz.md#同点のとき)にある。`positionOf` は protocol の `playerPosition` の形から `rankUp` と `hidden` を除いたものを返し、締切の集計がそれを足す
 - `packages/protocol` と同じく、`tsconfig.lib.json` がテストでない `src/` を ambient な型なしで確かめる
+
+## 計測
+
+アクセス解析（O4）は、Workers Analytics Engine に決まったキーだけを書く（[ADR 0015](../adr/0015-access-analytics-with-workers-analytics-engine.md)）。binding を本番の設定にだけ置く理由は [operations.md の「インフラの管理」](operations.md#インフラの管理)にある。
+
+- 書き込みは `src/analytics/record.ts` の1か所だけで行う。`recordEvent(env, name)` は、binding（`{ ANALYTICS? }` だけ）と、`EVENT_NAMES`（`as const` の配列）の名前だけを受ける。部屋 ID・名前・セット名・IP・`ownerId` を渡す口がないので、あとで出来事を足しても、記録しないものが紛れ込まない。引数の型は `record.test.ts` が `@ts-expect-error` で確かめる
+- `room_ended` は `recordEvent` に渡せない。終えたときの段階（`blob3`）が要るので、別の関数で書く（#367）。画面ごとの PV（`page_view`）も、ルートのテンプレートを書く別の関数で足す（#368）
+- 1つの出来事を1点として書く。`indexes` は出来事の名前、`blobs` はいつも3つで、`source`（今は `app`。負荷試験のボットの `bot` は #369）・PV のルート・`room_ended` の段階の順。使わない欄は空の文字列にする。`doubles` は使わない
+- `writeDataPoint` はすぐに戻るので `await` しない。上限を超えたときに投げるかは文書にないので `try/catch` で包み、失敗しても投げ返さず、ログにも出さない。解析のために応答や進行を止めない（A1）
+- binding がなければ何もしない（`env.ANALYTICS?.writeDataPoint`）。E2E では `env.ANALYTICS` が `undefined` になる。`wrangler types` も、`env.e2e` にない binding を `ANALYTICS?: AnalyticsEngineDataset` の省略できる型にする
+- binding への書き込みは外向きの `fetch` ではない。外向きの `fetch` が `lookupGithubUser` だけ、という約束（[ホストの認証](#ホストの認証)）は変わらない
+
+いま記録している出来事は次の2つ。部屋の DO の5つは #367 で足す。
+
+| 出来事                 | 書く場所                                               | 書くとき                              | 書かないとき                         |
+| ---------------------- | ------------------------------------------------------ | ------------------------------------- | ------------------------------------ |
+| `room_created`         | `POST /api/rooms`（`routes/rooms.ts`）                 | DO の `initialize` のあと、201 の直前 | 404（他人のセット・ないセット）、400 |
+| `question_set_created` | `POST /api/question-sets`（`routes/question-sets.ts`） | D1 に保存したあと、201 の直前         | 400。`PUT`・`DELETE` も数えない      |
+
+記録しないものは、部屋 ID・`participantId`・回答者の名前・問題セットの名前・問題文、IP・国・User-Agent・`ownerId`・GitHub の名前、PV の実際のパス・search・referrer、UU を数える値。何を記録するかは [logs.md の「解析のデータに残るもの」](../runbooks/logs.md#解析のデータに残るもの)にも表にしてある。

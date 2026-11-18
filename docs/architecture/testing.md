@@ -24,6 +24,10 @@
 
 - HTTP のルートのテストは `test/host-request.ts` を使う。`beforeEach` で `resetHosts`（ホストは `alice` と `mallory`、管理者のホストは `admin`）を呼び、`apiRequestAs` か `apiRequest` で送る。許可リストの行を自分で入れるテストは、`test/auth/create-test-auth.ts` の `allowGithubUser(db, githubUserId, { admin: true })` で管理者にできる
   - `apiRequestAs(userId, method, path, body)` は、そのホストのログイン Cookie と、ブラウザと同じ `Origin` と `Sec-Fetch-Site: same-origin` を付けて送る。状態を変えるルートは `csrf()` がこの2つを見るので、ふつうはこちらを使う（[backend.md の「問題セットと部屋を作る」](backend.md#問題セットと部屋を作る)）
+  - 5つ目の引数 `bindings` を渡すと、`env` のその binding だけを差し替えて送る。`exports.default.fetch` は実行環境の `env` を使うので差し替えられない。そのときだけ、同じ Hono の `app` を `app.request(url, init, { ...env, ...bindings })` で直に呼ぶ
+- Analytics Engine の書き込み（[backend.md の「計測」](backend.md#計測)）は、`test/fake-analytics.ts` で確かめる。ローカルの本物の binding は書き込みを捨てるので、何が書かれたかを読めない
+  - `createFakeAnalytics()` は、書かれたデータ点を `points` に書かれた順で集める。ルートのテストでは `apiRequestAs(..., { ANALYTICS: analytics })` で渡し、`points` を決まった形と `toEqual` で比べる。こうすると、部屋 ID や名前が混ざったときにも落ちる
+  - `createThrowingAnalytics()` は、書き込みのたびに投げる。上限を超えたときの動きは文書にないので、投げても応答が変わらないことを確かめる。`calls()` で、投げる所まで届いた（確かめが空振りしていない）ことを見る
   - `apiRequest(path, init)` は、`init` をそのまま `fetch` に渡すだけで、ヘッダーを足さない。ヘッダーを自分で決めたいとき（ログインしていない要求、別のオリジンからの要求、WebSocket の入口への `Upgrade` 付きの要求など）に使う。これで状態を変えるルートを呼ぶときは、`init` にヘッダーを自分で入れる
 - GitHub の API への `fetch` は、`test/github-stub.ts` の `stubGithubUsers`（名前ごとの ID と `type`。表にない名前は 404）か `stubGithub`（要求ごとに応答を返す。投げれば時間切れ）で差し替え、`afterEach` の `vi.restoreAllMocks()` で戻す。vitest-plugin では、テストと `exports.default.fetch` で呼んだ Worker が同じ isolate で動くので、`globalThis.fetch` を差し替えればルートの中の呼び出しにも効き、テストから API への要求は差し替わらない。返す `requests` で、送り先の URL とヘッダーを確かめる
 - `test/admin-routes.test.ts` は、`app.routes` から `/api/admin/` の下の経路をすべて拾い、`EXAMPLES` の要求の例で、匿名は 401、一般のホストは 403、管理者は通ることを確かめる。経路を足して例を書かなければ落ち、例を書いて `requireAdmin` を付け忘れれば一般のホストが通って落ちる
