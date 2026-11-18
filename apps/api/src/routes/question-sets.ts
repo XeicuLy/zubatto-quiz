@@ -7,6 +7,7 @@ import {
 import { Hono } from 'hono';
 import { csrf } from 'hono/csrf';
 
+import { recordEvent } from '@/analytics/record';
 import { requireHost, type HostEnv } from '@/auth/require-host';
 import { createDb } from '@/db';
 import {
@@ -45,6 +46,8 @@ export const questionSetRoutes = new Hono<HostEnv>()
       ownerId: c.get('ownerId'),
       input: c.req.valid('json'),
     });
+    // D1 への保存が済んだあとに数える。検証に通らない本文は、ここまで来ない（ADR 0015）
+    recordEvent(c.env, 'question_set_created');
     return c.json({ id } satisfies CreateQuestionSetResponse, 201);
   })
   .get('/:id', async (c) => {

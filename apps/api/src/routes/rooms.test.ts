@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createDb } from '@/db';
 import { getQuestionSet } from '@/question-sets/repository';
 
+import { createFakeAnalytics, createThrowingAnalytics } from '../../test/fake-analytics';
 import { apiRequest, apiRequestAs, loginAs, ORIGIN, resetHosts } from '../../test/host-request';
 
 beforeEach(resetHosts);
@@ -163,5 +164,43 @@ describe('作れない要求', () => {
     });
 
     expect(response.status).toBe(403);
+  });
+});
+
+describe('作成の計測（O4・ADR 0015）', () => {
+  const createRoomWith = (analytics: AnalyticsEngineDataset, body: unknown) =>
+    apiRequestAs('alice', 'POST', '/rooms', body, { ANALYTICS: analytics });
+
+  it('部屋を作ると、room_created を1回だけ書く。部屋 ID・セット名・ownerId は入らない', async () => {
+    const setId = await createSetAs('alice');
+    const analytics = createFakeAnalytics();
+
+    const response = await createRoomWith(analytics, { questionSetId: setId });
+
+    expect(response.status).toBe(201);
+    expect(analytics.points).toEqual([{ indexes: ['room_created'], blobs: ['app', '', ''] }]);
+  });
+
+  it.each([
+    ['ないセット（404）', { questionSetId: SOME_ID }],
+    ['検証の失敗（400）', { questionSetId: 'not-a-uuid' }],
+  ])('%sでは書かない', async (_, body) => {
+    const analytics = createFakeAnalytics();
+
+    const response = await createRoomWith(analytics, body);
+
+    expect(response.ok).toBe(false);
+    expect(analytics.points).toEqual([]);
+  });
+
+  it('writeDataPoint が投げても、201 と部屋の ID を返す（A1）', async () => {
+    const setId = await createSetAs('alice');
+    const analytics = createThrowingAnalytics();
+
+    const response = await createRoomWith(analytics, { questionSetId: setId });
+
+    expect(response.status).toBe(201);
+    createRoomResponseSchema.parse(await response.json());
+    expect(analytics.calls()).toBe(1);
   });
 });

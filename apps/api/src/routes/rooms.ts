@@ -2,6 +2,7 @@ import { createRoomRequestSchema, type CreateRoomResponse } from '@zubatto-quiz/
 import { Hono } from 'hono';
 import { csrf } from 'hono/csrf';
 
+import { recordEvent } from '@/analytics/record';
 import { requireHost, type HostEnv } from '@/auth/require-host';
 import { createDb } from '@/db';
 import { getQuestionSet } from '@/question-sets/repository';
@@ -33,5 +34,7 @@ export const roomRoutes = new Hono<HostEnv>()
     const roomId = id.toString();
     // 画面の Worker のオリジンは BETTER_AUTH_URL に入っている（ADR 0006）。/r/:roomId は回答者の画面の経路
     const joinUrl = new URL(`/r/${roomId}`, c.env.BETTER_AUTH_URL).href;
+    // 部屋の DO への写しが済んだあと、201 を返す直前に数える。404 と検証の失敗は、ここまで来ない（ADR 0015）
+    recordEvent(c.env, 'room_created');
     return c.json({ roomId, joinUrl } satisfies CreateRoomResponse, 201);
   });

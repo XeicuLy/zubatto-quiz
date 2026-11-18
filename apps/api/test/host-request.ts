@@ -2,6 +2,7 @@ import { env, exports } from 'cloudflare:workers';
 
 import { createDb } from '@/db';
 import { hostAllowlist, user } from '@/db/schema';
+import app from '@/index';
 
 import { allowGithubUser, createTestAuth, insertGithubUser } from './auth/create-test-auth';
 
@@ -39,14 +40,24 @@ export const apiRequest = (path: string, init?: RequestInit) => exports.default.
 /**
  * userId のホストとして、同じオリジンの画面から要求を送る。body は JSON にして送る。
  * ブラウザは GET 以外の要求に Origin と Sec-Fetch-Site を付ける。csrf() は Content-Type のない要求（本文のない DELETE）を
- * text/plain として扱うので、これがないと同じオリジンの要求でも断られる
+ * text/plain として扱うので、これがないと同じオリジンの要求でも断られる。
+ *
+ * bindings を渡すと、env のその binding だけを差し替えて送る（fake-analytics.ts の ANALYTICS など）。
+ * exports.default.fetch は実行環境の env を使うので差し替えられない。そのときだけ、同じ Hono の app を app.request で直に呼ぶ
  */
-export async function apiRequestAs(userId: string, method: string, path: string, body?: unknown) {
+export async function apiRequestAs(
+  userId: string,
+  method: string,
+  path: string,
+  body?: unknown,
+  bindings?: Partial<Env>,
+) {
   const headers = await loginAs(userId);
   headers.set('origin', ORIGIN);
   headers.set('sec-fetch-site', 'same-origin');
   if (body !== undefined) {
     headers.set('content-type', 'application/json');
   }
-  return apiRequest(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const init = { method, headers, body: body === undefined ? undefined : JSON.stringify(body) };
+  return bindings ? app.request(`${ORIGIN}/api${path}`, init, { ...env, ...bindings }) : apiRequest(path, init);
 }

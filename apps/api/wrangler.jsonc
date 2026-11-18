@@ -23,6 +23,11 @@
   // database_id は書かない。デプロイと D1 のコマンドは名前で D1 を探す。database_name は変えない（ADR 0005）
   // migrations_dir は drizzle-kit の出力先（drizzle.config.ts の out）と同じ
   "d1_databases": [{ "binding": "DB", "database_name": "zubakui", "migrations_dir": "migrations" }],
+  // O4: アクセス解析の書き込み先（ADR 0015）。書くのは src/analytics/record.ts だけで、決まったキーしか書かない。
+  // env.e2e には書かない。binding は env に引き継がれないので、E2E では env.ANALYTICS が undefined になり、何も記録しない。
+  // そのため wrangler は起動のたびに「env.e2e に analytics_engine_datasets がない」と WARNING を出すが、受け入れる。
+  // ローカル（vite dev・Workers のテスト）では remote: true がないので、書き込みは捨てられる
+  "analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "zubakui_events" }],
   // O1: エラーのログを Workers Logs に残す。Traces は上限を分け合うので使わない（ADR 0005）
   "observability": {
     "enabled": true,

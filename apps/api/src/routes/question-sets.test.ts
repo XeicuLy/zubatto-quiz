@@ -7,6 +7,7 @@ import {
 } from '@zubatto-quiz/protocol';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { createFakeAnalytics, createThrowingAnalytics } from '../../test/fake-analytics';
 import { apiRequest, apiRequestAs, loginAs, ORIGIN, resetHosts } from '../../test/host-request';
 
 beforeEach(resetHosts);
@@ -196,5 +197,51 @@ describe('別のオリジンからのフォームの形の要求（S1・ADR 0003
 
     // csrf() は通り、JSON でない本文なので入力の検査で 400 になる
     expect(response.status).toBe(400);
+  });
+});
+
+describe('作成の計測（O4・ADR 0015）', () => {
+  const createWith = (analytics: AnalyticsEngineDataset, body: unknown) =>
+    apiRequestAs('alice', 'POST', '/question-sets', body, { ANALYTICS: analytics });
+
+  it('セットを作ると、question_set_created を1回だけ書く。セット名・ownerId は入らない', async () => {
+    const analytics = createFakeAnalytics();
+
+    const response = await createWith(analytics, input);
+
+    expect(response.status).toBe(201);
+    expect(analytics.points).toEqual([{ indexes: ['question_set_created'], blobs: ['app', '', ''] }]);
+  });
+
+  it('検証に通らない本文（400）では書かない', async () => {
+    const analytics = createFakeAnalytics();
+
+    const response = await createWith(analytics, { ...input, title: '' });
+
+    expect(response.status).toBe(400);
+    expect(analytics.points).toEqual([]);
+  });
+
+  it('PUT と DELETE では書かない。数えるのは作成だけ', async () => {
+    const id = await createAs('alice', input);
+    const analytics = createFakeAnalytics();
+
+    expect((await apiRequestAs('alice', 'PUT', `/question-sets/${id}`, input, { ANALYTICS: analytics })).status).toBe(
+      204,
+    );
+    expect(
+      (await apiRequestAs('alice', 'DELETE', `/question-sets/${id}`, undefined, { ANALYTICS: analytics })).status,
+    ).toBe(204);
+    expect(analytics.points).toEqual([]);
+  });
+
+  it('writeDataPoint が投げても、201 と id を返す（A1）', async () => {
+    const analytics = createThrowingAnalytics();
+
+    const response = await createWith(analytics, input);
+
+    expect(response.status).toBe(201);
+    expect(await response.json<CreateQuestionSetResponse>()).toEqual({ id: expect.any(String) });
+    expect(analytics.calls()).toBe(1);
   });
 });
