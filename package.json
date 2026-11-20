@@ -25,7 +25,7 @@
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
     "@commitlint/types": "21.2.3",
-    "@playwright/test": "1.65.0",
+    "@playwright/test": "1.65.1",
     "@tailwindcss/cli": "4.3.5",
     "@types/node": "24.19.2",
     "@zubatto-quiz/protocol": "workspace:*",
