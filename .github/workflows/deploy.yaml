@@ -67,7 +67,7 @@ jobs:
       # 出す版と文面は、App の token を持つ release job にそのまま渡る。ci と e2e が書き込めるキャッシュは読まない
       - name: Install tools via mise
         if: github.ref_type == 'branch'
-        uses: jdx/mise-action@v5.2.7
+        uses: jdx/mise-action@v5.2.9
         with:
           version: 2026.11.0
           cache: false
@@ -116,7 +116,7 @@ jobs:
 
       # main の ci と e2e で動くパッケージのコードは、同じキャッシュに書き込める。トークンを扱う job では読まない（operations.md）
       - name: Install tools via mise
-        uses: jdx/mise-action@v5.2.7
+        uses: jdx/mise-action@v5.2.9
         with:
           version: 2026.11.0
           cache: false
@@ -177,7 +177,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Node via mise
-        uses: jdx/mise-action@v5.2.7
+        uses: jdx/mise-action@v5.2.9
         with:
           version: 2026.11.0
           cache: false
