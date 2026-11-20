@@ -91,6 +91,7 @@ ADR 0003 で、ホストは GitHub ログインと許可リスト（`host_allowl
 - 外す
   - 管理者の行は外せない（自分も、ほかの管理者も）。409 `admin_host`
   - その人のセッションの削除と許可リストの行の削除を、`db.batch` で1回に行う。どちらの DELETE にも `is_admin = false` の条件を入れ、判定と削除の間に管理者になっても消さない
+    - [ADR 0016](0016-do-not-keep-host-personal-data.md) で、同じ `db.batch` でその人の `user` の行も消すことにした（cascade で account・問題セットも消え、元に戻せない）。`is_admin = false` の条件と、消してから理由を読む形は、ここで決めたとおり
   - 許可リストにない ID → 404 `not_found`
 - ログ: GitHub の名前も ID も出さない（ログは決まったキーだけ）
 
