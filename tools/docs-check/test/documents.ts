@@ -31,6 +31,10 @@ export const documents = [
   // O2 のリハーサルの記録。本番の前に読み返し、手順書へのリンクから止め方や使用量の見方に戻る
   'docs/rehearsal/o2-rehearsal.md',
   ...markdownIn('docs/runbooks/'),
+  // 脅威モデル。守りの表の各行が守っているファイルとテストを指すので、移したり名前を変えたりすると切れる（threat-model.test.ts）
+  ...markdownIn('docs/security/'),
+  // 脆弱性の報告の窓口。脅威モデルの受け入れたリスクへリンクする
+  'SECURITY.md',
 ];
 
 export const read = (url: URL) => readFileSync(url, 'utf8');
