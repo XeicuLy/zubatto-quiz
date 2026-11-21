@@ -33,7 +33,14 @@ accepted
 - 2回目のログインで `user` の行を書き換えるのは、provider の `overrideUserInfoOnSignIn` が true のときだけ（既定は false）。そのため、ログインの設定を変えても、既にある行の email はそのまま残る
 - `advanced.ipAddress.disableIpTracking: true` にすると、Better Auth が要求から IP を読まなくなる（Better Auth の rate limiter も IP を鍵にできなくなる）
 
-GitHub の文書（context7、2026-11-21）では、次のことを確かめられなかった。OAuth App を前に `user:email` 付きで許可した人が、scope を求めないログインをしたときに、前に許可した scope の付いたトークンが返ることがあるか、である。トークンに付いた scope は、トークン交換の応答の `scope` と、API の応答の `X-OAuth-Scopes` ヘッダーで分かる。前の許可が使われると、provider の `/user/emails` が通り、Better Auth は本物の email を一度受け取る（`mapProfileToUser` が上書きするので、保存はされない）。
+GitHub の文書で、次のことを確かめた（context7、2026-11-21）。
+
+- 認可の URL に `scope` が無いと、その OAuth App を前に許可したことのある人は、許可の画面を出さずに、前に許可した scope の付いたトークンを受け取る。1.7.20 の `createAuthorizationURL` は、scope の配列が空だと `scope` を付けない（`if (scopes?.length)`）。そのため scope を求めない設定でも、前に `user:email` を許可した人には、`user:email` の付いたトークンが返る
+- scope が無くても、`/user` は公開プロフィールの `email` を返す。email を公開している人なら、新しく許可する人でも、Better Auth はその email を受け取る
+- トークンに付いた scope は、トークン交換の応答の `scope` と、API の応答の `X-OAuth-Scopes` ヘッダーで分かる
+- ユーザーが GitHub の設定（Settings → Applications → Authorized OAuth Apps）で許可を取り消すと、その OAuth App のトークンも全部使えなくなる。OAuth App の設定の「Revoke all user tokens」が、トークンだけでなく許可まで消すかは、文書には書かれていない
+
+どの場合も、受け取った email は `mapProfileToUser` が保存の前に合成の値で上書きするので、D1 には入らない。
 
 D1 の Time Travel は、Workers Free では7日前までのどの時点にも戻せる。部屋の DO の SQLite は、PITR で30日前までのどの時点にも戻せる（どちらも Cloudflare の文書を context7 で、2026-11-21）。行を書き換えても消しても、古い値はその日数のあいだ戻せる形で残る。
 
@@ -45,7 +52,7 @@ Better Auth の版を上げて、hook の返す値が効かなくなった場合
 - それでも上げなければならないとき（Better Auth の脆弱性の修正など）だけ、hook を直すまでの間、次のどちらかを使う。どちらでも、トークンを保存するのは hook ではなく Better Auth の既定の動きで、`encryptOAuthTokens` で暗号化した値を INSERT する（1.7.20 の `setTokenUtil`）
   1. `account.create.after`・`update.after` の hook で、同じ規則の UPDATE を流す。D1 の行からはすぐ消えるが、INSERT した値は Time Travel に7日残る
   2. 1 も効かなければ、ログインがあったあとに #347 の書き換えのコマンドを流す。流すまでは D1 に残る
-- この間は S5 の例外として扱う。暗号化されたトークンが、hook を直して #347 のコマンドを流すまで D1 に、そのあと7日は Time Travel に残る。例外にした日と戻した日を、この ADR に追記する。暗号化の鍵（`BETTER_AUTH_SECRET`）が漏れた疑いがあるときは、OAuth App の設定の「Revoke all user tokens」で、全員のトークンを使えなくする
+- どちらの案も、暗号化したトークンが D1 か Time Travel に残るので、DD1（トークンを D1 と Time Travel から読めない）を満たさない。そのため、この間は S5 の例外として扱う。暗号化されたトークンが、hook を直して #347 のコマンドを流すまで D1 に、そのあと7日は Time Travel に残る。例外にした日と戻した日を、この ADR に追記する。暗号化の鍵（`BETTER_AUTH_SECRET`）が漏れた疑いがあるときは、OAuth App の設定の「Revoke all user tokens」で、全員のトークンを使えなくする
 
 ## Decision Drivers
 
@@ -91,12 +98,12 @@ Better Auth の版を上げて、hook の返す値が効かなくなった場合
 
 軸E・U・W・R
 
-| 軸  | 採用 | 採らなかった案と理由                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| --- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| E   | E1   | E1 の中身は `account_id` に既にある GitHub の ID だけで、新しく分かることは無い。`.invalid` は届かないことが決まっているトップレベルドメイン（RFC 6761）。`account_id` から作り直せるので、#347 の書き換えも Go 版も同じ値を出せる。E2 は GitHub に実在する宛先で、メールを送る機能を将来足すと本人に届く。login も2か所に持つことになる。E3 は ID から作り直せず、書き換えを2回流すと結果が変わる                                                                                                                                                                                               |
-| U   | U1   | U1 なら、新しく許可する人の分は、Better Auth に本物の email が届かず、トークンで読めるのも公開の情報だけになる。GitHub の同意の画面にも、求める権限が出ない。ただし、前に `user:email` を許可した人には、前の許可の付いたトークンが返るかもしれない（Context）。そこで、全員の前の許可を一度取り消してそろえる。どちらの場合も、email とトークンは保存しない。U2 は、プロフィールの非公開の部分まで読めるトークンになるが、使い道が無い。U3 は非公開の email まで読め、Better Auth が本物の email を一度受け取る。U1 で `/user/emails` が失敗してもログインが通ることは、#345 のテストで確かめる |
-| W   | W1   | W2 では、`overrideUserInfoOnSignIn` が false なので email はずっと残り、DD1 を満たさない。W3 は問題セットまで消え、DD3 を満たさない                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| R   | R1   | R2 では、外したホストの login・GitHub の ID・ホストが書いた問題文が残り続ける（DD1）。R1 の外部キーの cascade は普通の SQL なので、Go 版でもそのまま使える（DD2）。R1 は元に戻せない。足し直しても問題セットは空で、誤って外したときに戻す方法は、DB 全体を Time Travel で戻すことしか無い。確認の文言と手順書でこれを伝える                                                                                                                                                                                                                                                                     |
+| 軸  | 採用 | 採らなかった案と理由                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| --- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E   | E1   | E1 の中身は `account_id` に既にある GitHub の ID だけで、新しく分かることは無い。`.invalid` は届かないことが決まっているトップレベルドメイン（RFC 6761）。`account_id` から作り直せるので、#347 の書き換えも Go 版も同じ値を出せる。E2 は GitHub に実在する宛先で、メールを送る機能を将来足すと本人に届く。login も2か所に持つことになる。E3 は ID から作り直せず、書き換えを2回流すと結果が変わる                                                                                                                                                                                                                                           |
+| U   | U1   | U1 なら、新しく許可する人の分は、トークンで読めるのが公開の情報だけになり、Better Auth が受け取る email も、公開している人の公開の email だけになる。GitHub の同意の画面にも、求める権限が出ない。ただし、前に `user:email` を許可した人には、前の許可の付いたトークンが返り、非公開の email も届く（Context）。そこで、全員の前の許可を一度取り消してそろえる。どの場合も、email とトークンは保存しない。U2 は、プロフィールの非公開の部分まで読めるトークンになるが、使い道が無い。U3 は非公開の email まで読め、Better Auth が本物の email を一度受け取る。U1 で `/user/emails` が失敗してもログインが通ることは、#345 のテストで確かめる |
+| W   | W1   | W2 では、`overrideUserInfoOnSignIn` が false なので email はずっと残り、DD1 を満たさない。W3 は問題セットまで消え、DD3 を満たさない                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| R   | R1   | R2 では、外したホストの login・GitHub の ID・ホストが書いた問題文が残り続ける（DD1）。R1 の外部キーの cascade は普通の SQL なので、Go 版でもそのまま使える（DD2）。R1 は元に戻せない。足し直しても問題セットは空で、誤って外したときに戻す方法は、DB 全体を Time Travel で戻すことしか無い。確認の文言と手順書でこれを伝える                                                                                                                                                                                                                                                                                                                 |
 
 決めた形は次のとおり。
 
@@ -106,7 +113,7 @@ Better Auth の版を上げて、hook の返す値が効かなくなった場合
   - `account` の `accessToken`・`refreshToken`・`idToken`・`scope`: null。`encryptOAuthTokens` は、空にできなかったときの二重の守りとして残す
   - `session` の `ipAddress`・`userAgent`: 持たない（`disableIpTracking` と、`session.create.before` で `userAgent` を空にする）
   - 何をどう保存するかは、`apps/api/src/auth/host-data-policy.ts` の1か所に置き、ログインの hook と既にある行の書き換えの両方がそこから引く
-- scope（U1）: github の provider に `disableDefaultScope: true` を付け、scope を足さない。#345 を本番に出したあと、本番とローカルの OAuth App の設定で「Revoke all user tokens」を押し、全員の前の許可を取り消す。全員が次のログインで、scope の無い許可をし直す
+- scope（U1）: github の provider に `disableDefaultScope: true` を付け、scope を足さない。#345 を本番に出したあと、本番とローカルの OAuth App の設定で「Revoke all user tokens」を押し、全員の前の許可を取り消す。全員が次のログインで、scope の無い許可をし直す。「Revoke all user tokens」で許可まで消えるかは #345 で確かめ、許可が残るなら、ホストそれぞれに GitHub の設定（Settings → Applications → Authorized OAuth Apps）で許可を取り消してもらう
 - 既にある行（W1）: `host-data-policy.ts` の規則から作った SQL を、`wrangler d1 execute` で1回流す。変える行の数を先に見る SELECT と、書き換えの UPDATE を分け、何度流しても同じ結果になる形にする。本番で流すのは、手順書に沿って人が行う
 - 外すとき（R1）: ADR 0013 の「許可リストの行とその人のセッションを、1つの `db.batch` で消す」を、次のように広げる
   - 同じ1つの `db.batch` で、その人の `user` の行も消す。cascade で `account`・`session`・`question_sets`・`questions` も消える
@@ -129,8 +136,8 @@ Better Auth の版を上げて、hook の返す値が効かなくなった場合
 - 悪い影響: Better Auth の既定の動きを、hook と設定で上書きしている。版を上げて hook の返す値が効かなくなっても、型やビルドでは気付けない。#345 のテスト（実際にログインして、保存された行を確かめる）が CI で止める。脆弱性の修正などで上げなければならないときは、Context の代わりの案を使い、その間は S5 の例外になる
 - 悪い影響: `disableIpTracking` を入れると、Better Auth の rate limiter は IP を鍵にできない。ログインの絞り込みは、API の Worker の Rate Limiting binding で行う（#348・#350）
 - 悪い影響: Cloudflare の基盤が残すログ（Workers Logs と `wrangler tail`）には、ホストの IP も残る。回答者と同じく受け入れる（S5、ADR 0005）
-- 対応事項（#345）: `host-data-policy.ts` を作り、`createAuthOptions` に `mapProfileToUser`・`disableDefaultScope: true`・`disableIpTracking: true`・account の hook（トークンと scope を空にする）・`session.create.before` での `userAgent` を空にする処理を入れる。テスト用の auth で実際にログインし、1回目と2回目のどちらでも、user・account・session の行に本物の email・image・トークン・IP・User-Agent が無いことを確かめる。scope が空でもログインが通ることも確かめる。前に `user:email` を許可した状態から、ローカルの OAuth App で1回ログインし、トークン交換の応答の `scope` を確かめて、結果をこの ADR に追記する。`backend.md` の「ホストの認証」に、保存するものとしないものを書く
+- 対応事項（#345）: `host-data-policy.ts` を作り、`createAuthOptions` に `mapProfileToUser`・`disableDefaultScope: true`・`disableIpTracking: true`・account の hook（トークンと scope を空にする）・`session.create.before` での `userAgent` を空にする処理を入れる。テスト用の auth で実際にログインし、1回目と2回目のどちらでも、user・account・session の行に本物の email・image・トークン・IP・User-Agent が無いことを確かめる。scope が空でもログインが通ることも確かめる。ローカルの OAuth App で、前に `user:email` を許可した状態から「Revoke all user tokens」を押してログインし直し、トークン交換の応答の `scope` が空になるか（許可まで消えるか）を確かめて、結果をこの ADR に追記する。`backend.md` の「ホストの認証」に、保存するものとしないものを書く
 - 対応事項（#346）: `removeHost` の `db.batch` で `user` の行も消す。外すと user・account・session・question_sets・questions が消えること、管理者の行はどの文でも消えないこと、一度もログインしていないホストも外せること、ほかのホストの行は残ることを、テストで確かめる。確認の文言を「問題セットも消え、元に戻せない」に直し、`host-allowlist.md` の「外す」の手順とコマンドの SQL を合わせる
-- 対応事項（#347）: 既にある行を、`host-data-policy.ts` の規則で1回書き換えるコマンドと、手順書（流す前に Time Travel の位置を控える、確かめの SELECT、書き換え、結果の確かめ、ホストから消してほしいと頼まれたとき）を作る。書き換えたあとも、同じ人が同じ user でログインできることを確かめる。手順書には、OAuth App の「Revoke all user tokens」で全員の前の許可を取り消す手順も書く
+- 対応事項（#347）: 既にある行を、`host-data-policy.ts` の規則で1回書き換えるコマンドと、手順書（流す前に Time Travel の位置を控える、確かめの SELECT、書き換え、結果の確かめ、ホストから消してほしいと頼まれたとき）を作る。書き換えたあとも、同じ人が同じ user でログインできることを確かめる。手順書には、OAuth App の「Revoke all user tokens」で全員の前の許可を取り消す手順と、それで許可が残るときに、ホストそれぞれが GitHub の設定で取り消す手順も書く
 - 対応事項（#360）: 部屋の寿命を決めるとき、外したホストの問題セットの写しが寿命まで残ることを含めて、要件 S5 に保存の期間を書く
 - 対応事項: 要件定義書の S5 を、ホストも扱う形に直す。docs/README.md の ADR の一覧に1行足し、ADR 0013 の外すときの決まりに、この ADR を指す一言を足す
