@@ -14,6 +14,8 @@
 | [apps/web/src/README.md](../apps/web/src/README.md)                                                                    | 画面のコードの地図。届いたメッセージが画面になるまでのデータの流れと、層ごとに置くもの。`apps/web/src` を初めて開くときに読む                                             |
 | [architecture/testing.md](architecture/testing.md)                                                                     | Workers の実行環境でのテスト・通しの E2E・O2 のリハーサル用のボットの動き方と、テストの道具                                                                               |
 | [architecture/operations.md](architecture/operations.md)                                                               | インフラの設定・ルールセット・リリース・デプロイの workflow・依存の更新・ログがなぜその形かと、それを確かめる docs-check のテスト。手順は runbooks にある                 |
+| [security/threat-model.md](security/threat-model.md)                                                                   | 脅威モデル。守るもの・攻撃者・経路と、守りをコードとテストのどこで確かめているか、受け入れたリスクとその理由                                                              |
+| [SECURITY.md](../SECURITY.md)                                                                                          | 脆弱性の報告の窓口（GitHub の非公開の報告）                                                                                                                               |
 | [design/README.md](design/README.md)                                                                                   | 画面のデザインモックと、1問の流れ（①②③）                                                                                                                                  |
 | [runbooks/](../README.md#運用の手順書)                                                                                 | コードで表せないものの手順書。本番を作る・出す・止める・ログを見る                                                                                                        |
 | [rehearsal/o2-rehearsal.md](rehearsal/o2-rehearsal.md)                                                                 | 本番の環境で行った O2 のリハーサルの記録と、使用量                                                                                                                        |
@@ -39,7 +41,7 @@
 1. [CONTRIBUTING.md](../CONTRIBUTING.md) で、進め方と PR の題名の形を知る
 2. [README.md の「開発環境を作る」](../README.md#開発環境を作る)のとおりに、手元で動かす
 3. [CLAUDE.md](../CLAUDE.md) で、触る場所の約束を読む。破ると安全（S1〜S4）や同時に起きる処理の正しさが崩れるものが多い。約束の理由と、コードのどこで守っているかは、バックエンドなら [architecture/backend.md](architecture/backend.md)、画面なら [architecture/frontend.md](architecture/frontend.md)、テストなら [architecture/testing.md](architecture/testing.md) にある
-4. 触る場所に関わる ADR を、下の一覧から読む。部屋と WebSocket なら 0001・0003・0004・0008、問題セットと HTTP API なら 0002・0011・0014、ホストの許可リストと管理者なら 0003・0013、画面なら 0006・0007、CI とリリースなら 0005・0009・0010・0012
+4. 触る場所に関わる ADR を、下の一覧から読む。部屋と WebSocket なら 0001・0003・0004・0008、問題セットと HTTP API なら 0002・0011・0014、ホストの許可リストと管理者なら 0003・0013・0016、画面なら 0006・0007、CI とリリースなら 0005・0009・0010・0012
 5. メッセージや HTTP API の形を変えるときは、[ws.schema.json](../packages/protocol/schema/ws.schema.json) と [openapi.json](../packages/protocol/schema/openapi.json) も作り直す（作り方は [backend.md の「メッセージの形」](architecture/backend.md#メッセージの形)にある）
 
 ### 本番を運用する人
@@ -68,8 +70,9 @@
 | [0010](adr/0010-deploy-on-release.md)                       | 本番のデプロイは Release をきっかけに動かし、タグのコミットを1回の承認で出す                                  | accepted（Release をきっかけにすることと target を ADR 0012 で置き換えた）                                 |
 | [0011](adr/0011-hono-api-contract.md)                       | HTTP API は fetch + protocol の zod で呼ぶ今の形を保ち、Hono の RPC と zod-openapi は使わない                 | accepted（見直しの合図に ADR 0014 で答え、今の形を保った）                                                 |
 | [0012](adr/0012-release-after-deploy-with-changelogen.md)   | 版はデプロイの dispatch で選び、デプロイが成功したコミットにタグと Release を作る（changelogen は文面だけ）   | accepted                                                                                                   |
-| [0013](adr/0013-host-admin-role.md)                         | ホストの管理者は許可リストの印で決め、管理者だけが GitHub の名前でホストを足し、外せる                        | accepted                                                                                                   |
+| [0013](adr/0013-host-admin-role.md)                         | ホストの管理者は許可リストの印で決め、管理者だけが GitHub の名前でホストを足し、外せる                        | accepted（外すときに user の行ごと消すことを ADR 0016 で足した）                                           |
 | [0014](adr/0014-keep-api-contract-with-admin-routes.md)     | 409・502 を返すルートができても、HTTP API は ADR 0011 の形を保つ                                              | accepted                                                                                                   |
+| [0016](adr/0016-do-not-keep-host-personal-data.md)          | ホストの個人情報は D1 に持たず、ホストを外したら user の行ごと消す                                            | accepted                                                                                                   |
 
 ## 用語集
 
