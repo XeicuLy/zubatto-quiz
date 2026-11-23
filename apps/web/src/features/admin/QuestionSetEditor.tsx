@@ -16,6 +16,7 @@ import {
   validateDraft,
 } from './question-set-draft';
 import { QuestionEditor } from './QuestionEditor';
+import { useFixedBarHeight } from './use-fixed-bar-height';
 import { type SaveIntent, useQuestionSetSave } from './use-question-set-save';
 
 interface QuestionSetEditorProps {
@@ -41,6 +42,8 @@ export function QuestionSetEditor({ initial }: QuestionSetEditorProps) {
   const [showErrors, setShowErrors] = useState(false);
   const { save, dirty, blocker, isPending, error } = useQuestionSetSave({ setId: initial?.id, draft });
   const saveButton = useRef<HTMLButtonElement>(null);
+  const saveBar = useRef<HTMLDivElement>(null);
+  useFixedBarHeight(saveBar);
   const focusSave = useLocation({ select: (location) => location.state.focusSave === true });
   // 保存して移るあいだ（移った先の loader が読んでいるあいだ）も、この画面は残る。ここで打った分は、保存済みとして移り始めたあとなので
   // 確かめも出ずに消える。移り終えるまで、画面ごと inert にして打てなくする。保存せずに離れるときも、打った分は消えるので同じにする
@@ -70,7 +73,11 @@ export function QuestionSetEditor({ initial }: QuestionSetEditorProps) {
 
   return (
     <>
-      <main inert={leaving} className="mx-auto max-w-4xl px-5 pt-6 pb-32">
+      {/* 下の余白は、固定した保存の帯の高さ（useFixedBarHeight が測る）にまとまりの間をたしたもの。帯は中身と幅で高さが変わる */}
+      <main
+        inert={leaving}
+        className="mx-auto max-w-4xl px-5 pt-6 pb-[calc(var(--fixed-bar-height,0px)+var(--spacing-cluster))]"
+      >
         <Link to="/admin" className="font-bold underline focus-visible:outline-2 focus-visible:outline-ring">
           問題セットの一覧に戻る
         </Link>
@@ -114,8 +121,12 @@ export function QuestionSetEditor({ initial }: QuestionSetEditorProps) {
       </main>
 
       {/* 保存の帯。長い問題セットでも、どこからでも押せるよう画面の下に固定する */}
-      <div inert={leaving} className="fixed inset-x-0 bottom-0 border-t border-border bg-card/95 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-end gap-x-4 gap-y-2 px-5 py-3">
+      <div
+        ref={saveBar}
+        inert={leaving}
+        className="fixed inset-x-0 bottom-0 border-t border-border bg-card/95 backdrop-blur"
+      >
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-start gap-x-4 gap-y-2 px-5 py-3 lg:justify-end">
           {blocker.status === 'blocked' ? (
             // 押し間違えても書いた内容が消えない「編集に戻る」に、初めからフォーカスする
             <ConfirmDialog
@@ -130,13 +141,23 @@ export function QuestionSetEditor({ initial }: QuestionSetEditorProps) {
           ) : (
             <>
               <SaveStatus errorSummary={errorSummary} isPending={isPending} error={error} dirty={dirty} />
-              {/* 書き終えて一覧で部屋を作る流れが本筋なので、「保存して一覧へ」を主にする。「保存する」は書く途中の保存 */}
-              <Button ref={saveButton} variant="outline" onClick={() => handleSave('stay')} disabled={isPending}>
-                保存する
-              </Button>
-              <Button onClick={() => handleSave('list')} disabled={isPending}>
-                保存して一覧へ
-              </Button>
+              {/* 書き終えて一覧で部屋を作る流れが本筋なので、「保存して一覧へ」を主にする。「保存する」は書く途中の保存。
+                  2つを1つの箱に包み、折り返すときもボタンの間では割れないようにする。スマホでは文を上の段に置き、
+                  ボタンは幅を分け合って親指で押しやすくする（同じ帯に出る ConfirmDialog と同じ形と切り替えの幅） */}
+              <div className="flex w-full gap-item lg:w-auto">
+                <Button
+                  ref={saveButton}
+                  variant="outline"
+                  onClick={() => handleSave('stay')}
+                  disabled={isPending}
+                  className="flex-1 lg:flex-none"
+                >
+                  保存する
+                </Button>
+                <Button onClick={() => handleSave('list')} disabled={isPending} className="flex-1 lg:flex-none">
+                  保存して一覧へ
+                </Button>
+              </div>
             </>
           )}
         </div>
