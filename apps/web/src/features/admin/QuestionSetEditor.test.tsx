@@ -32,6 +32,43 @@ async function openEditor(path = EDIT_PATH) {
   return { router, unmount: view.unmount };
 }
 
+/**
+ * jsdom は大きさを測らないので、ResizeObserver を差し替え、見ている要素の大きさの変化をテストから起こす。
+ * 本物と同じく、変化は borderBoxSize で渡す
+ */
+function stubResizeObserver() {
+  const watched = new Map<Element, ResizeObserverCallback>();
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      readonly #callback: ResizeObserverCallback;
+      constructor(callback: ResizeObserverCallback) {
+        this.#callback = callback;
+      }
+      observe(target: Element) {
+        watched.set(target, this.#callback);
+      }
+      unobserve(target: Element) {
+        watched.delete(target);
+      }
+      disconnect() {
+        for (const [target, callback] of watched) {
+          if (callback === this.#callback) {
+            watched.delete(target);
+          }
+        }
+      }
+    },
+  );
+  return {
+    watched: () => [...watched.keys()],
+    resize(target: Element, blockSize: number) {
+      const entry = { target, borderBoxSize: [{ blockSize, inlineSize: 0 }] } as unknown as ResizeObserverEntry;
+      watched.get(target)?.([entry], {} as ResizeObserver);
+    },
+  };
+}
+
 const card = (number: number) => screen.getByRole('listitem', { name: `第${number}問` });
 const cardTitles = () => screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent);
 const saveButton = () => screen.getByRole('button', { name: '保存する' });
@@ -252,6 +289,24 @@ describe('問題セットの編集（F4・F7・F9）', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('ログインが切れました');
     expect(screen.getByLabelText('問題セットの名前')).toHaveValue('消えては困る名前');
+  });
+
+  it('保存の帯の高さを測り、ページの下の余白とスクロールの余白に使う。離れたら外す', async () => {
+    stubFakeApi({ questionSetDetails: [SET] });
+    const resizes = stubResizeObserver();
+    const { unmount } = await openEditor();
+    await screen.findByLabelText('問題セットの名前');
+    const root = document.documentElement;
+
+    // 帯は中身（確かめ・保存の失敗）で高さが変わるので、決め打ちせず測った値を使う
+    const [bar] = resizes.watched();
+    expect(bar).toContainElement(saveButton());
+    act(() => resizes.resize(bar, 130));
+    expect(root.style.getPropertyValue('--fixed-bar-height')).toBe('130px');
+
+    unmount();
+    expect(root.style.getPropertyValue('--fixed-bar-height')).toBe('');
+    expect(resizes.watched()).toEqual([]);
   });
 
   it('ない（または他人の）問題セットを開くと、見つからないと知らせて一覧へ戻れるようにする', async () => {

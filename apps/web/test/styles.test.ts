@@ -203,6 +203,17 @@ describe('全体に効くフォーカスリング（ADR 0007）', () => {
     expect(rule).toContain('--tw-ring-color: var(--color-focus)');
   });
 
+  it('キーボードで移った欄を、画面の下に固定した帯（--fixed-bar-height）の上までスクロールする', async () => {
+    const css = await buildCss([]);
+    const base = css
+      .split('@layer ')
+      .filter((block) => block.startsWith('base {'))
+      .join('');
+
+    // 帯のない画面では変数がないので、余白は 0 にする
+    expect(base).toMatch(/(?:^|\n)\s*html \{[^}]*scroll-padding-bottom: var\(--fixed-bar-height, 0px\);/);
+  });
+
   it('早押しパネルの影（shadow-panel）と黄の ring は、打ち消し合わずに重なる', async () => {
     const css = await buildCss(['shadow-panel']);
     const shadowOf = (rule: string) => rule.match(/box-shadow: ([^;]+);/)?.[1];
