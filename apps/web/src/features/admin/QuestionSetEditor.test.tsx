@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createAppRouter } from '@/router';
 
 import { stubFakeApi } from '../../../test/fake-api';
+import { stubResizeObserver } from '../../../test/resize-observer';
 
 const SET: QuestionSetDetail = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -30,43 +31,6 @@ async function openEditor(path = EDIT_PATH) {
   const view = render(<RouterProvider router={router} />);
   await act(() => router.load());
   return { router, unmount: view.unmount };
-}
-
-/**
- * jsdom は大きさを測らないので、ResizeObserver を差し替え、見ている要素の大きさの変化をテストから起こす。
- * 本物と同じく、変化は borderBoxSize で渡す
- */
-function stubResizeObserver() {
-  const watched = new Map<Element, ResizeObserverCallback>();
-  vi.stubGlobal(
-    'ResizeObserver',
-    class {
-      readonly #callback: ResizeObserverCallback;
-      constructor(callback: ResizeObserverCallback) {
-        this.#callback = callback;
-      }
-      observe(target: Element) {
-        watched.set(target, this.#callback);
-      }
-      unobserve(target: Element) {
-        watched.delete(target);
-      }
-      disconnect() {
-        for (const [target, callback] of watched) {
-          if (callback === this.#callback) {
-            watched.delete(target);
-          }
-        }
-      }
-    },
-  );
-  return {
-    watched: () => [...watched.keys()],
-    resize(target: Element, blockSize: number) {
-      const entry = { target, borderBoxSize: [{ blockSize, inlineSize: 0 }] } as unknown as ResizeObserverEntry;
-      watched.get(target)?.([entry], {} as ResizeObserver);
-    },
-  };
 }
 
 const card = (number: number) => screen.getByRole('listitem', { name: `第${number}問` });
@@ -298,10 +262,10 @@ describe('問題セットの編集（F4・F7・F9）', () => {
     await screen.findByLabelText('問題セットの名前');
     const root = document.documentElement;
 
-    // 帯は中身（確かめ・保存の失敗）で高さが変わるので、決め打ちせず測った値を使う
-    const [bar] = resizes.watched();
-    expect(bar).toContainElement(saveButton());
-    act(() => resizes.resize(bar, 130));
+    // 帯は中身（確かめ・保存の失敗）で高さが変わるので、決め打ちせず測った値を使う。管理画面の枠はヘッダーも測る
+    const bar = resizes.watched().find((element) => element.contains(saveButton()));
+    expect(bar).toBeDefined();
+    act(() => resizes.resize(bar!, 130));
     expect(root.style.getPropertyValue('--fixed-bar-height')).toBe('130px');
 
     unmount();

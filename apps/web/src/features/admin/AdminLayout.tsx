@@ -1,10 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { signOut, type HostSession } from '@/api/auth-client';
 import { meQueryOptions } from '@/api/me';
 import { ActionError } from '@/shared/feedback/ActionError';
+
+import { useHeightVariable } from './use-height-variable';
 
 interface AdminLayoutProps {
   host: HostSession;
@@ -21,6 +23,9 @@ export function AdminLayout({ host }: AdminLayoutProps) {
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<unknown>(null);
+  // toast は画面の上に出るので、この帯の下へずらす。帯は fixed でなく文書の頭にあるので、スクロールしても toast には重ならない
+  const header = useRef<HTMLElement>(null);
+  useHeightVariable(header, '--header-height');
 
   async function logout() {
     setSigningOut(true);
@@ -39,7 +44,7 @@ export function AdminLayout({ host }: AdminLayoutProps) {
 
   return (
     <div className="min-h-dvh bg-background font-sans text-foreground antialiased">
-      <header className="border-b border-border bg-card">
+      <header ref={header} className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-5 py-3">
           <Link to="/" className="shrink-0 font-logo text-heading">
             ズバクイ

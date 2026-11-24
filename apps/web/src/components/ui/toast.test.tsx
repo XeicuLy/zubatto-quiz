@@ -19,10 +19,11 @@ describe('Toaster', () => {
     expect(viewport()).toBeEmptyDOMElement();
   });
 
-  it('画面の上に出す。下に固定した操作の帯（保存の帯・進行の帯）のボタンを覆わないため', () => {
+  it('画面の上の、ヘッダー（--header-height）の下に出す。下に固定した操作の帯のボタンも、ヘッダーの操作も覆わないため', () => {
     render(<Toaster />);
 
-    expect(viewport()).toHaveClass('top-4');
+    // ヘッダーのない画面（変数がない）では、画面の上の端から余白だけ離す
+    expect(viewport()).toHaveClass('top-[calc(var(--header-height,0px)+--spacing(4))]');
     expect([...viewport().classList].filter((name) => /(^|:)bottom-/.test(name))).toEqual([]);
   });
 

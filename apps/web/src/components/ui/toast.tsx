@@ -23,16 +23,18 @@ type ToastManager = ReturnType<typeof createToastManager>;
  * - 閉じるボタン・アクション・説明は写していない。成功の知らせは待てば消え、文は題（title）1つで足りる
  * - 画面の上に出す（#290）。問題セットの編集とホストの進行は、下に操作の帯を固定している。下に出すと、
  *   保存したあとフォーカスのある「保存する」や、作った直後に開いた部屋の「第1問を出す」を覆ってしまう（WCAG 2.4.11）
+ * - 上に出すときは、ヘッダーの下にずらす（#339）。管理画面の上の帯（ログアウト・リンク）を6秒ほど覆わないため。
+ *   帯の高さは管理画面の枠が測って html の --header-height に入れる。ヘッダーのない画面では変数がなく、上の端から余白だけ離す
  * - 一度に1つだけ見せる（limit={1}）。積み重なると、低い画面（横向きのスマホ）では下の操作の帯まで伸び、ボタンのクリックを取る。
  *   新しいものが出たら古いものは隠れるが、読み上げは出たときに済んでいる
  */
 function Toaster({ toastManager: manager = toastManager }: { toastManager?: ToastManager }) {
   return (
     <ToastPrimitive.Provider toastManager={manager} limit={1}>
-      {/* スマホでは上に幅いっぱい（両端は余白）、広い画面では右上に寄せる。toast のないところはクリックを下の画面へ通す */}
+      {/* スマホではヘッダーの下に幅いっぱい（両端は余白）、広い画面では右に寄せる。toast のないところはクリックを下の画面へ通す */}
       <ToastPrimitive.Viewport
         aria-label="通知"
-        className="pointer-events-none fixed inset-x-4 top-4 z-50 mx-auto flex max-w-sm flex-col gap-related sm:right-4 sm:left-auto sm:mx-0 sm:w-full"
+        className="pointer-events-none fixed inset-x-4 top-[calc(var(--header-height,0px)+--spacing(4))] z-50 mx-auto flex max-w-sm flex-col gap-related sm:right-4 sm:left-auto sm:mx-0 sm:w-full"
       >
         <ToastList />
       </ToastPrimitive.Viewport>
