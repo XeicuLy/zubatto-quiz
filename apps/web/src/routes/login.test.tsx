@@ -25,6 +25,16 @@ describe('ホストのログイン画面（ADR 0003）', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('入口と使い方へのリンクを出す。/admin から移されてきた人も、ここから戻れる', async () => {
+    stubFakeApi({ hostName: null });
+
+    await openAt('/login');
+
+    expect(await screen.findByRole('link', { name: 'トップへ戻る' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: '使い方を見る' })).toHaveAttribute('href', '/guide');
+    expect(screen.getByText(/ホストから届いた QR コードか URL を開いてください。/)).toBeInTheDocument();
+  });
+
   it('許可リストの外で拒否されて戻ってきたら、ホストとして登録されていないことを知らせる（S1）', async () => {
     stubFakeApi({ hostName: null });
 

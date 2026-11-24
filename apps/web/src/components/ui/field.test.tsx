@@ -120,7 +120,7 @@ describe('Input', () => {
 describe('Textarea', () => {
   it('Field の中では、ラベルの文字で見つかり、誤りを説明として読む', () => {
     render(
-      <Field label="問題文" error="問題文を入れてください">
+      <Field label="問題文" error="問題文を入れてください。">
         <Textarea />
       </Field>,
     );
@@ -129,7 +129,7 @@ describe('Textarea', () => {
     expect(textarea).toBe(screen.getByRole('textbox'));
     expect(textarea.tagName).toBe('TEXTAREA');
     expect(textarea).toHaveAttribute('aria-invalid', 'true');
-    expect(textarea).toHaveAccessibleDescription('問題文を入れてください');
+    expect(textarea).toHaveAccessibleDescription('問題文を入れてください。');
   });
 
   it('Field の外では、渡した aria-label で読まれ、つなぎの属性を持たない', () => {

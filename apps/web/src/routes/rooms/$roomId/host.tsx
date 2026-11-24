@@ -3,7 +3,7 @@ import { roomIdSchema } from '@zubatto-quiz/protocol';
 
 import { createHostRoom } from '@/features/host/host-room';
 import { HostPage } from '@/features/host/HostPage';
-import { pageTitle } from '@/lib/page-title';
+import { pageTitleUnlessNotFound } from '@/lib/page-title';
 import { roomJoinUrl, roomSocketUrl } from '@/realtime/room-url';
 import { requireHost } from '@/shared/auth/require-host';
 
@@ -13,7 +13,7 @@ import { requireHost } from '@/shared/auth/require-host';
  * gcTime: 0 と shouldReload: false で、同じ部屋にいるあいだは作り直さず、離れたら捨てる
  */
 export const Route = createFileRoute('/rooms/$roomId/host')({
-  head: () => pageTitle('部屋の進行'),
+  head: pageTitleUnlessNotFound('部屋の進行'),
   beforeLoad: async ({ params, context }) => {
     // 形の違う ID は接続しなくても部屋がないと分かるので、ログインを確かめるより先に止め、接続も開かない
     if (!roomIdSchema.safeParse(params.roomId).success) {

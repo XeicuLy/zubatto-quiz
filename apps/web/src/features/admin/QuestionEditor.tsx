@@ -167,14 +167,14 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
           })}
         </div>
         {question.choices.length < MAX_CHOICES ? (
-          // 破線: まだない選択肢の置き場所に見せる（「問題を足す」と同じ）
+          // 破線: まだない選択肢の置き場所に見せる（「問題を追加」と同じ）
           <Button
             variant="outline"
             size="sm"
             onClick={() => dispatch({ type: 'addChoice', index })}
             className="mt-3 border-dashed"
           >
-            選択肢を足す
+            選択肢を追加
           </Button>
         ) : (
           <p className="mt-3 text-note text-muted-foreground">選択肢は{MAX_CHOICES}つまでです</p>

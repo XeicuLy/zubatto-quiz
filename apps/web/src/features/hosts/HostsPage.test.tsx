@@ -54,25 +54,37 @@ describe('ホストの管理の入口（ADR 0013）', () => {
     await waitFor(() => expect(document.title).toBe('ホストの管理 | ズバクイ'));
   });
 
-  it('管理者には、上の帯に「問題セット」と「ホストの管理」のリンクを出し、いまの画面に印を付ける', async () => {
+  it('管理者には、上の帯に「ホストの管理」のリンクも出し、いまの画面に印を付ける', async () => {
     stubFakeApi({ isAdmin: true, hosts: [ADMIN] });
 
     await openAt('/admin/hosts');
 
-    const nav = await screen.findByRole('navigation', { name: '管理画面' });
+    const nav = screen.getByRole('navigation', { name: '管理画面' });
+    // 管理者かは /api/me が返ってから分かるので、そのリンクが出るのを待つ
+    expect(await within(nav).findByRole('link', { name: 'ホストの管理' })).toBeInTheDocument();
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['問題セット', 'ホストの管理', '使い方']);
     expect(within(nav).getByRole('link', { name: '問題セット' })).toHaveAttribute('href', '/admin');
     expect(within(nav).getByRole('link', { name: '問題セット' })).not.toHaveAttribute('aria-current');
     expect(within(nav).getByRole('link', { name: 'ホストの管理' })).toHaveAttribute('aria-current', 'page');
   });
 
-  it('管理者でなければ、上の帯にリンクを出さない', async () => {
-    stubFakeApi({ isAdmin: false });
+  it('管理者でなければ、上の帯にホストの管理へのリンクを出さない。問題セットと使い方へのリンクは出す', async () => {
+    const api = stubFakeApi({ isAdmin: false });
 
     await openAt('/admin');
 
     expect(await screen.findByRole('heading', { level: 1, name: '問題セット' })).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByRole('navigation')).not.toBeInTheDocument());
-    expect(screen.queryByRole('link', { name: 'ホストの管理' })).not.toBeInTheDocument();
+    await waitFor(() => expect(api.received.some((r) => r.path === '/api/me')).toBe(true));
+    const nav = screen.getByRole('navigation', { name: '管理画面' });
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['問題セット', '使い方']);
   });
 });
 

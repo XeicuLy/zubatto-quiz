@@ -175,7 +175,7 @@
 
   /*
    * 画面の下に固定した帯（問題セットの編集の保存の帯）の高さぶん、スクロールの下の端を上げる。Tab で移った欄や、
-   * フォーカスを移した要素が帯の下に隠れない（WCAG 2.4.11）。高さは useFixedBarHeight が測って入れ、帯のない画面では 0
+   * フォーカスを移した要素が帯の下に隠れない（WCAG 2.4.11）。高さは useHeightVariable が測って入れ、帯のない画面では 0
    */
   html {
     scroll-padding-bottom: var(--fixed-bar-height, 0px);

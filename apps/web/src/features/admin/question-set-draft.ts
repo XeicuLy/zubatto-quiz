@@ -208,24 +208,24 @@ function messageOf(path: PropertyKey[], code: string): string {
   const field = path.at(-1);
   const tooLong = code === 'too_big';
   if (path.length === 1 && field === 'title') {
-    return tooLong ? '問題セットの名前は100文字までです' : '問題セットの名前を入れてください';
+    return tooLong ? '問題セットの名前は100文字までです。' : '問題セットの名前を入れてください。';
   }
   if (path.length === 1) {
-    return `問題は1〜${MAX_QUESTIONS}問にしてください`;
+    return `問題は1〜${MAX_QUESTIONS}問にしてください。`;
   }
   if (field === 'text') {
-    return tooLong ? '問題文は1,000文字までです' : '問題文を入れてください';
+    return tooLong ? '問題文は1,000文字までです。' : '問題文を入れてください。';
   }
   if (field === 'choices') {
-    return `選択肢は${MIN_CHOICES}〜${MAX_CHOICES}個にしてください`;
+    return `選択肢は${MIN_CHOICES}〜${MAX_CHOICES}個にしてください。`;
   }
   if (path.at(-2) === 'choices') {
-    return tooLong ? '選択肢は100文字までです' : '選択肢を入れてください';
+    return tooLong ? '選択肢は100文字までです。' : '選択肢を入れてください。';
   }
   if (field === 'correctIndex') {
-    return '正解を1つ選んでください';
+    return '正解を1つ選んでください。';
   }
-  return `制限時間は${MIN_LIMIT_MS / 1000}〜${MAX_LIMIT_MS / 1000}秒の整数で入れてください`;
+  return `制限時間は${MIN_LIMIT_MS / 1000}〜${MAX_LIMIT_MS / 1000}秒の整数で入れてください。`;
 }
 
 /** 保存の帯に出す、直すところの一覧。誤りがなければ null */

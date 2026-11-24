@@ -1,11 +1,12 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { QuestionSetDetail } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
 import { createAppRouter } from '@/router';
 
 import { stubFakeApi } from '../../../test/fake-api';
+import { stubResizeObserver } from '../../../test/resize-observer';
 
 async function openAt(path: string) {
   const router = createAppRouter({ history: createMemoryHistory({ initialEntries: [path] }) });
@@ -67,6 +68,33 @@ describe('管理画面のログインの確認（S1）', () => {
 
     expect(await screen.findByRole('banner')).toHaveTextContent('XeicuLy');
     expect(screen.getByRole('button', { name: 'ログアウト' })).toBeInTheDocument();
+  });
+
+  it('上の帯の高さを測り、toast をその下に出すのに使う。離れたら外す', async () => {
+    stubFakeApi({ hostName: 'XeicuLy' });
+    const resizes = stubResizeObserver();
+    const router = await openAt('/admin');
+    const banner = await screen.findByRole('banner');
+    const root = document.documentElement;
+
+    // 帯は、管理者のリンクの段や、狭い幅での折り返しで高さが変わるので、決め打ちせず測った値を使う
+    expect(resizes.watched()).toContain(banner);
+    act(() => resizes.resize(banner, 96));
+    expect(root.style.getPropertyValue('--header-height')).toBe('96px');
+
+    await act(() => router.navigate({ to: '/guide' }));
+    expect(root.style.getPropertyValue('--header-height')).toBe('');
+  });
+
+  it('上の帯のロゴは入口へのリンクで、帯から使い方へも行ける', async () => {
+    stubFakeApi({ hostName: 'XeicuLy' });
+
+    await openAt('/admin');
+
+    const banner = await screen.findByRole('banner');
+    expect(within(banner).getByRole('link', { name: 'ズバクイ' })).toHaveAttribute('href', '/');
+    const nav = within(banner).getByRole('navigation', { name: '管理画面' });
+    expect(within(nav).getByRole('link', { name: '使い方' })).toHaveAttribute('href', '/guide');
   });
 
   it('ログアウトすると、ログイン画面へ移り、もう管理画面を開けない', async () => {
