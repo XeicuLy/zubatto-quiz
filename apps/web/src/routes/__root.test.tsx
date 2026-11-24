@@ -40,12 +40,16 @@ describe('画面の経路', () => {
     expect(await screen.findByRole('link', { name: '使い方を見る' })).toHaveAttribute('href', '/guide');
   });
 
-  it('知らない経路を開くと、日本語で「ページが見つかりません」と出す（SC3）', async () => {
-    await renderAt('/no-such-page');
+  // 部屋の経路は、形の違う ID を beforeLoad の notFound() で止める。経路には合っているので、その経路のタイトルを出さない
+  it.each(['/no-such-page', '/r/abc', '/rooms/abc/host'])(
+    '%s を開くと、日本語で「ページが見つかりません」と出し、タイトルもそれにする（SC3）',
+    async (path) => {
+      await renderAt(path);
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'ページが見つかりません' })).toBeInTheDocument();
-    await waitFor(() => expect(document.title).toBe('ズバクイ'));
-  });
+      expect(await screen.findByRole('heading', { level: 1, name: 'ページが見つかりません' })).toBeInTheDocument();
+      await waitFor(() => expect(document.title).toBe('ページが見つかりません | ズバクイ'));
+    },
+  );
 
   it('画面を移ると、タイトルも移った先の画面の名前に替わる', async () => {
     const router = await renderAt('/');
