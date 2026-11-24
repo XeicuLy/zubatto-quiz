@@ -351,7 +351,8 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - 編集はすべて純粋な関数 `editorReducer` を通す。選択肢が2〜4個、問題が1〜100問の外に出る編集には、同じ状態を返す
 - `validateDraft` は protocol の `questionSetSchema` を動かし、問題の場所（`'questions.1.correctIndex'`）ごとに日本語のメッセージを1つ当てる。自分では決まりを持たない
 - エラーは最初に保存を押したときから出し、そのあとはホストが打つたびに直す。誤りがあれば、どちらのボタンでも送らず、移らない
-- 保存のボタンは「保存する」（編集画面に留まる）と「保存して一覧へ」（`/admin` へ移る）の2つ。送る PUT は同じで、違いは保存できたあとに移るかどうかだけ。書き終えて一覧で部屋を作る流れが本筋なので、「保存して一覧へ」を主（`default`）にし、「保存する」は `outline` にする
+- 選択肢の行は2列の grid（番号の丸、欄）で、「正解」と「消す」は md 未満では欄の下の段（左に正解、右に消す）、md からは3列目に置く。390 px でも欄が行いっぱいに広がり、入れた値を読める。2段になるぶん、md 未満では選択肢の間を段の間より広げる
+- 保存のボタンは「保存する」（編集画面に留まる）と「保存して一覧へ」（`/admin` へ移る）の2つ。送る PUT は同じで、違いは保存できたあとに移るかどうかだけ。書き終えて一覧で部屋を作る流れが本筋なので、「保存して一覧へ」を主（`default`）にし、「保存する」は `outline` にする。2つのボタンは1つの箱に包み、折り返してもボタンの間では割れないようにする。lg 未満では状態の文を上の段に、ボタンを幅を分け合って下の段に置く（同じ帯に出る `ConfirmDialog` と同じ形と切り替えの幅）
 - 保存の流れは `use-question-set-save.ts` の `useQuestionSetSave({ setId, draft })` が持つ。mutation、最後に保存できた下書き（`savedDraft`）、保存先の ID（`savedId`）、`dirty`、`useBlocker` をまとめ、`save(input, intent)` を返す。画面は `validateDraft` を通した `input` だけを渡す
 - `savedId` がなければ作り（`createQuestionSet` で POST）、あれば書き換える（`saveQuestionSet` で PUT）。作れたら、移る前に `savedId` を入れる。置き換えて移る先の loader を待つあいだにもう一度押されても、2つ目を作らず PUT するため
 - `/admin/sets/new` にいるあいだ（`setId` が `undefined`）は、「保存する」で `/admin/sets/$setId` へ、「保存して一覧へ」で `/admin` へ、どちらも `replace` で移る。戻る操作で空の作成画面に戻らないため。保存のあいだに打った分で確かめが出て「編集に戻る」を選んでも、押し直せば移れる
@@ -394,6 +395,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 
 - 列の型を書いていない `grid` の項目は `auto` の列に入り、中の入力欄の本来の幅より縮まないので、390 px ではみ出す。縦に並べる一覧には `grid-cols-1`（`minmax(0, 1fr)`）を使う
 - 同じように、`shrink-0` の flex の箱の中の `w-full` のメッセージは、箱をメッセージの1行の幅まで広げてしまう。箱には `min-w-0` を使う
+- 画面の下に固定した帯（問題セットの編集の保存の帯）は、流れの外にあるので、ページの下の余白を決め打ちすると、帯の中身（保存の失敗の文・離れる前の確かめ）や幅で高さが変わったときに最後の欄を隠す。`useFixedBarHeight`（`features/admin/use-fixed-bar-height.ts`）が ResizeObserver で帯の高さを測って html の `--fixed-bar-height` に入れ、画面はそれをページの下の余白に、`styles.css` は html の `scroll-padding-bottom` に使う。後者で、キーボードで移った欄も帯の下に隠れない。jsdom は ResizeObserver を持たないので、`test/setup.ts` が何もしない形を置く
 
 ## テストの道具
 

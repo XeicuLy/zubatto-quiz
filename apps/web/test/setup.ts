@@ -25,6 +25,16 @@ if (typeof window !== 'undefined') {
   window.scrollTo = () => {};
 }
 
+// jsdom は ResizeObserver を持たない（大きさを測らない）。問題セットの編集が保存の帯の高さを測るので、何も知らせない形を置く。
+// 大きさの変化を確かめるテストは、vi.stubGlobal で差し替える（QuestionSetEditor.test.tsx）
+if (typeof window !== 'undefined' && typeof window.ResizeObserver === 'undefined') {
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 // stubFakeApi（test/fake-api.ts）が差し替えた fetch を戻す
 afterEach(() => {
   vi.unstubAllGlobals();

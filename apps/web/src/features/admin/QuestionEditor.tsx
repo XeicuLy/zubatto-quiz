@@ -104,18 +104,22 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
           </span>
         </legend>
         {correctError !== undefined && <FieldError id={`${id}-correct-error`} message={correctError} />}
-        {/* grid-cols-1 は minmax(0, 1fr)。列を指さないと auto の列になり、スマホの幅で入力欄が元の幅より縮まずにはみ出す */}
-        <div className="mt-2 grid grid-cols-1 gap-2">
+        {/* grid-cols-1 は minmax(0, 1fr)。列を指さないと auto の列になり、スマホの幅で入力欄が元の幅より縮まずにはみ出す。
+            スマホでは1つの選択肢が2段になるので、選択肢の間を段の間より広げ、どの欄の「正解」「消す」かを見分けられるようにする */}
+        <div className="mt-2 grid grid-cols-1 gap-item md:gap-2">
           {question.choices.map((choice, choiceIndex) => {
             const choiceNumber = choiceIndex + 1;
             const choiceError = errorOf(`choices.${choiceIndex}`);
             return (
               // 選択肢は並べ替えないので、番号を key にしてよい
               <div key={choiceIndex}>
-                <div className="flex items-center gap-3">
+                {/* スマホの幅では、正解と消すを欄の下の段へ回し、欄を行いっぱいに広げて入れた値を読めるようにする。
+                    下の段は欄の幅にそろえ、正解を左、消すを右に離して、正解を押すつもりで消すを押さないようにする。
+                    広い画面では3列目に戻し、1段に並べる */}
+                <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 md:grid-cols-[auto_minmax(0,1fr)_auto]">
                   <span
                     aria-hidden="true"
-                    className={`grid size-9 shrink-0 place-items-center rounded-full font-bold ${choiceBadge[choiceIndex]}`}
+                    className={`grid size-9 place-items-center rounded-full font-bold ${choiceBadge[choiceIndex]}`}
                   >
                     {choiceNumber}
                   </span>
@@ -127,30 +131,33 @@ export function QuestionEditor({ question, index, count, errors, dispatch }: Que
                     onChange={(event) => dispatch({ type: 'setChoice', index, choiceIndex, text: event.target.value })}
                     aria-invalid={choiceError !== undefined}
                     aria-describedby={choiceError === undefined ? undefined : `${id}-choice-${choiceIndex}-error`}
-                    className="flex-1"
                   />
-                  <label
-                    className={`flex shrink-0 items-center gap-1.5 text-note ${question.correctIndex === choiceIndex ? 'font-bold' : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name={`${id}-correct`}
-                      aria-label={`選択肢${choiceNumber}を正解にする`}
-                      checked={question.correctIndex === choiceIndex}
-                      onChange={() => dispatch({ type: 'setCorrect', index, choiceIndex })}
-                      className="size-4 accent-primary"
-                    />
-                    正解
-                  </label>
-                  <Button
-                    variant="link"
-                    size="sm"
-                    aria-label={`選択肢${choiceNumber}を消す`}
-                    disabled={question.choices.length <= MIN_CHOICES}
-                    onClick={() => dispatch({ type: 'removeChoice', index, choiceIndex })}
-                  >
-                    消す
-                  </Button>
+                  <div className="col-start-2 flex items-center justify-between gap-3 md:col-start-3">
+                    <label
+                      className={`flex shrink-0 items-center gap-1.5 text-note ${question.correctIndex === choiceIndex ? 'font-bold' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name={`${id}-correct`}
+                        aria-label={`選択肢${choiceNumber}を正解にする`}
+                        checked={question.correctIndex === choiceIndex}
+                        onChange={() => dispatch({ type: 'setCorrect', index, choiceIndex })}
+                        className="size-4 accent-primary"
+                      />
+                      正解
+                    </label>
+                    {/* -mr-4: スマホでは「消す」の文字の端を欄の右端にそろえる（ボタンの左右の余白 px-4 を外へ出す） */}
+                    <Button
+                      variant="link"
+                      size="sm"
+                      aria-label={`選択肢${choiceNumber}を消す`}
+                      disabled={question.choices.length <= MIN_CHOICES}
+                      onClick={() => dispatch({ type: 'removeChoice', index, choiceIndex })}
+                      className="-mr-4 md:mr-0"
+                    >
+                      消す
+                    </Button>
+                  </div>
                 </div>
                 {choiceError !== undefined && (
                   <FieldError id={`${id}-choice-${choiceIndex}-error`} message={choiceError} indent />
