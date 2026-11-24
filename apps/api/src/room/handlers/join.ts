@@ -2,8 +2,8 @@ import { CLOSE_CODES, MAX_PARTICIPANTS, type CloseReason, type Join } from '@zub
 
 import { getAttachment, setAttachment } from '@/room/attachment';
 import { normalizeName } from '@/room/normalize-name';
-import { resendCurrentPhase } from '@/room/resend';
-import { broadcast, send } from '@/room/send';
+import { currentAnswerProgress, resendCurrentPhase } from '@/room/resend';
+import { broadcast, send, sendToHosts } from '@/room/send';
 import { readParticipants, readRoomSnapshot } from '@/room/snapshot';
 import { hashToken } from '@/room/token-hash';
 
@@ -77,6 +77,11 @@ export async function handleJoin(ctx: DurableObjectState, ws: WebSocket, { name,
   // 秘密は端末が持っているので返さない
   send(ws, { type: 'joined', participantId: result.participantId, room: readRoomSnapshot(sql) });
   broadcast(ctx, { type: 'participants', participants: readParticipants(sql) });
+  // 受付中に入った人も、今の問題の回答者の数に入る。分母が増えたことをホストへ知らせる
+  const progress = currentAnswerProgress(sql);
+  if (progress !== null) {
+    sendToHosts(ctx, progress);
+  }
   // 出題のあとに入った人も、今の画面から始められるようにする
   resendCurrentPhase(ctx, ws, Date.now());
 }

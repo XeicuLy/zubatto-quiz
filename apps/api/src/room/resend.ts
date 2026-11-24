@@ -49,6 +49,20 @@ export function answerProgressOf(sql: SqlStorage, questionId: string): AnswerPro
 }
 
 /**
+ * 受付中なら、今の問題の回答した人数を返す。受付中でなければ null。
+ * 受付中に参加者が増えたときに、ホストへ送り直すのに使う。送らないと分母が古いまま残り、まだ答えていない人がいるのに「全員が回答しました」と出る
+ */
+export function currentAnswerProgress(sql: SqlStorage): AnswerProgress | null {
+  const room = sql
+    .exec<{ phase: RoomPhase; current_position: number | null }>('SELECT phase, current_position FROM room')
+    .one();
+  if (room.phase !== 'accepting' || room.current_position === null) {
+    return null;
+  }
+  return answerProgressOf(sql, readQuestionRow(sql, room.current_position).id);
+}
+
+/**
  * 受付中に、もう答えた回答者へ、自分の回答（answerAccepted）を送り直す。まだ答えていなければ何も送らない。
  * 送らないと、端末に選択肢がまた出て、押すと already_answered になる
  */
