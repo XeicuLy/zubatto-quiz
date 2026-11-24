@@ -16,7 +16,7 @@ import {
   validateDraft,
 } from './question-set-draft';
 import { QuestionEditor } from './QuestionEditor';
-import { useFixedBarHeight } from './use-fixed-bar-height';
+import { useHeightVariable } from './use-height-variable';
 import { type SaveIntent, useQuestionSetSave } from './use-question-set-save';
 
 interface QuestionSetEditorProps {
@@ -43,7 +43,7 @@ export function QuestionSetEditor({ initial }: QuestionSetEditorProps) {
   const { save, dirty, blocker, isPending, error } = useQuestionSetSave({ setId: initial?.id, draft });
   const saveButton = useRef<HTMLButtonElement>(null);
   const saveBar = useRef<HTMLDivElement>(null);
-  useFixedBarHeight(saveBar);
+  useHeightVariable(saveBar, '--fixed-bar-height');
   const focusSave = useLocation({ select: (location) => location.state.focusSave === true });
   // 保存して移るあいだ（移った先の loader が読んでいるあいだ）も、この画面は残る。ここで打った分は、保存済みとして移り始めたあとなので
   // 確かめも出ずに消える。移り終えるまで、画面ごと inert にして打てなくする。保存せずに離れるときも、打った分は消えるので同じにする
@@ -73,7 +73,7 @@ export function QuestionSetEditor({ initial }: QuestionSetEditorProps) {
 
   return (
     <>
-      {/* 下の余白は、固定した保存の帯の高さ（useFixedBarHeight が測る）にまとまりの間をたしたもの。帯は中身と幅で高さが変わる */}
+      {/* 下の余白は、固定した保存の帯の高さ（useHeightVariable が測る）にまとまりの間をたしたもの。帯は中身と幅で高さが変わる */}
       <main
         inert={leaving}
         className="mx-auto max-w-4xl px-5 pt-6 pb-[calc(var(--fixed-bar-height,0px)+var(--spacing-cluster))]"
@@ -113,7 +113,7 @@ export function QuestionSetEditor({ initial }: QuestionSetEditorProps) {
             onClick={() => dispatch({ type: 'addQuestion', key: newQuestionKey() })}
             className="mt-6 w-full border-dashed"
           >
-            問題を足す
+            問題を追加
           </Button>
         ) : (
           <p className="mt-6 text-center text-note text-muted-foreground">問題は{MAX_QUESTIONS}問までです</p>

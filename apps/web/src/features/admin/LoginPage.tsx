@@ -1,3 +1,5 @@
+import { Link } from '@tanstack/react-router';
+
 import { Card } from '@/components/ui/card';
 import { GithubSignInButton } from '@/shared/auth/GithubSignInButton';
 import { useGithubSignIn } from '@/shared/auth/use-github-sign-in';
@@ -49,8 +51,17 @@ export function LoginPage({ error }: LoginPageProps) {
         {denied ? '別のアカウントでログイン' : 'GitHub でログイン'}
       </GithubSignInButton>
       <p className="mt-6 text-note text-muted-foreground">
-        クイズに答えるだけなら、ログインは要りません。ホストから届いた URL を開いてください。
+        クイズに答えるだけなら、ログインは要りません。ホストから届いた QR コードか URL を開いてください。
       </p>
+      {/* /admin を開いてここへ移された人にも、戻る道と、ホストになる前に読む使い方を出す */}
+      <div className="mt-6 flex flex-wrap gap-x-5 gap-y-1 text-note">
+        <Link to="/" className="underline underline-offset-4">
+          トップへ戻る
+        </Link>
+        <Link to="/guide" className="underline underline-offset-4">
+          使い方を見る
+        </Link>
+      </div>
     </main>
   );
 }

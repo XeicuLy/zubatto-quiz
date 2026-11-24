@@ -17,7 +17,7 @@ const room = (phase: RoomPhase, questionIndex: number | null): RoomSnapshot => (
 
 /**
  * 効果音。本物（createSoundPlayer）は AudioContext と localStorage で状態が変わるので、
- * 鳴らせる状態に止めたストアを渡し、切り替えのボタンを「音を消す」で出す。押しても状態は変わらない
+ * 鳴らせる状態に止めたストアを渡し、切り替えのボタンを「音を止める」で出す。押しても状態は変わらない
  */
 const sound: SoundPlayer = {
   state: createStore<SoundState>()(() => ({ muted: false, ready: true, available: true })),

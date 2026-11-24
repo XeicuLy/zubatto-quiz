@@ -148,7 +148,7 @@
 - `shadcn add toast --view`（Base UI 版）を写し、次を外した。重ねて縮める動きと `transition`（動きは1か所だけの決まり。縦に並べ、上限の3つを超えた古いものは `data-limited:hidden` で隠す）、フォーカスの class、閉じるボタン・アクション・説明（成功の知らせは待てば消え、文は題1つで足りる）、アイコンの `lucide-react`（入れていない。印はインラインの SVG）
 - 題（`Toast.Title`）は `render={<p />}` で `<p>` にする。Base UI は既定で `<h2>` を描き、toast が出るたびに画面の見出しの並びに知らせが混ざる。toast（`role="dialog"`）の名前には `aria-labelledby` で変わらずなる
 - `Toast.Portal` は使わない。`<body>` の直下に描くと、Storybook の `.stage` の箱の外に出て暗い面の色が当たらない。Viewport は `fixed` なので、`__root` の末尾に置けば同じ場所に出る
-- 位置は、スマホの幅では上に幅いっぱい（両端は余白）、`sm` 以上では右上。問題セットの編集とホストの進行は下に操作の帯を固定しているので、下に出すと、保存したあとフォーカスのある「保存する」や、作った直後に開いた部屋の「第1問を出す」を覆う（WCAG 2.4.11。#290 で下から移した）。上に出すと覆うのは固定でないヘッダーで、6秒ほどで消える。払って閉じる向きも、出ている角の方（`swipeDirection={['up', 'right']}`）にする。一度に見せるのは1つだけ（`limit={1}`）。積み重なると、低い画面（横向きのスマホ）では下の操作の帯まで伸びてボタンのクリックを取るため。新しいものが出ると古いものは `data-limited` で隠れるが、読み上げは出たときに済んでいる。色は `bg-primary` と `text-primary-foreground` で、枠を持たないので、面そのものが下の画面の `background`・`card` に 3:1 以上になることを `test/contrast.test.ts` が確かめる
+- 位置は、スマホの幅では上に幅いっぱい（両端は余白）、`sm` 以上では右に寄せる。問題セットの編集とホストの進行は下に操作の帯を固定しているので、下に出すと、保存したあとフォーカスのある「保存する」や、作った直後に開いた部屋の「第1問を出す」を覆う（WCAG 2.4.11。#290 で下から移した）。上に出すときは、ヘッダーの下にずらす（`top-[calc(var(--header-height,0px)+…)]`）。右上のままだと、管理画面の「ログアウト」とリンクを6秒ほど覆っていた（#339）。高さは `AdminLayout` が `useHeightVariable` で測って html の `--header-height` に入れる。ヘッダーは固定でなく文書の頭にあるので、スクロールしても toast には重ならない。ヘッダーのない画面では変数がなく、上の端から余白だけ離す。払って閉じる向きも、出ている角の方（`swipeDirection={['up', 'right']}`）にする。一度に見せるのは1つだけ（`limit={1}`）。積み重なると、低い画面（横向きのスマホ）では下の操作の帯まで伸びてボタンのクリックを取るため。新しいものが出ると古いものは `data-limited` で隠れるが、読み上げは出たときに済んでいる。色は `bg-primary` と `text-primary-foreground` で、枠を持たないので、面そのものが下の画面の `background`・`card` に 3:1 以上になることを `test/contrast.test.ts` が確かめる
 - `Toaster` は `__root` の `Announcer` の隣に置く。経路の外にあるので、保存して一覧へ移るときも toast は消えない
 - 画面は `toastManager` を直接触らず、`notify(message)` を呼ぶ。`notify` は hook ではないので、mutation の `onSuccess` からそのまま呼べる。消えるまでの時間は `notifyTimeoutOf` が文の長さで決める（最低 6 秒、1文字 150 ms。WCAG 2.2.1）。hover とフォーカスのあいだは止まり、Esc で閉じる（どちらも Base UI が持つ）。読み上げは[読み上げ](#読み上げ)の節
 - テストでは `setup.ts` が、テストのたびに `toastManager.close()` で全部閉じる。manager はモジュールに1つなので、消えるまでの timer を次のテストに残さない。ストーリーは、ストーリーごとに `createToastManager()` で manager を作って `Toaster` に渡し、`useEffect` から `timeout: 0` で1つ出す。Provider は `useEffect` で manager を購読し、子の effect は親より先に走るので取りこぼさない（`useLayoutEffect` だと購読の前に出して消える）
@@ -256,7 +256,8 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 
 ## ページタイトル
 
-- どのルートも `head: () => pageTitle('<画面名>')` を書く（`src/lib/page-title.ts`、「<画面名> | ズバクイ」）（#109）。`__root` が `<HeadContent />` を描き、既定は `APP_NAME` にする。ない URL はこれを出す（入口は「はじめに」）。いちばん内側のルートのタイトルが勝つ
+- どのルートも `head: () => pageTitle('<画面名>')` を書く（`src/lib/page-title.ts`、「<画面名> | ズバクイ」）（#109）。`__root` が `<HeadContent />` を描き、既定は `pageTitle('ページが見つかりません')` にする。ない URL はこれを出す（入口は「はじめに」）。いちばん内側のルートのタイトルが勝つ
+- `beforeLoad` で `notFound()` を投げる経路（部屋の2つ）は、`head: pageTitleUnlessNotFound('<画面名>')` にする。TanStack Router は notFound の経路の `head` も呼ぶので、`pageTitle` のままだと 404 の画面に「クイズに参加」が付く。`match.status` が `'notFound'` のときはタイトルを返さず、`__root` のものを残す（#339）
 - タイトルには、部屋の ID、回答者の名前、問題セットの名前を入れない（S3）
 - React 19 は、ルートの `<title>` を `index.html` の `<title>` より前に入れる。`index.html` のほうは、JavaScript が動く前の代わりとして残る
 - ルートのテストは `document.title` を `waitFor` で確かめる。`csp.spec.ts` は、`HeadContent` がインラインのスクリプトやスタイルを足さないことを確かめる
@@ -305,7 +306,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - `joined`/`resumed`/`hostReady` のあとは、そのスナップショットの段階のメッセージが届くまで鳴らさない。DO が流れ全体をまとめて送り直すため。別の番号の `questionShown` が来ても、追いつきを終える
 - `host-room`/`player-room` が `onMessage` の中で `sound.play(cues.next(message))` を呼ぶ。コンポーネントの effect では呼ばない
 - `createSoundPlayer()` は1つだけルーターのコンテキストに置く。`main.tsx` が `unlockOnGestures(document, sound)` を足す（`click`/`keydown` を capture で、外さずに聞く。iOS で `interrupted` になった context も、次に触れたときに戻る）
-- その聞き手は `[data-sound-toggle]` を飛ばす。Chrome では、クリックの中で作った context はすぐに `running` になり、トグルの `onClick` より先に React が描き直す。そのため、クリックを2回扱うと「音を有効にする」が消音になってしまっていた（jsdom では再現できない）
+- その聞き手は `[data-sound-toggle]` を飛ばす。Chrome では、クリックの中で作った context はすぐに `running` になり、トグルの `onClick` より先に React が描き直す。そのため、クリックを2回扱うと、まだ鳴らせないときの「音を出す」が消音になってしまっていた（jsdom では再現できない）
 - 消音は `zubakui:sound` = `off`
 - jsdom には `AudioContext` がないので、既定のプレイヤーは `available: false` になり、トグルを隠す。テストは `test/fake-sound.ts` の `FakeAudioContext` か `recordSounds()` を渡す
 
@@ -317,7 +318,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - ログインを始めるのは `src/shared/auth/` の `useGithubSignIn`（hook）と `GithubSignInButton`（GitHub のマーク付きの `Button`）。ログインの画面と入口が使う（feature 同士は import できないので shared に置く）。始められなかったときは `startError` に入れ、文は呼ぶ側が出す（ログインの画面は誤りのカード、入口は `ActionError`）
 - URL を受け取るまでのあいだに別の画面へ移ったら（部品が消えたら）、届いた応答では GitHub へ移らない。`await` のあとに `mounted` の ref を確かめる
 - GitHub へ移ったあと「戻る」で bfcache からページが戻ると、`starting` が残ってボタンを押せなくなる。そのため `pageshow` の `persisted` で戻す。jsdom の `location.assign` は上書きできない（`vi.spyOn` は Cannot redefine property になる）ので、テストは `vi.stubGlobal('location', …)` で差し替える
-- 入口（`routes/index.tsx`）の `loader` も `hostSessionQueryOptions` を読むが、「ホストとしてログイン」と「問題セットへ」を出し分けるためだけ。`.catch(() => null)` で包み、読めなくてもログインしていないとして入口を出す。ログイン済みでも `/admin` へは移さない
+- 入口（`routes/index.tsx`）の `loader` も `hostSessionQueryOptions` を読むが、「GitHub でログイン」と「問題セットへ」を出し分けるためだけ。`.catch(() => null)` で包み、読めなくてもログインしていないとして入口を出す。ログイン済みでも `/admin` へは移さない
 - `routes/admin/route.tsx` の `beforeLoad` は `requireHost`（`src/shared/auth/require-host.ts`）。`queryClient.query(hostSessionQueryOptions)`（`src/api/host-session.ts`）を呼び、セッションがなければ `redirect({ to: '/login' })`。ホストだけのルートでは、これを使い回す
 - キャッシュしたセッションは信じない（既定の `staleTime: 0` で毎回読み直す）。そのため、ほかのタブやサーバーで終わったセッションのまま `/admin` の中を移り、キャッシュした一覧を見ることはできない。`/login` の `beforeLoad` も同じことをし、ログイン済みのホストを `/admin` へ送る
 - ログアウトは `queryClient.clear()` を呼ぶので、セッションも一覧も残らない
@@ -328,7 +329,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 
 - `/admin/hosts`（`src/routes/admin/hosts.tsx` と `src/features/hosts/`）は、管理者が許可リストを見て、GitHub のユーザー名でホストを足し、外す画面（ADR 0013、#293）。HTTP は `src/api/hosts.ts`（`/api/admin/hosts`）と `src/api/me.ts`（`/api/me`）が呼び、応答は protocol のスキーマで読む（ADR 0011）
 - `beforeLoad` は `requireAdmin`（`src/shared/auth/require-admin.ts`）。親の `/admin` の `requireHost` のあとに動き、`queryClient.query(meQueryOptions)` で移るたびに読み直す。管理者でなければ `/admin` へ、401 なら `/login` へ移し、それ以外の失敗は投げてエラーの画面を出す。これは画面を隠すだけで、守りは API の `requireAdmin`（毎回 D1 を読む）
-- 上の帯（`AdminLayout`）は `useQuery(meQueryOptions)` で読み、管理者にだけ「問題セット」と「ホストの管理」のリンク（`<nav aria-label="管理画面">`）を出す。読めないあいだと失敗したときは出さない。いまの画面のリンクには TanStack Router が `aria-current="page"` を付ける。「問題セット」は `activeOptions: { exact: true }` にし、`/admin/sets/…` では印を付けない。`features/hosts` は `features/admin` を読まず、帯からは `<Link to="/admin/hosts">` だけでつなぐ
+- 上の帯（`AdminLayout`）のロゴは入口（`/`）へのリンクにする。帯の下の段（`<nav aria-label="管理画面">`）には、どのホストにも「問題セット」と「使い方」のリンクを出し、`useQuery(meQueryOptions)` で読んで管理者にだけ「ホストの管理」を間に足す。読めないあいだと失敗したときは出さない。「使い方」は管理画面の外へ出るので最後に置く。いまの画面のリンクには TanStack Router が `aria-current="page"` を付ける。「問題セット」は `activeOptions: { exact: true }` にし、`/admin/sets/…` では印を付けない。`features/hosts` は `features/admin` を読まず、帯からは `<Link to="/admin/hosts">` だけでつなぐ
 - 一覧は足した順（API の順）。見出しは `note`（足したときの GitHub の名前）で、コマンドで足してメモがなければ、薄い色の「メモなし」。GitHub の名前は変えられるので、どの行にも「GitHub ID ○○ / 足した日」を添える。日は日本の時刻で、年も出す。管理者の行には「管理者」の印を出し、外すボタンは出さない
 - 追加のフォーム（`AddHostForm`）は、`normalizeLogin` で前後の空白を除き、先頭の `@` を1つ外し、そのあとの空白（`@ octocat`）も除いてから、protocol の `githubLoginSchema` で確かめる。GitHub のページは名前を `@octocat` と出すため。送るのはこの整えた値そのもので、スキーマは確かめるだけ。欄を空にするか・誤りを出すかは、この値と送った名前を比べて決めるので、2つは同じ関数から出す。誤りは直す場所で出し分ける
   - 入れた名前で直せるもの（空、形の誤り、GitHub にいない 404、もういる 409）: `Field` の `error`（欄の下）。入れた名前は残す
@@ -395,7 +396,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 
 - 列の型を書いていない `grid` の項目は `auto` の列に入り、中の入力欄の本来の幅より縮まないので、390 px ではみ出す。縦に並べる一覧には `grid-cols-1`（`minmax(0, 1fr)`）を使う
 - 同じように、`shrink-0` の flex の箱の中の `w-full` のメッセージは、箱をメッセージの1行の幅まで広げてしまう。箱には `min-w-0` を使う
-- 画面の下に固定した帯（問題セットの編集の保存の帯）は、流れの外にあるので、ページの下の余白を決め打ちすると、帯の中身（保存の失敗の文・離れる前の確かめ）や幅で高さが変わったときに最後の欄を隠す。`useFixedBarHeight`（`features/admin/use-fixed-bar-height.ts`）が ResizeObserver で帯の高さを測って html の `--fixed-bar-height` に入れ、画面はそれをページの下の余白に、`styles.css` は html の `scroll-padding-bottom` に使う。後者で、キーボードで移った欄も帯の下に隠れない。jsdom は ResizeObserver を持たないので、`test/setup.ts` が何もしない形を置く
+- 画面の下に固定した帯（問題セットの編集の保存の帯）は、流れの外にあるので、ページの下の余白を決め打ちすると、帯の中身（保存の失敗の文・離れる前の確かめ）や幅で高さが変わったときに最後の欄を隠す。`useHeightVariable`（`features/admin/use-height-variable.ts`）が ResizeObserver で帯の高さを測って html の `--fixed-bar-height` に入れ、画面はそれをページの下の余白に、`styles.css` は html の `scroll-padding-bottom` に使う。後者で、キーボードで移った欄も帯の下に隠れない。jsdom は ResizeObserver を持たないので、`test/setup.ts` が何もしない形を置き、高さの変化を確かめるテストは `test/resize-observer.ts` の `stubResizeObserver` で差し替える。管理画面の上の帯も同じ hook で `--header-height` に入れ、toast の位置に使う
 
 ## テストの道具
 

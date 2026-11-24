@@ -184,7 +184,7 @@ describe('自動再生が止められていても動き続ける', () => {
 describe('音の切り替えのボタンを押したとき', () => {
   it('画面のどこでも有効にする仕掛けは、切り替えのボタンを押したことには反応しない', () => {
     // 反応すると、1回のクリックで「有効にする」と切り替えの両方が動く。Chrome は操作の中で作った AudioContext を
-    // その場で running にし、React はボタンの onClick より先に描き直すので、「音を有効にする」を押すと音が消えてしまう
+    // その場で running にし、React はボタンの onClick より先に描き直すので、まだ鳴らせないときの「音を出す」を押すと音が消えてしまう
     const { sound, contexts } = setup();
     const stop = unlockOnGestures(document, sound);
     const toggle = document.createElement('button');

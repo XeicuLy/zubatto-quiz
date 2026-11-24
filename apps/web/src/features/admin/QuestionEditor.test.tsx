@@ -49,14 +49,14 @@ describe('1問の編集（F4・F9）', () => {
     expect(screen.getByLabelText('制限時間')).toHaveValue(10);
   });
 
-  it('選択肢は4つまで足せ、4つになると足すボタンが消える', () => {
+  it('選択肢は4つまで追加でき、4つになると追加のボタンが消える', () => {
     render(<Harness question={question()} />);
 
-    fireEvent.click(screen.getByRole('button', { name: '選択肢を足す' }));
-    fireEvent.click(screen.getByRole('button', { name: '選択肢を足す' }));
+    fireEvent.click(screen.getByRole('button', { name: '選択肢を追加' }));
+    fireEvent.click(screen.getByRole('button', { name: '選択肢を追加' }));
 
     expect(screen.getByLabelText('選択肢4')).toHaveValue('');
-    expect(screen.queryByRole('button', { name: '選択肢を足す' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '選択肢を追加' })).not.toBeInTheDocument();
     expect(screen.getByText('選択肢は4つまでです')).toBeInTheDocument();
   });
 
@@ -93,19 +93,21 @@ describe('1問の編集（F4・F9）', () => {
         index={1}
         count={2}
         errors={{
-          'questions.1.text': '問題文を入れてください',
-          'questions.1.choices.0': '選択肢を入れてください',
-          'questions.1.correctIndex': '正解を1つ選んでください',
-          'questions.1.limitMs': '制限時間は5〜60秒の整数で入れてください',
+          'questions.1.text': '問題文を入れてください。',
+          'questions.1.choices.0': '選択肢を入れてください。',
+          'questions.1.correctIndex': '正解を1つ選んでください。',
+          'questions.1.limitMs': '制限時間は5〜60秒の整数で入れてください。',
         }}
       />,
     );
 
-    expect(screen.getByLabelText('問題文')).toHaveAccessibleDescription('問題文を入れてください');
-    expect(screen.getByLabelText('選択肢1')).toHaveAccessibleDescription('選択肢を入れてください');
+    expect(screen.getByLabelText('問題文')).toHaveAccessibleDescription('問題文を入れてください。');
+    expect(screen.getByLabelText('選択肢1')).toHaveAccessibleDescription('選択肢を入れてください。');
     expect(screen.getByLabelText('選択肢2')).not.toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByRole('group', { name: /選択肢と正解/ })).toHaveAccessibleDescription('正解を1つ選んでください');
-    expect(screen.getByLabelText('制限時間')).toHaveAccessibleDescription('制限時間は5〜60秒の整数で入れてください');
+    expect(screen.getByRole('group', { name: /選択肢と正解/ })).toHaveAccessibleDescription(
+      '正解を1つ選んでください。',
+    );
+    expect(screen.getByLabelText('制限時間')).toHaveAccessibleDescription('制限時間は5〜60秒の整数で入れてください。');
   });
 
   // 問題文と制限時間は Field で出す。誤りが出たら、帯の「直すところがあります」とは別に、その場で知らせる
@@ -114,15 +116,15 @@ describe('1問の編集（F4・F9）', () => {
       <Harness
         question={question()}
         errors={{
-          'questions.0.text': '問題文を入れてください',
-          'questions.0.limitMs': '制限時間は5〜60秒の整数で入れてください',
+          'questions.0.text': '問題文を入れてください。',
+          'questions.0.limitMs': '制限時間は5〜60秒の整数で入れてください。',
         }}
       />,
     );
 
     expect(screen.getAllByRole('alert').map((alert) => alert.textContent)).toEqual([
-      '問題文を入れてください',
-      '制限時間は5〜60秒の整数で入れてください',
+      '問題文を入れてください。',
+      '制限時間は5〜60秒の整数で入れてください。',
     ]);
   });
 
@@ -134,10 +136,10 @@ describe('1問の編集（F4・F9）', () => {
 
   it('ほかの問題の誤りは出さない', () => {
     render(
-      <Harness question={question()} index={0} count={2} errors={{ 'questions.1.text': '問題文を入れてください' }} />,
+      <Harness question={question()} index={0} count={2} errors={{ 'questions.1.text': '問題文を入れてください。' }} />,
     );
 
-    expect(screen.queryByText('問題文を入れてください')).not.toBeInTheDocument();
+    expect(screen.queryByText('問題文を入れてください。')).not.toBeInTheDocument();
     expect(screen.getByLabelText('問題文')).not.toHaveAttribute('aria-invalid', 'true');
   });
 

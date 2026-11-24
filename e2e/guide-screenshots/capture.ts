@@ -73,7 +73,7 @@ async function fillQuestion(page: Page, index: number) {
   const item = page.getByRole('listitem', { name: `第${index + 1}問` });
   await item.getByLabel('問題文').fill(question.text);
   for (let choice = 2; choice < question.choices.length; choice += 1) {
-    await item.getByRole('button', { name: '選択肢を足す' }).click();
+    await item.getByRole('button', { name: '選択肢を追加' }).click();
   }
   for (const [choice, text] of question.choices.entries()) {
     await item.getByLabel(`選択肢${choice + 1}`, { exact: true }).fill(text);
@@ -92,7 +92,7 @@ test('使い方の画像を撮る', async ({ browser }) => {
   // ログインの入口は、ログインしていない人の入口のページで撮る
   const visitor = await newPage(browser, 'pc');
   await visitor.page.goto('/');
-  await expect(visitor.page.getByRole('button', { name: 'ホストとしてログイン' })).toBeVisible();
+  await expect(visitor.page.getByRole('button', { name: 'GitHub でログイン' })).toBeVisible();
   await shot(visitor.page, 'host-login');
 
   // 問題セットを作る
@@ -104,7 +104,7 @@ test('使い方の画像を撮る', async ({ browser }) => {
   await host.page.getByLabel('問題セットの名前').fill(TITLE);
   await fillQuestion(host.page, 0);
   for (let index = 1; index < QUESTIONS.length; index += 1) {
-    await host.page.getByRole('button', { name: '問題を足す' }).click();
+    await host.page.getByRole('button', { name: '問題を追加' }).click();
     await fillQuestion(host.page, index);
   }
   // 見出しを上端に寄せる。上の「一覧に戻る」を外すと、名前から第1問の制限時間までが、下の保存のバーより上に収まる。

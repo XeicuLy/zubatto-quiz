@@ -2,12 +2,13 @@ import { createRootRouteWithContext, HeadContent, Outlet } from '@tanstack/react
 
 import { Announcer } from '@/components/a11y/Announcer';
 import { Toaster } from '@/components/ui/toast';
-import { APP_NAME } from '@/lib/page-title';
+import { pageTitle } from '@/lib/page-title';
 import type { RouterContext } from '@/router';
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  // 子のルートが head でタイトルを付ければ、そちらが勝つ。付けない画面（知らない URL）はこれを出す
-  head: () => ({ meta: [{ title: APP_NAME }] }),
+  // 子のルートが head でタイトルを付ければ、そちらが勝つ。どの画面も付けるので、これが出るのは 404 の画面だけ
+  // （知らない URL と、部屋の経路が形の違う ID を notFound() で止めたとき）
+  head: () => pageTitle('ページが見つかりません'),
   component: RootLayout,
 });
 

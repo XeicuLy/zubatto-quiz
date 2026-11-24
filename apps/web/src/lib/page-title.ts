@@ -1,4 +1,4 @@
-/** サービスの名前。index.html の <title> と同じにする。どのルートも名前を付けない画面（知らない URL）は、これだけを出す */
+/** サービスの名前。index.html の <title> と同じにする */
 export const APP_NAME = 'ズバクイ';
 
 /**
@@ -8,4 +8,14 @@ export const APP_NAME = 'ズバクイ';
  */
 export function pageTitle(screenName: string) {
   return { meta: [{ title: `${screenName} | ${APP_NAME}` }] };
+}
+
+/**
+ * notFound() を投げる経路の head に渡す。経路には合っていても中身が 404 の画面のときは、タイトルを付けず、
+ * __root の「ページが見つかりません」を残す。TanStack Router は、beforeLoad で notFound() を投げた経路の head も呼ぶので、
+ * 何もしないと 404 の画面に「クイズに参加」のような経路のタイトルが付く
+ */
+export function pageTitleUnlessNotFound(screenName: string) {
+  // 引数の型を書いておく。head の引数を文脈から推論させると、loader の型と循環して loaderData が never になる
+  return ({ match }: { match: { status: string } }) => (match.status === 'notFound' ? {} : pageTitle(screenName));
 }

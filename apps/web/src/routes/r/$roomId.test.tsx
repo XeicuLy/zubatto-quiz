@@ -422,7 +422,7 @@ describe('効果音（F18）', () => {
   it('名前の入力には切り替えを出さず、入室したら出す。出題が届くと出題の音を鳴らす', async () => {
     const { server, sound } = await openPlayerPage();
 
-    expect(screen.queryByRole('button', { name: '音を消す' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '音を止める' })).toBeNull();
     await joinAs('たろう');
     act(() => {
       server.latest.open();
@@ -436,7 +436,7 @@ describe('効果音（F18）', () => {
         limitMs: 10_000,
       });
     });
-    fireEvent.click(screen.getByRole('button', { name: '音を消す' }));
+    fireEvent.click(screen.getByRole('button', { name: '音を止める' }));
 
     expect(sound.cues).toEqual(['question']);
     expect(sound.muted).toEqual([true]);

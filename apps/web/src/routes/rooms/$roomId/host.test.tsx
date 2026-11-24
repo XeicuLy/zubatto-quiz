@@ -564,7 +564,7 @@ describe('効果音（F18）', () => {
         limitMs: 10_000,
       }),
     );
-    fireEvent.click(screen.getByRole('button', { name: '音を消す' }));
+    fireEvent.click(screen.getByRole('button', { name: '音を止める' }));
 
     expect(sound.cues).toEqual(['question']);
     expect(sound.muted).toEqual([true]);
