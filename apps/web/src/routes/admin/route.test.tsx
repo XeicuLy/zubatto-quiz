@@ -1,5 +1,5 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { QuestionSetDetail } from '@zubatto-quiz/protocol';
 import { describe, expect, it } from 'vitest';
 
@@ -67,6 +67,17 @@ describe('管理画面のログインの確認（S1）', () => {
 
     expect(await screen.findByRole('banner')).toHaveTextContent('XeicuLy');
     expect(screen.getByRole('button', { name: 'ログアウト' })).toBeInTheDocument();
+  });
+
+  it('上の帯のロゴは入口へのリンクで、帯から使い方へも行ける', async () => {
+    stubFakeApi({ hostName: 'XeicuLy' });
+
+    await openAt('/admin');
+
+    const banner = await screen.findByRole('banner');
+    expect(within(banner).getByRole('link', { name: 'ズバクイ' })).toHaveAttribute('href', '/');
+    const nav = within(banner).getByRole('navigation', { name: '管理画面' });
+    expect(within(nav).getByRole('link', { name: '使い方' })).toHaveAttribute('href', '/guide');
   });
 
   it('ログアウトすると、ログイン画面へ移り、もう管理画面を開けない', async () => {

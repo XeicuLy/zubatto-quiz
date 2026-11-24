@@ -11,8 +11,8 @@ interface AdminLayoutProps {
 }
 
 /**
- * 管理画面（楽屋）の枠。上の帯にホストの名前とログアウトを置き、中に子の経路を出す。
- * 管理者には、帯に問題セットとホストの管理へのリンクを出す（ADR 0013）。読めなかったら出さない。
+ * 管理画面（楽屋）の枠。上の帯にロゴ（入口へのリンク）・ホストの名前・ログアウトを置き、中に子の経路を出す。
+ * 帯の下の段には、問題セットと使い方へのリンクを出す。管理者には、ホストの管理へのリンクも出す（ADR 0013）。読めなかったら出さない。
  * リンクを出すかは見た目だけで、/admin/hosts は requireAdmin（beforeLoad）と API の requireAdmin が守る
  */
 export function AdminLayout({ host }: AdminLayoutProps) {
@@ -41,7 +41,9 @@ export function AdminLayout({ host }: AdminLayoutProps) {
     <div className="min-h-dvh bg-background font-sans text-foreground antialiased">
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-5 py-3">
-          <p className="shrink-0 font-logo text-heading">ズバクイ</p>
+          <Link to="/" className="shrink-0 font-logo text-heading">
+            ズバクイ
+          </Link>
           <div className="flex min-w-0 items-center gap-3 text-note">
             <p className="name-clip text-muted-foreground" title={host.name}>
               {host.name}
@@ -56,20 +58,21 @@ export function AdminLayout({ host }: AdminLayoutProps) {
             </button>
           </div>
         </div>
-        {me.data?.isAdmin === true && (
-          // いまの画面のリンク（aria-current="page"、TanStack Router が付ける）は、下線を外して濃い色にする
-          <nav aria-label="管理画面" className="mx-auto max-w-4xl px-5 pb-3">
-            <ul className="flex flex-wrap gap-x-5 gap-y-1 text-note">
-              <li>
-                {/* /admin/sets/… でも印を付けないよう、/admin と同じときだけにする */}
-                <Link
-                  to="/admin"
-                  activeOptions={{ exact: true }}
-                  className="text-muted-foreground underline underline-offset-4 aria-[current=page]:font-bold aria-[current=page]:text-foreground aria-[current=page]:no-underline"
-                >
-                  問題セット
-                </Link>
-              </li>
+        {/* いまの画面のリンク（aria-current="page"、TanStack Router が付ける）は、下線を外して濃い色にする。
+            使い方は管理画面の外へ出るリンクなので、最後に置く */}
+        <nav aria-label="管理画面" className="mx-auto max-w-4xl px-5 pb-3">
+          <ul className="flex flex-wrap gap-x-5 gap-y-1 text-note">
+            <li>
+              {/* /admin/sets/… でも印を付けないよう、/admin と同じときだけにする */}
+              <Link
+                to="/admin"
+                activeOptions={{ exact: true }}
+                className="text-muted-foreground underline underline-offset-4 aria-[current=page]:font-bold aria-[current=page]:text-foreground aria-[current=page]:no-underline"
+              >
+                問題セット
+              </Link>
+            </li>
+            {me.data?.isAdmin === true && (
               <li>
                 <Link
                   to="/admin/hosts"
@@ -78,9 +81,14 @@ export function AdminLayout({ host }: AdminLayoutProps) {
                   ホストの管理
                 </Link>
               </li>
-            </ul>
-          </nav>
-        )}
+            )}
+            <li>
+              <Link to="/guide" className="text-muted-foreground underline underline-offset-4">
+                使い方
+              </Link>
+            </li>
+          </ul>
+        </nav>
         {signOutError !== null && (
           <ActionError
             error={signOutError}
