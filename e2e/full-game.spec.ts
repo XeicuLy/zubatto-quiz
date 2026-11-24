@@ -37,7 +37,7 @@ async function fillQuestion(page: Page, index: number) {
   const item = page.getByRole('listitem', { name: `第${index + 1}問` });
   await item.getByLabel('問題文').fill(question.text);
   for (let choice = 2; choice < question.choices.length; choice += 1) {
-    await item.getByRole('button', { name: '選択肢を足す' }).click();
+    await item.getByRole('button', { name: '選択肢を追加' }).click();
   }
   for (const [choice, text] of question.choices.entries()) {
     await item.getByLabel(`選択肢${choice + 1}`, { exact: true }).fill(text);
@@ -80,7 +80,7 @@ test('ホストが問題セットを作って部屋を開き、2人が最後ま�
   await host.page.getByLabel('問題セットの名前').fill(TITLE);
   await fillQuestion(host.page, 0);
   for (let index = 1; index < QUESTIONS.length; index += 1) {
-    await host.page.getByRole('button', { name: '問題を足す' }).click();
+    await host.page.getByRole('button', { name: '問題を追加' }).click();
     await fillQuestion(host.page, index);
   }
   // 最初の保存で作って一覧へ移り、作ったことを toast で知らせる

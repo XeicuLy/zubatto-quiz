@@ -13,10 +13,10 @@ describe('入口のページ', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'できること' })).toBeInTheDocument();
   });
 
-  it('ログインしていなければ、ホストとしてログインするボタンと、使い方へのリンクを出す', async () => {
+  it('ログインしていなければ、GitHub でログインするボタンと、使い方へのリンクを出す', async () => {
     await renderInRouter(<LandingPage signedIn={false} />);
 
-    expect(screen.getByRole('button', { name: 'ホストとしてログイン' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'GitHub でログイン' })).toBeEnabled();
     expect(screen.getByRole('link', { name: '使い方を見る' })).toHaveAttribute('href', '/guide');
     expect(screen.queryByRole('link', { name: '問題セットへ' })).not.toBeInTheDocument();
   });
@@ -25,7 +25,7 @@ describe('入口のページ', () => {
     await renderInRouter(<LandingPage signedIn />);
 
     expect(screen.getByRole('link', { name: '問題セットへ' })).toHaveAttribute('href', '/admin');
-    expect(screen.queryByRole('button', { name: 'ホストとしてログイン' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'GitHub でログイン' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: '使い方を見る' })).toHaveAttribute('href', '/guide');
   });
 
@@ -41,11 +41,11 @@ describe('入口のページ', () => {
     vi.stubGlobal('fetch', async () => new Response(null, { status: 500 }));
     await renderInRouter(<LandingPage signedIn={false} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'ホストとしてログイン' }));
+    fireEvent.click(screen.getByRole('button', { name: 'GitHub でログイン' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'ログインを始められませんでした。もう一度押してください。',
     );
-    expect(screen.getByRole('button', { name: 'ホストとしてログイン' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'GitHub でログイン' })).toBeEnabled();
   });
 });

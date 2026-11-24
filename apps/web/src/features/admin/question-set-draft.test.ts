@@ -237,49 +237,49 @@ describe('validateDraft（F4・F9）', () => {
       name: '問題セットの名前が空',
       draft: { title: '  ', questions: [question()] },
       key: 'title',
-      message: '問題セットの名前を入れてください',
+      message: '問題セットの名前を入れてください。',
     },
     {
       name: '問題セットの名前が長い',
       draft: { title: 'あ'.repeat(101), questions: [question()] },
       key: 'title',
-      message: '問題セットの名前は100文字までです',
+      message: '問題セットの名前は100文字までです。',
     },
     {
       name: '問題文が空',
       draft: draftWith(question({ text: '' })),
       key: 'questions.0.text',
-      message: '問題文を入れてください',
+      message: '問題文を入れてください。',
     },
     {
       name: '問題文が長い',
       draft: draftWith(question({ text: 'あ'.repeat(1001) })),
       key: 'questions.0.text',
-      message: '問題文は1,000文字までです',
+      message: '問題文は1,000文字までです。',
     },
     {
       name: '選択肢が空',
       draft: draftWith(question({ choices: ['A', ' '] })),
       key: 'questions.0.choices.1',
-      message: '選択肢を入れてください',
+      message: '選択肢を入れてください。',
     },
     {
       name: '選択肢が長い',
       draft: draftWith(question({ choices: ['あ'.repeat(101), 'B'] })),
       key: 'questions.0.choices.0',
-      message: '選択肢は100文字までです',
+      message: '選択肢は100文字までです。',
     },
     {
       name: '正解を選んでいない',
       draft: draftWith(question({ correctIndex: null })),
       key: 'questions.0.correctIndex',
-      message: '正解を1つ選んでください',
+      message: '正解を1つ選んでください。',
     },
     ...['4', '61', '7.5', ''].map((limitSeconds) => ({
       name: `制限時間が「${limitSeconds}」`,
       draft: draftWith(question({ limitSeconds })),
       key: 'questions.0.limitMs',
-      message: '制限時間は5〜60秒の整数で入れてください',
+      message: '制限時間は5〜60秒の整数で入れてください。',
     })),
   ])('$name なら、その場所に「$message」を出す', ({ draft, key, message }) => {
     const result = validateDraft(draft);
@@ -295,7 +295,7 @@ describe('validateDraft（F4・F9）', () => {
   it('1つの場所に誤りが2つあっても、出すのは1つ', () => {
     const result = validateDraft(draftWith(question({ limitSeconds: '4.5' })));
 
-    expect(!result.ok && result.errors).toEqual({ 'questions.0.limitMs': '制限時間は5〜60秒の整数で入れてください' });
+    expect(!result.ok && result.errors).toEqual({ 'questions.0.limitMs': '制限時間は5〜60秒の整数で入れてください。' });
   });
 });
 

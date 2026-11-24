@@ -73,7 +73,7 @@ export function LandingPage({ signedIn }: LandingPageProps) {
             問題セットへ
           </Link>
         ) : (
-          <GithubSignInButton signIn={signIn}>ホストとしてログイン</GithubSignInButton>
+          <GithubSignInButton signIn={signIn}>GitHub でログイン</GithubSignInButton>
         )}
         <Link to="/guide" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
           使い方を見る

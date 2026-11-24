@@ -167,11 +167,11 @@ describe('確かめる表示のフォーカス', () => {
 });
 
 describe('効果音の切り替え（F18）', () => {
-  it('やり直しと終了の並びに「音を消す」を出し、押すと音を消す', () => {
+  it('やり直しと終了の並びに「音を止める」を出し、押すと音を止める', () => {
     const sound = recordSounds();
     render(<HostControls room={room('accepting', 0)} onSend={() => true} sound={sound} />);
 
-    fireEvent.click(screen.getByRole('button', { name: '音を消す' }));
+    fireEvent.click(screen.getByRole('button', { name: '音を止める' }));
 
     expect(sound.muted).toEqual([true]);
   });

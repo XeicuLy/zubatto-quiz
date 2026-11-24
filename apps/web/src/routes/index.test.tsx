@@ -14,12 +14,12 @@ async function openTop() {
 }
 
 describe('入口の経路（/）', () => {
-  it('ログインしていなければ、ホストとしてログインするボタンを出す', async () => {
+  it('ログインしていなければ、GitHub でログインするボタンを出す', async () => {
     stubFakeApi({ hostName: null });
 
     await openTop();
 
-    expect(await screen.findByRole('button', { name: 'ホストとしてログイン' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'GitHub でログイン' })).toBeInTheDocument();
   });
 
   it('ログインしていても管理画面へは移さず、問題セットの一覧へのリンクを出す', async () => {
@@ -36,7 +36,7 @@ describe('入口の経路（/）', () => {
 
     const router = await openTop();
 
-    expect(await screen.findByRole('button', { name: 'ホストとしてログイン' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'GitHub でログイン' })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/');
   });
 });

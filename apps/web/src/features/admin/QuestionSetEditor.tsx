@@ -113,7 +113,7 @@ export function QuestionSetEditor({ initial }: QuestionSetEditorProps) {
             onClick={() => dispatch({ type: 'addQuestion', key: newQuestionKey() })}
             className="mt-6 w-full border-dashed"
           >
-            問題を足す
+            問題を追加
           </Button>
         ) : (
           <p className="mt-6 text-center text-note text-muted-foreground">問題は{MAX_QUESTIONS}問までです</p>

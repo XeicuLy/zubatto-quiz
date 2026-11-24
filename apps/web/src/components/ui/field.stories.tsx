@@ -38,7 +38,7 @@ export const WithError: Story = {
   args: {
     label: '制限時間',
     hint: '受付を始めてからの時間',
-    error: '制限時間は5〜60秒の整数で入れてください',
+    error: '制限時間は5〜60秒の整数で入れてください。',
     children: <Input type="number" defaultValue={90} />,
   },
 };

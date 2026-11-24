@@ -89,12 +89,12 @@ describe('問題セットの編集（F4・F7・F9）', () => {
     expect(within(card(2)).getByLabelText('制限時間')).toHaveValue(5);
   });
 
-  it('問題を足す・並べ替える・消すができる。足した問題は2択・正解なし・10秒で始まる', async () => {
+  it('問題を追加・並べ替え・削除ができる。追加した問題は2択・正解なし・10秒で始まる', async () => {
     stubFakeApi({ questionSetDetails: [SET] });
     await openEditor();
     await screen.findByLabelText('問題セットの名前');
 
-    fireEvent.click(screen.getByRole('button', { name: '問題を足す' }));
+    fireEvent.click(screen.getByRole('button', { name: '問題を追加' }));
     expect(cardTitles()).toEqual(['第1問', '第2問', '第3問']);
     expect(within(card(3)).getAllByRole('textbox', { name: /^選択肢/ })).toHaveLength(2);
     expect(within(card(3)).getByLabelText('制限時間')).toHaveValue(10);
@@ -117,7 +117,7 @@ describe('問題セットの編集（F4・F7・F9）', () => {
     await screen.findByLabelText('問題セットの名前');
 
     fireEvent.change(screen.getByLabelText('問題セットの名前'), { target: { value: '書き換えた名前' } });
-    fireEvent.click(within(card(2)).getByRole('button', { name: '選択肢を足す' }));
+    fireEvent.click(within(card(2)).getByRole('button', { name: '選択肢を追加' }));
     fireEvent.change(within(card(2)).getByLabelText('選択肢3'), { target: { value: '植え替えた' } });
     fireEvent.click(within(card(2)).getByRole('radio', { name: '選択肢3を正解にする' }));
     fireEvent.change(within(card(2)).getByLabelText('制限時間'), { target: { value: '30' } });
@@ -143,22 +143,22 @@ describe('問題セットの編集（F4・F7・F9）', () => {
     await openEditor();
     await screen.findByLabelText('問題セットの名前');
 
-    fireEvent.click(screen.getByRole('button', { name: '問題を足す' }));
+    fireEvent.click(screen.getByRole('button', { name: '問題を追加' }));
     fireEvent.change(within(card(3)).getByLabelText('問題文'), { target: { value: '新しい問題' } });
     fireEvent.change(within(card(3)).getByLabelText('選択肢1'), { target: { value: 'はい' } });
     fireEvent.change(within(card(3)).getByLabelText('選択肢2'), { target: { value: 'いいえ' } });
     // 保存を押すまでは、誤りを出さない
-    expect(screen.queryByText('正解を1つ選んでください')).not.toBeInTheDocument();
+    expect(screen.queryByText('正解を1つ選んでください。')).not.toBeInTheDocument();
 
     fireEvent.click(saveButton());
 
     expect(await screen.findByText('第3問に直すところがあります')).toBeInTheDocument();
-    expect(within(card(3)).getByText('正解を1つ選んでください')).toBeInTheDocument();
+    expect(within(card(3)).getByText('正解を1つ選んでください。')).toBeInTheDocument();
     expect(api.requestsTo('PUT', `/api/question-sets/${SET.id}`)).toEqual([]);
 
     // 一度保存を押したあとは、直したそばから誤りが消える
     fireEvent.click(within(card(3)).getByRole('radio', { name: '選択肢1を正解にする' }));
-    expect(screen.queryByText('正解を1つ選んでください')).not.toBeInTheDocument();
+    expect(screen.queryByText('正解を1つ選んでください。')).not.toBeInTheDocument();
     expect(screen.queryByText('第3問に直すところがあります')).not.toBeInTheDocument();
 
     fireEvent.click(saveButton());
@@ -186,9 +186,9 @@ describe('問題セットの編集（F4・F7・F9）', () => {
     fireEvent.change(screen.getByLabelText('問題セットの名前'), { target: { value: '' } });
     fireEvent.click(saveButton());
 
-    expect(screen.getByLabelText('問題セットの名前')).toHaveAccessibleDescription('問題セットの名前を入れてください');
+    expect(screen.getByLabelText('問題セットの名前')).toHaveAccessibleDescription('問題セットの名前を入れてください。');
     expect(screen.getAllByRole('alert').map((alert) => alert.textContent)).toContain(
-      '問題セットの名前を入れてください',
+      '問題セットの名前を入れてください。',
     );
   });
 
@@ -198,7 +198,7 @@ describe('問題セットの編集（F4・F7・F9）', () => {
     await screen.findByLabelText('問題セットの名前');
 
     // 第1問は4択、第2問は2択
-    expect(within(card(1)).queryByRole('button', { name: '選択肢を足す' })).not.toBeInTheDocument();
+    expect(within(card(1)).queryByRole('button', { name: '選択肢を追加' })).not.toBeInTheDocument();
     expect(within(card(2)).getByRole('button', { name: '選択肢1を消す' })).toBeDisabled();
   });
 
@@ -353,13 +353,13 @@ describe('問題セットを作る（F4・F7）', () => {
     expect(api.requestsTo('POST', '/api/question-sets')).toEqual([]);
   });
 
-  it('足した選択肢にも、番号ごとの例を出す', async () => {
+  it('追加した選択肢にも、番号ごとの例を出す', async () => {
     stubFakeApi();
     await openEditor(NEW_PATH);
     await screen.findByLabelText('問題セットの名前');
 
-    fireEvent.click(within(card(1)).getByRole('button', { name: '選択肢を足す' }));
-    fireEvent.click(within(card(1)).getByRole('button', { name: '選択肢を足す' }));
+    fireEvent.click(within(card(1)).getByRole('button', { name: '選択肢を追加' }));
+    fireEvent.click(within(card(1)).getByRole('button', { name: '選択肢を追加' }));
 
     expect(within(card(1)).getByLabelText('選択肢3')).toHaveAttribute('placeholder', '例: 洋楽ロック');
     expect(within(card(1)).getByLabelText('選択肢4')).toHaveAttribute('placeholder', '例: 歌わない');

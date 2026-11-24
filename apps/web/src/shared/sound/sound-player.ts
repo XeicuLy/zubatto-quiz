@@ -158,7 +158,7 @@ export function createSoundPlayer({ createContext = defaultContextFactory() }: S
 /**
  * 音の切り替えのボタン（SoundToggle）に付ける印。unlockOnGestures は、これが付いた要素を押したときは何もしない。
  * ボタンは自分のハンドラで鳴らせるようにする。両方が動くと、Chrome は操作の中で作った AudioContext をその場で running にし、
- * React はボタンの onClick より先に描き直すので、「音を有効にする」を押したのに「音を消す」として動いてしまう
+ * React はボタンの onClick より先に描き直すので、まだ鳴らせない「音を出す」を押したのに、鳴らせるときの「音を止める」として動いてしまう
  */
 export const SOUND_TOGGLE_ATTRIBUTE = 'data-sound-toggle';
 
