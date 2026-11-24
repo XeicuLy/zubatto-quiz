@@ -104,7 +104,13 @@ function HostScreen({
         <HostEndedBar />
       ) : (
         // 段階が変わったら作り直し、やり直し・終了を確かめている途中の表示を、次の段階へ持ち越さない
-        <HostControls key={`${room.phase}:${room.questionIndex}`} room={room} onSend={send} sound={sound} />
+        <HostControls
+          key={`${room.phase}:${room.questionIndex}`}
+          room={room}
+          progress={question?.progress ?? null}
+          onSend={send}
+          sound={sound}
+        />
       )}
     </div>
   );

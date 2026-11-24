@@ -9,9 +9,13 @@ import {
   closeOf,
   connect,
   connectHost,
+  drain,
+  exchange,
+  joinPlayer,
   messageReader,
   newRoom,
   newToken,
+  nextOf,
   type RoomStub,
 } from '../../../test/room-socket';
 import { handleJoin } from './join';
@@ -265,5 +269,42 @@ describe('参加者一覧（F3）', () => {
     // 未確認の接続に最初に届くのが、自分で送った誤りへの応答なら、参加者一覧は届いていない
     pendingWs.send('not json');
     expect(await pending()).toEqual({ type: 'error', code: 'invalid_message' });
+  });
+});
+
+describe('受付中の参加（F9）', () => {
+  /** ホストとたろうを入れ、第1問の受付を始めて、たろうが答えたところまで進める。ホストへは 1 / 1 人が届いている */
+  async function answeredByAll(stub: RoomStub) {
+    const host = await connectHost(stub);
+    const taro = await joinPlayer(stub, 'たろう');
+    await exchange(host, { type: 'showQuestion', questionIndex: 0 });
+    await exchange(host, { type: 'startAnswering', questionIndex: 0 });
+    taro.ws.send(JSON.stringify({ type: 'answer', questionId: 'q-1', choiceIndex: 0, elapsedMs: 1_000 }));
+    expect(await nextOf(host, 'answerProgress')).toMatchObject({ answeredCount: 1, participantCount: 1 });
+    return { host, taro };
+  }
+
+  it('受付中に入ったら、ホストへ今の回答数を送り直す。分母が増え、「全員が回答しました」が残らない', async () => {
+    const stub = await newRoom();
+    const { host } = await answeredByAll(stub);
+
+    const hanako = await joinPlayer(stub, 'はなこ');
+
+    expect(await drain(host)).toEqual([
+      { type: 'participants', participants: expect.any(Array) },
+      { type: 'answerProgress', questionId: 'q-1', answeredCount: 1, participantCount: 2 },
+    ]);
+    // 回答数は進行画面にだけ出す
+    expect((await drain(hanako)).map((message) => message.type)).not.toContain('answerProgress');
+  });
+
+  it('受付中でなければ、参加しても回答数は送らない', async () => {
+    const stub = await newRoom();
+    const host = await connectHost(stub);
+    await exchange(host, { type: 'showQuestion', questionIndex: 0 });
+
+    await joinPlayer(stub, 'たろう');
+
+    expect((await drain(host)).map((message) => message.type)).toEqual(['participants']);
   });
 });
