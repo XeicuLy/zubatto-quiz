@@ -522,6 +522,30 @@ describe('ホストの操作のあとのフォーカス', () => {
     expect(screen.getByRole('heading', { level: 1, name: '日本一高い山は？' })).toBeInTheDocument();
     expect(document.activeElement).toBe(document.body);
   });
+
+  it('最終ランキングを出したら、見出しへフォーカスを移し、右に出る「部屋を終える」へは移さない', async () => {
+    stubFakeApi();
+    const { server } = await openHostPage();
+    // 10問の部屋の最後の問題の ② のあとから始める
+    act(() => {
+      server.latest.open();
+      server.latest.emit({ type: 'hostReady', room: { ...ROOM, phase: 'fastest', questionIndex: 9 } });
+      server.latest.emit({ type: 'participants', participants: [TARO] });
+    });
+
+    press('最終ランキングを出す');
+    act(() =>
+      server.latest.emit({
+        type: 'finalRanking',
+        questionCount: 10,
+        entries: [{ ...TARO, rank: 1, totalScore: 9000 }],
+      }),
+    );
+
+    // ほかの段階と同じく見出しへ移す。主ボタンへ移すと、続けて押した Enter で終える確かめが開いてしまう
+    expect(screen.getByRole('button', { name: '部屋を終える' })).toBeInTheDocument();
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: '最終ランキング' }));
+  });
 });
 
 describe('効果音（F18）', () => {

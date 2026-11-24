@@ -30,12 +30,13 @@ const sound: SoundPlayer = {
  * 進行の操作の帯（F8・F14・F15・A3）。今の段階で押せる進む操作だけを右に出し、最後のものをいちばん目立たせる。
  * やり直しと終了は、押すと帯の中で確かめる（確かめる表示は ConfirmDialog の Host のストーリーにある）。
  * やり直せるのは出題と受付中だけで（protocol の room-flow.ts）、ほかの段階ではやり直しのボタンが薄くなって押せない。
+ * 最終ランキングのあとは、右の主ボタンの場所に「部屋を終える」を出す。
  * onSend は送れたことにして true を返すので、確かめる表示を開いて「やり直す」まで押せる。
  * 進行画面の下に固定するので、暗い面に置き、投影の大きさで見る。ホストがスマホで進めるときの並びは Mobile で見る
  */
 const meta = {
   component: HostControls,
-  args: { room: room('question', 2), onSend: fn(() => true), sound },
+  args: { room: room('question', 2), progress: null, onSend: fn(() => true), sound },
   argTypes: { sound: { control: false } },
   globals: { surface: 'stage', viewport: { value: 'projector', isRotated: false } },
 } satisfies Meta<typeof HostControls>;
@@ -54,7 +55,12 @@ export const Question: Story = {};
 
 /** 受付中。時間を待たずに締め切れる */
 export const Accepting: Story = {
-  args: { room: room('accepting', 2) },
+  args: { room: room('accepting', 2), progress: { answeredCount: 3, participantCount: 4 } },
+};
+
+/** 受付中に全員が答えた。説明の文が替わり、同じ文を読み上げる。締め切るかはホストが決める */
+export const AcceptingAllAnswered: Story = {
+  args: { room: room('accepting', 2), progress: { answeredCount: 4, participantCount: 4 } },
 };
 
 /** ① のあと。② の発表だけ（F14） */
@@ -77,7 +83,7 @@ export const FastestLast: Story = {
   args: { room: room('fastest', 9) },
 };
 
-/** 最終ランキング。進む操作はなく、やり直しと終了だけが残る */
+/** 最終ランキング。進む操作がないので、右の主ボタンで部屋を終える。もうやり直せないので、左には音の切り替えだけが残る */
 export const Final: Story = {
   args: { room: room('final', 9) },
 };

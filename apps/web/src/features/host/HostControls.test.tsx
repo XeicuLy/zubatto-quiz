@@ -1,11 +1,14 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { HostCommand, RoomPhase, RoomSnapshot } from '@zubatto-quiz/protocol';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ANNOUNCE_DELAY_MS } from '@/components/a11y/announce';
+import { Announcer } from '@/components/a11y/Announcer';
 import { createSoundPlayer } from '@/shared/sound/sound-player';
 
 import { recordSounds } from '../../../test/fake-sound';
-import { HostControls } from './HostControls';
+import { liveRegion } from '../../../test/live-region';
+import { HostControls, type HostControlsProps } from './HostControls';
 
 /** 5問の部屋。最後の2問は第4問と第5問 */
 const room = (phase: RoomPhase, questionIndex: number | null): RoomSnapshot => ({
@@ -15,10 +18,20 @@ const room = (phase: RoomPhase, questionIndex: number | null): RoomSnapshot => (
   questionIndex,
 });
 
-function renderControls(snapshot: RoomSnapshot) {
+function renderControls(snapshot: RoomSnapshot, progress: HostControlsProps['progress'] = null) {
   const onSend = vi.fn<(command: HostCommand) => boolean>(() => true);
   // 音の切り替えは最後の describe で確かめる。ほかでは Web Audio のない端末にして出さない
-  render(<HostControls room={snapshot} onSend={onSend} sound={createSoundPlayer({ createContext: null })} />);
+  render(
+    <>
+      <Announcer />
+      <HostControls
+        room={snapshot}
+        progress={progress}
+        onSend={onSend}
+        sound={createSoundPlayer({ createContext: null })}
+      />
+    </>,
+  );
   return { onSend };
 }
 
@@ -61,7 +74,6 @@ describe('進行の操作のボタン（F8・F14・F15）', () => {
     ['③ のあとは次の問題', room('standings', 0), ['第2問を出す']],
     ['最後から2問目の ② は ③ を出さない（F15）', room('fastest', 3), ['第5問を出す']],
     ['最後の問題の ② のあとは最終ランキング', room('fastest', 4), ['最終ランキングを出す']],
-    ['最終ランキングのあとは進む操作がない', room('final', 4), []],
   ])('締切のあと: %s', (_case, snapshot, names) => {
     renderControls(snapshot);
 
@@ -95,11 +107,68 @@ describe('やり直し（A3）', () => {
   it.each<[string, RoomSnapshot]>([
     ['待機', room('lobby', null)],
     ['締切のあと（得点は確定している）', room('revealed', 2)],
-    ['最終ランキング', room('final', 4)],
   ])('%s は押せない', (_case, snapshot) => {
     renderControls(snapshot);
 
     expect(screen.getByRole('button', { name: 'この問題をやり直す' })).toBeDisabled();
+  });
+});
+
+describe('受付中の説明（F9）', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('まだ答えていない人がいるあいだは、時間になると締め切ることを出し、読み上げない', () => {
+    renderControls(room('accepting', 2), { answeredCount: 3, participantCount: 4 });
+    act(() => vi.advanceTimersByTime(ANNOUNCE_DELAY_MS));
+
+    expect(screen.getByText('時間になると自動で締め切ります')).toBeInTheDocument();
+    expect(liveRegion('polite')).toBeEmptyDOMElement();
+  });
+
+  it('全員が答えたら、そう出して読み上げる。締め切るかはホストが決めるので、ボタンはそのまま', () => {
+    renderControls(room('accepting', 2), { answeredCount: 4, participantCount: 4 });
+    act(() => vi.advanceTimersByTime(ANNOUNCE_DELAY_MS));
+
+    expect(screen.getByText('全員が回答しました', { selector: 'p' })).toBeInTheDocument();
+    expect(liveRegion('polite')).toHaveTextContent(/^全員が回答しました$/);
+    expect(forwardButtonNames()).toEqual(['いま締め切る']);
+  });
+
+  it.each<[string, HostControlsProps['progress']]>([
+    ['回答した人数がまだ届いていない', null],
+    ['参加者がいない（0 / 0 人）', { answeredCount: 0, participantCount: 0 }],
+  ])('%s ときは、全員とは言わない', (_case, progress) => {
+    renderControls(room('accepting', 2), progress);
+
+    expect(screen.getByText('時間になると自動で締め切ります')).toBeInTheDocument();
+  });
+});
+
+describe('最終ランキングのあと', () => {
+  it('右の主ボタンに「部屋を終える」だけを出し、押せないやり直しと左の終了は出さない', () => {
+    renderControls(room('final', 4));
+
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['部屋を終える']);
+    expect(screen.getByText('部屋を終えても、最終ランキングは画面に残ります')).toBeInTheDocument();
+  });
+
+  it('主ボタンも確かめてから終了を送り、「やめる」で主ボタンへフォーカスを戻す', () => {
+    const { onSend } = renderControls(room('final', 4));
+
+    fireEvent.click(screen.getByRole('button', { name: '部屋を終える' }));
+    fireEvent.click(screen.getByRole('button', { name: 'やめる' }));
+    expect(onSend).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '部屋を終える' }));
+
+    fireEvent.click(screen.getByRole('button', { name: '部屋を終える' }));
+    const dialog = screen.getByRole('alertdialog', { name: /部屋を終えます/ });
+    fireEvent.click(within(dialog).getByRole('button', { name: '部屋を終える' }));
+    expect(onSend).toHaveBeenCalledWith({ type: 'endRoom' });
   });
 });
 
@@ -169,7 +238,7 @@ describe('確かめる表示のフォーカス', () => {
 describe('効果音の切り替え（F18）', () => {
   it('やり直しと終了の並びに「音を消す」を出し、押すと音を消す', () => {
     const sound = recordSounds();
-    render(<HostControls room={room('accepting', 0)} onSend={() => true} sound={sound} />);
+    render(<HostControls room={room('accepting', 0)} progress={null} onSend={() => true} sound={sound} />);
 
     fireEvent.click(screen.getByRole('button', { name: '音を消す' }));
 

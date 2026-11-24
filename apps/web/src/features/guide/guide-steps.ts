@@ -91,7 +91,8 @@ export const hostSteps: readonly GuideStep[] = [
   },
   {
     heading: '最終ランキングを出す',
-    description: '最後の問題のあと、「最終ランキングを出す」で優勝者と全員の順位を見せて終わります。',
+    description:
+      '最後の問題のあと、「最終ランキングを出す」で優勝者と全員の順位を見せます。見せ終えたら「部屋を終える」で閉じます。終えても、最終ランキングは画面に残ります。',
     image: 'host-final',
     alt: '投影する最終ランキングの画面。優勝した人の名前が大きく出て、2位と3位が並ぶ',
     device: 'projector',
