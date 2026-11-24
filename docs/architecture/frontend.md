@@ -278,6 +278,8 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 
 - `forwardCommandsOf(room)` は、先へ進む操作をボタンの順に並べ、`canSend` が通すものだけを残す。最後のものが主ボタンになる
 - やり直しと終了はいつも出す（やり直しは締切のあとは押せない）。送る前に、その場で確かめる（`role="alertdialog"`）。`window.confirm` は残り時間と接続を止めてしまうので使わない
+- 最終ランキングのあとは進む操作がなく、右の主ボタンの場所が空になる。そこで、右に「部屋を終える」を主ボタンとして出し、左のやり直しと終了は出さない（もうやり直せず、同じ操作を2つ並べない）。説明の文は「部屋を終えても、最終ランキングは画面に残ります」。終えても `after_final` で最終ランキングが残るので（[部屋の終わり](#部屋の終わり)）、見せ続けるために終えるのを待たなくてよい。フォーカスはほかの段階と同じく見出しへ移し、この主ボタンへは移さない（#336）
+- 受付中に全員が答えたら（`progress` の `answeredCount` が `participantCount` に届き、参加者が1人以上）、説明の文を「全員が回答しました」に替える。自動では締め切らず、締め切るかはホストが決める。`HostPage` は今の問題の `progress` を `HostControls` に渡す（#336）
 - `HostPage` は `HostControls` を `phase:questionIndex` で key にする。そのため、開きかけの確認は段階が変わると残らない
 - 作り直しで押したボタンが消えるので、`HostPage` は `host.send` を包む。送れて、`stageAfter`（protocol の `transition`）が段階か問題が進むと言えば、その行き先のステージを `pendingFocus` に足す。リストにするのは、② の帯では、どちらの返事も来る前に「途中経過」と「次の問題」を押せるため
 - `phase`/`questionIndex` の `useLayoutEffect` が、純粋な関数 `settleFocus` を動かす。新しいステージに合う最後のものまで待っているステージを使い切り、その見出しにフォーカスを当てる（`headingRef`、`tabIndex={-1}`。映すので outline は出さない。出題・受付中・① の見出しは `StageHeading`（`stage/StageFrame.tsx`）の1か所で書き、結果の部品は `headingRef` を受け取れる）（#111）。最後に合ったものを使うのは、2つのステージが1回の描画にまとまったときと、同じ操作を2回送ったときのため
@@ -372,6 +374,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - つなぎ直しているあいだの重ね表示は、`ReconnectingOverlay`（`shared/connection/ReconnectingOverlay.tsx`）を2つのお知らせで共有し、`variant` で大きさを変える。中身を `inert` の箱に入れて薄くし、上に回る印と文の帯を重ねる。文は呼ぶ側が渡し（ホストには「進行の操作は、つながってからできます」が付く）、部品は `role="status"` も読み上げも持たない。同じ文は `useConnectionAnnouncement` が渡す
 - `ConnectionNotice`（回答者）と `HostConnectionNotice`（ホスト）は1つにしない。閉じたときの文が相手ごとに違い（回答者は `replaced` と部屋の終わり方3通り、ホストは `room_not_found` と一覧へ戻るリンク）、最終ランキングのあとの扱いも違う（回答者は中身の上に帯を出し、ホストは `HostPage` が操作の帯を `HostEndedBar` に差し替える）。1つにすると、ホストかどうかの分かれ道が部品の中に増えるので、見た目が同じ重ね表示だけを部品にした
 - `shared/status/` の2つの画面は、進行画面と回答者画面で共有し、`variant` で大きさを変える。つなぎの `StatusScreen`（「部屋に入っています…」「結果を集計しています」など）は自分で `useAnnouncement` を呼ぶ。見出しと本文の `MessageScreen`（満員、部屋が見つからない、接続が閉じた）は読み上げを持たない。閉じた画面の文は接続のお知らせが assertive で渡すので、部品でも言うと2回読まれる
+- ホストの受付中の「全員が回答しました」は、見える説明の文と同じものを `HostControls` が polite で読む。`HostControls` は段階ごとに作り直されるので、次の問題へは持ち越さない
 - 回答の時間と「締切になりました」を読み上げるのは `Answering` だけ。文は `AnswerFooter.tsx` の `answerAnnouncementOf` が、見える知らせと同じ中身で作る。締切のあとの分かれ道は `AnswerFooter` を作り直すので、そこで読み上げると2回読まれる
 - toast は Base UI の Viewport が持つ `role="region"`・`aria-live="polite"` の領域（名前は「通知」）が読む。`notify` は `announce` を呼ばない。呼ぶと2回読まれる（`notify.test.ts` と `QuestionSetList.test.tsx` が確かめる）。toast を `aria-hidden` にして `announce` で読ませる形はとらない。toast 本体はフォーカスできる `role="dialog"` なので、隠すとフォーカスできる要素を読み上げから隠すことになり、キーボードで止める手段もなくなる
 - テストは `liveRegion(politeness)`（`test/live-region.ts`）で領域を探し、`setup.ts` がテストのたびに `clearAnnouncements()` を呼ぶ。toast の Viewport も `aria-live="polite"` を持つので、`liveRegion` と e2e は `role` のない領域（`[aria-live="polite"]:not([role])`）だけを Announcer とみなす
