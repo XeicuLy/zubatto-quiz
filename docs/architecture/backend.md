@@ -101,6 +101,7 @@
 - 1問に1回だけの回答は、`UNIQUE(question_id, participant_id)` と、受け付け中かの確かめを1つのトランザクションで行って守る
 - `handleAnswer`（`room/handlers/answer.ts`）は、回答者の役割の接続からだけ `answer` を受け付ける（ホストの接続には `invalid_state`）。1つの `transactionSync` の中で、受け付け中の問題を読み（段階が `accepting` でない、部屋が終わっている、`questionId` が今の問題でない、のどれかなら `not_accepting`）、`choiceIndex` をその問題の選択肢の数と比べ（`invalid_choice`）、`ON CONFLICT (question_id, participant_id) DO NOTHING` で入れて、`rowsWritten`/`changes()` が0なら `already_answered` にする。`INSERT OR IGNORE` は使わない。CHECK の違反も飲み込むので、`already_answered` に見えてしまう
 - `answers.elapsed_ms` には `normalizeElapsedMs` の値を入れる。クライアントの値を信じ（P2）、`limitMs` を超える値は断らずに `limitMs` に切り詰め、負の値は decode で `invalid_message` になる。`answerAccepted` は保存した値を返す。`answerProgress` はホストの接続にだけ送り、回答者には送らない
+- 受付中に `join` が通ったら、`handleJoin` は `currentAnswerProgress`（`room/resend.ts`）で今の回答数を作り直し、ホストへ送る。受付中に入った人も分母に入るので、送らないと分母が古いまま残り、まだ答えていない人がいるのに進行画面が「全員が回答しました」と出す（#336）。`resume` は人数を変えないので送らない
 
 ## メッセージの形
 
