@@ -84,7 +84,7 @@
 - `handleJoin` は先に `hashToken` を await し、そのあとで、接続がまだ `OPEN` で、アタッチメントがまだ `null` かを確かめ直す。`crypto.subtle.digest` はストレージの呼び出しではないので、その await の間に、alarm や新しい接続がタイムアウトで接続を閉じることがあり、同じ接続の2回目の `join` も通りうる
 - 名前の重なりは `normalizeName` で比べる（NFKC のあと、ZWJ や異体字セレクタを含むすべての `\p{Default_Ignorable_Code_Point}` を取り除き、前後の空白を取る。大文字と小文字は区別する）。protocol の名前の確認が断るのは Cc と Cf だけなので、こうしないと、Cf の外の見えない文字でほかの人になりすませてしまう。正規化して `''` になる名前は `invalid_message` にする
 - 断った `join` は `room_ended`/`room_full`/`name_taken` で閉じる。形の悪い秘密はハンドラまで届かない。`decodeClientMessage` が `invalid_message` で断るため
-- `handleResume`（`room/handlers/resume.ts`）も、同じく await してから確かめ直す。`resume` は `participantId` を持たないので、`participants` の行（多くて50）をすべて読み、ハッシュを `timingSafeEqual` で比べる。`WHERE token_hash = ?` は使わない。終わった部屋は `room_ended` で閉じ、秘密が違うか `RESUME_WINDOW_MS`（`joined_at` から6時間）を過ぎていれば `resume_failed` で閉じる。`resumed.score` は `sum(question_scores.points)`
+- `handleResume`（`room/handlers/resume.ts`）も、同じく await してから確かめ直す。`resume` は `participantId` を持たないので、`participants` の行（多くて50）をすべて読み、ハッシュを `timingSafeEqual` で比べる。`WHERE token_hash = ?` は使わない。秘密が違えば、部屋が終わっていても `resume_failed` で閉じる。端末は `room_ended` を受けると遊んだ人むけのお礼を出すので、行のない秘密（`join` が届く前に離れた人）に返さない。秘密が合えば、終わった部屋は `room_ended` で閉じ、`RESUME_WINDOW_MS`（`joined_at` から6時間）を過ぎていれば `resume_failed` で閉じる。終わった部屋では、6時間を過ぎた参加者にも `room_ended` を返す。`resumed.score` は `sum(question_scores.points)`
 - X1: `resume` が通ったら、`closeReplacedConnections`（`room/replace-connection.ts`）が、同じ `participantId` のアタッチメントを持つほかの接続を、`resumed` を送る前に 4301 `replaced` で閉じる。`join` はこれを呼ばない。`participantId` が新しいため。`CLOSING` の接続にもう一度 `close()` を呼んでも例外にはならない（2026-10-12 に確かめた）
 - 同じ参加者の新しい接続は古い接続を閉じ、古いタブは自動ではつなぎ直さない
 - `participantId` は、いつもアタッチメントから取る。メッセージの本文からは取らない

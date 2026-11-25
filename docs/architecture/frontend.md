@@ -225,7 +225,7 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 
 ## 部屋の終わり
 
-- `shared/results/room-end.ts` の純粋な関数 `roomEndOf(state)` が、`room_ended` で閉じたあとに残ったストアを読み、次の3つに分ける。`after_final`（段階が `final` で `finalRanking` がある）、`midway`、`not_entered`（`room === null`。DO に `room_ended` で断られたので、どこで終わったかが分からない）。回答者の `not_entered` は、保存した秘密で `resume` した人、つまり終わったあとに読み込み直した参加者だけになる。参加していない人の `join` は、`rejectionOf` が `ended` の画面に移す
+- `shared/results/room-end.ts` の純粋な関数 `roomEndOf(state)` が、`room_ended` で閉じたあとに残ったストアを読み、次の3つに分ける。`after_final`（段階が `final` で `finalRanking` がある）、`midway`、`not_entered`（`room === null`。DO に `room_ended` で断られたので、どこで終わったかが分からない）。回答者の `not_entered` は、終わったあとに読み込み直した参加者だけになる。DO は `resume` の秘密を部屋の終わりより先に確かめ、行と合ったときだけ `room_ended` で閉じるため。`join` が DO に届く前に離れた人の秘密（行がない）は `resume_failed` で消え、名前の入力に戻る。参加していない人の `join` は、`rejectionOf` が `ended` の画面に移す
 - `after_final` では、`ConnectionNotice`（最終順位の上の帯）と `HostPage`（`HostControls` のかわりに `HostEndedBar`）のどちらも最終順位を残す。それ以外では、お知らせが画面を置き換え、回答者には入口へのリンク（`TopLink`）を置く。`after_final` の帯には置かない。離れると、手元の最終順位も消えるため
 - 部屋の DO は、終わった部屋に結果を返さない（#338）。最終順位は、終わったときに開いていた画面にしか残らないので、`after_final` の帯は「読み込み直すと見られなくなる」と言い、画面を撮っておくよう案内する。`not_entered` は「結果はもう見られない」と言う
 - 文言で「結果は画面に出ている」とは言わない（F17）
