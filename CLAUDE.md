@@ -25,6 +25,7 @@ Before you design or implement anything, read the documents below. They are the 
 
 ```sh
 make setup          # mise install (node/pnpm/uv/shellcheck pinned in .mise.toml) + pnpm install --frozen-lockfile
+make dev            # db:migrate:local, then vite dev (http://localhost:5173); stops first when apps/api/.dev.vars is missing
 make check          # everything CI runs: fmt:check, lint, tsc, test
 pnpm run fmt        # oxfmt (printWidth 120, single quotes, sorted imports/Tailwind classes/package.json)
 pnpm run fmt:check

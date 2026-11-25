@@ -1,8 +1,15 @@
-.PHONY: setup fmt lint tsc test check e2e
+.PHONY: setup dev fmt lint tsc test check e2e
 
 setup:
 	mise install
 	mise exec -- pnpm install --frozen-lockfile
+
+# 開発用のサーバー（vite dev、http://localhost:5173）。ローカルの D1 にマイグレーションを当ててから動かす。
+# 当て済みのマイグレーションは飛ばすので、毎回当てても変わらない。.dev.vars が無いとログインできないので、先に止める
+dev:
+	@test -f apps/api/.dev.vars || { echo 'apps/api/.dev.vars が無い。README の「開発環境を作る」の手順3で作る' >&2; exit 1; }
+	mise exec -- pnpm --filter @zubatto-quiz/api run db:migrate:local
+	mise exec -- pnpm --filter @zubatto-quiz/web run dev
 
 fmt:
 	mise exec -- pnpm run fmt

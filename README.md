@@ -27,26 +27,21 @@ Cloudflare の無料プランの上で、TypeScript だけで動く。画面の 
 
 2. ローカル用の GitHub OAuth App を作る（[github-oauth-apps.md](docs/runbooks/github-oauth-apps.md)）
 3. `apps/api/.dev.vars.example` を `apps/api/.dev.vars` に写し、空の値を埋める（[secrets.md](docs/runbooks/secrets.md#ローカル-appsapidevvars)）
-4. ローカルの D1 にマイグレーションを当てる
+4. 開発用のサーバーを動かし、`http://localhost:5173` を開く。ローカルの D1 へのマイグレーションも、動かす前に当てる（当て済みなら何もしない）
 
    ```sh
-   pnpm --filter @zubatto-quiz/api run db:migrate:local
-   ```
-
-5. ローカルの D1 の許可リストに、自分の GitHub のユーザー ID を入れる（[host-allowlist.md](docs/runbooks/host-allowlist.md)。`--local --persist-to ../web/.wrangler/state` を付ける）
-6. 開発用のサーバーを動かし、`http://localhost:5173` を開く
-
-   ```sh
-   pnpm --filter @zubatto-quiz/web run dev
+   make dev
    ```
 
    `vite dev` 1つで、画面の Worker と API の Worker（部屋の DO と D1 を含む）がローカルの Workers の実行環境で動く（ADR 0006）。API の Worker だけを `wrangler dev` で動かすことはしない。ブラウザからは画面の Worker の `/api/*` を通して呼ぶ作りなので、ログインや `Origin` の確認が合わなくなる
 
-7. `http://localhost:5173/login` から GitHub でログインできることを確かめる
+5. ローカルの D1 の許可リストに、自分の GitHub のユーザー ID を入れる（[host-allowlist.md](docs/runbooks/host-allowlist.md)。`--local --persist-to ../web/.wrangler/state` を付ける）。D1 の表は手順4で作られる
+6. `http://localhost:5173/login` から GitHub でログインできることを確かめる
 
 ### よく使うコマンド
 
 ```sh
+make dev            # 開発用のサーバー（ローカルの D1 にマイグレーションを当ててから vite dev）
 make check          # CI と同じ確認（整形・lint・型チェック・テスト）をまとめて走らせる
 make e2e            # 通しの E2E（Playwright）。ホストのログインから最終ランキングまで
 pnpm run fmt        # 整形する
