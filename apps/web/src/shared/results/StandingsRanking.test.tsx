@@ -98,6 +98,25 @@ describe('③ 途中経過の、自分の行の強調', () => {
 /** その要素の中で font-numeral を付けた要素の文字。単位（位・点）は本文の字体なので入らない */
 const numeralsIn = (element: Element) => [...element.querySelectorAll('.font-numeral')].map((node) => node.textContent);
 
+describe('途中経過の文字の大きさ', () => {
+  // 人数が少なくても、会場の後ろの席から名前と点が読めるようにする（#335）
+  // 列の幅（col の em）は表の文字の大きさで決まるので、大きくするのは表全体にし、列の名前だけを小さく戻す
+  it('投影では、行を見出しと同じ text-stage-title にし、列の名前は text-stage-label のままにする', () => {
+    render(<StandingsRanking standings={standings} variant="projector" />);
+
+    const table = screen.getByRole('table', { name: '途中経過' });
+    const [head] = within(table).getAllByRole('rowgroup');
+    expect(table).toHaveClass('text-stage-title');
+    expect(head).toHaveClass('text-stage-label');
+  });
+
+  it('回答者画面では、vw で伸びる大きさを使わない', () => {
+    const { container } = render(<StandingsRanking standings={standings} variant="mobile" />);
+
+    expect(container.querySelector('[class*="text-stage-"]')).toBeNull();
+  });
+});
+
 describe('ランキングの字体（飾り文字は投影の数字だけ）', () => {
   it('投影の途中経過は、どの行も順位と合計の数字だけを font-numeral にする', () => {
     render(<StandingsRanking standings={standings} variant="projector" />);

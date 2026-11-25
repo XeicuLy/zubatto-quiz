@@ -21,11 +21,18 @@ describe('参加用の URL（F1）', () => {
     expect(screen.getByText(JOIN_URL)).toBeInTheDocument();
   });
 
-  it('URL の横に、カメラで読み取れる QR コードを出す', () => {
+  it('カメラで読み取れる QR コードを出し、URL はその下に出す', () => {
     render(<JoinUrlCard joinUrl={JOIN_URL} />);
 
     expect(screen.getByRole('img', { name: '参加用 URL の QR コード' })).toBeInTheDocument();
-    expect(screen.getByText('カメラで読み取るか、この URL を開いて、名前を入れてください')).toBeInTheDocument();
+    expect(screen.getByText('カメラで読み取るか、下の URL を開いて、名前を入れてください')).toBeInTheDocument();
+  });
+
+  // 64桁の ID を含む URL を手で打つ人はいない。遠くから読めるべきなのは QR なので、URL は QR より目立たせない（#335）
+  it('URL は見出しより小さい投影のラベルの大きさで、補足の色にする', () => {
+    render(<JoinUrlCard joinUrl={JOIN_URL} />);
+
+    expect(screen.getByText(JOIN_URL)).toHaveClass('text-stage-label', 'text-muted-foreground');
   });
 
   it('「URL をコピー」で、参加用の URL をクリップボードに書き込む', async () => {

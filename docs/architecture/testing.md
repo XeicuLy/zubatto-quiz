@@ -92,7 +92,7 @@ E2E の環境での開き方（GitHub の OAuth App がないときや、空の�
 
 ## 通しの E2E
 
-`e2e/` の Playwright のテストは、次の4つ（使い方の画像を撮るスクリプトは別。[使い方の画像を撮り直す](#使い方の画像を撮り直す)）。CI では `e2e` の job で動き、`ci` と同じく必須のチェックになっている（[branch-protection.md](../runbooks/branch-protection.md#何を決めているか)）。
+`e2e/` の Playwright のテストは、次の5つ（使い方の画像を撮るスクリプトは別。[使い方の画像を撮り直す](#使い方の画像を撮り直す)）。CI では `e2e` の job で動き、`ci` と同じく必須のチェックになっている（[branch-protection.md](../runbooks/branch-protection.md#何を決めているか)）。
 
 | spec                       | 確かめること                                                                                                                                                                                               |
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -100,6 +100,7 @@ E2E の環境での開き方（GitHub の OAuth App がないときや、空の�
 | `csp.spec.ts`              | CSP の違反を集める仕組みが、インラインのスクリプトを捕まえられること。使い方のページが、画像を同じオリジンから読み、違反を出さないこと                                                                     |
 | `player-reconnect.spec.ts` | リロード、別のタブ（X1）、失敗する `resume`、サーバーの側で切れたとき、名前の重なり、形の悪い部屋の ID                                                                                                     |
 | `a11y.spec.ts`             | 参加の画面、ホストの待機画面、回答中とホストの受付中の画面、ホストの ①、入口と使い方のページ（それぞれ 390×844 と 1600×900）で、axe の違反がないこと。違反（コントラストを含む）を見落とさないかも確かめる |
+| `host-lobby-fit.spec.ts`   | 投影する待機画面が、だれもいないとき、50人が入ったとき、全員が上限の長さの名前の30人・50人のとき、1920×1080 と 1440×900 でスクロールなしの1画面に収まること（#335）                                        |
 
 ### 本番と同じビルドで動かす
 
@@ -122,6 +123,7 @@ E2E の環境での開き方（GitHub の OAuth App がないときや、空の�
 - 回答者の選択肢のボタンの名前は、番号と文（`1富士山`）になる。`choiceButton` は `^<n>\s*<text>$` で探す
 - `collectCspViolations(context)` は、`Content Security Policy` を含むコンソールのエラーを集める
 - `player-reconnect.spec.ts` と `a11y.spec.ts` は、`beforeAll` で HTTP API から部屋を1つ作る（`e2e/helpers/room.ts` の `createRoom(context, questionSet)`）。画面から部屋を作る流れは `full-game` が確かめる。`player-reconnect` は、ケースごとに context と回答者の名前を分ける
+- `host-lobby-fit.spec.ts` は、回答者を `tools/loadtest` の `Bot.join` で入れる。30人と50人は、待機画面の参加者の並べ方が切り替わる両側（`HostLobby` の `LOOSE_MAX_PARTICIPANTS`）。Node の WebSocket は `Origin` を付けられるので、Origin の確かめ（ADR 0006）を本物の回答者と同じく通る。画面の高さは、`document.fonts.ready` のあとに `document.documentElement.scrollHeight` と `innerHeight` を比べる。収まっていれば両者は等しい（`scrollHeight` は画面の高さより小さくならない）
 - `e2e/helpers/player.ts` には、`joinRoom`（`full-game` と共有）、`countWebSockets`（`page.on('websocket')`）、`relayPlayerSocket` がある。`relayPlayerSocket` は `page.routeWebSocket` と `connectToServer()` で本物の DO へ中継し、`cut()` でサーバーの側を閉じ、`restore()` でつなぎ直しをまた通す。この関門がないと、最初のつなぎ直しは 250〜500 ms で終わり、「再接続中」が `toBeVisible` に見つかる前に消えてしまう
 - ルートの `package.json` は `@zubatto-quiz/protocol` に頼っているので、spec は API の応答を protocol のスキーマで読む。秘密を置く localStorage のキーは、`apps/web` の `tokenKey` を import して使う
 - `e2e/**` と `playwright.config.*` は、oxlint ではテストのコードとして扱う（`@playwright/test` が `**/test` の形に当たる）

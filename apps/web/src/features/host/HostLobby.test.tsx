@@ -40,6 +40,41 @@ describe('ホストの待機画面（F1・F3）', () => {
     expect(screen.getByText('まだだれも入っていません')).toBeInTheDocument();
   });
 
+  // 長い名前が混じっても、チップの幅に上限があれば一覧の行が増えにくい。50人で収まるかは e2e/host-lobby-fit.spec.ts が測る（#335）
+  it('名前のチップは幅に上限があり、長い名前は1行で省略して title で全文を見せる', () => {
+    const name = 'ながいながいなまえのさんじゅうもじくらいあるひとです';
+    render(<HostLobby room={ROOM} participants={[{ ...TARO, name }]} joinUrl={JOIN_URL} />);
+
+    const chip = within(screen.getByRole('list', { name: /参加者/ })).getByRole('listitem');
+    expect(chip).toHaveClass('max-w-[10em]');
+    expect(within(chip).getByTitle(name)).toHaveClass('name-clip');
+  });
+
+  // 幅の上限だけでは、1行に並ぶ人数が名前の長さで変わる。1440×900 では上限の幅のチップが1行に3人なので、
+  // 30人までなら10行で収まる。それより多いと、名前の長さにかかわらず5列の格子に並べる（#335 のレビュー）
+  const people = (count: number) =>
+    Array.from({ length: count }, (_, i) => ({
+      participantId: `6f1c1c2e-2b8a-4c55-9d5e-1a2b3c4d5e${String(i).padStart(2, '0')}`,
+      name: `なまえ${i}`,
+    }));
+  const participantList = () => screen.getByRole('list', { name: /参加者/ });
+
+  it('30人までは、名前の長さに合わせたチップを折り返して並べる', () => {
+    render(<HostLobby room={ROOM} participants={people(30)} joinUrl={JOIN_URL} />);
+
+    expect(participantList()).toHaveClass('flex-wrap');
+    expect(participantList()).not.toHaveClass('grid');
+  });
+
+  it('31人からは、幅のそろった格子に並べ、名前の長さで行が増えないようにする', () => {
+    render(<HostLobby room={ROOM} participants={people(31)} joinUrl={JOIN_URL} />);
+
+    expect(participantList()).toHaveClass('grid', 'grid-cols-[repeat(auto-fill,minmax(6em,1fr))]');
+    for (const chip of within(participantList()).getAllByRole('listitem')) {
+      expect(chip).not.toHaveClass('max-w-[10em]');
+    }
+  });
+
   it('名前を HTML として読まず、文字のまま出す（ADR 0004）', () => {
     const name = '<img src=x onerror=alert(1)>';
     const { container } = render(<HostLobby room={ROOM} participants={[{ ...TARO, name }]} joinUrl={JOIN_URL} />);
