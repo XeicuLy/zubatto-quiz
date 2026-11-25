@@ -7,6 +7,8 @@ import { useConnectionAnnouncement } from '@/shared/connection/use-connection-an
 import type { RoomEnd } from '@/shared/results/room-end';
 import { MessageScreen } from '@/shared/status/MessageScreen';
 
+import { TopLink } from './TopLink';
+
 interface ConnectionNoticeProps {
   connection: ConnectionStatus;
   closeReason: CloseReason | null;
@@ -28,7 +30,12 @@ export function ConnectionNotice({ connection, closeReason, roomEnd, children }:
   useConnectionAnnouncement({ connection, reconnecting: reconnectingMessage, closed });
 
   if (closed !== null && roomEnd !== 'after_final') {
-    return <MessageScreen variant="mobile" title={closed.title} body={closed.body} />;
+    return (
+      <MessageScreen variant="mobile" title={closed.title} body={closed.body}>
+        {/* 部屋が終わったらもう戻れないので、入口へ出る道を置く。別のタブで開かれたときは、そのタブで続けられる */}
+        {roomEnd !== null && <TopLink />}
+      </MessageScreen>
+    );
   }
   if (connection !== 'reconnecting') {
     // つながっているときと同じ並びで返し、終わっても中身を作り直さない。作り直すと、優勝の出てくるアニメーションがもう一度流れる
@@ -73,20 +80,24 @@ function RoomEndedBanner() {
   );
 }
 
-// スクリーンのない会場もある（F17）ので、結果がどこに出ているかは言わない
+// スクリーンのない会場もある（F17）ので、結果がどこに出ているかは言わない。
+// 部屋の DO は、終わった部屋に結果を返さない（#338）。最終の結果は、終わったときに開いていた画面にしか残らない
 const roomEndedMessages: Record<RoomEnd, Message> = {
   after_final: {
     title: 'この部屋は終わりました',
-    body: '遊んでくれてありがとうございました。最終の結果は、この画面で見られます。',
+    body: '遊んでくれてありがとうございました。最終の結果は、読み込み直すと見られなくなります。残したいときは、画面を撮っておいてください。',
   },
   midway: {
     title: 'この部屋は終わりました',
     body: 'ホストが部屋を途中で終えました。遊んでくれてありがとうございました。',
   },
-  // 終わったあとに読み込み直した人も、あとから URL を開いた人も来る。どこで終わったかは分からない
+  // 終わったあとに、保存した秘密で読み込み直した人が来る。部屋の DO は、秘密が参加者の行と合ったときだけ resume を
+  // room_ended で閉じる（行がなければ resume_failed）ので、ここに来るのは遊んだ人だけで、お礼を言ってよい。
+  // あとから URL を開いて join で断られた人は、秘密を消して player-room の ended の画面にするので、ここには来ない。
+  // どこで終わったかは分からない
   not_entered: {
     title: 'この部屋は終わりました',
-    body: '遊んでくれてありがとうございました。',
+    body: '遊んでくれてありがとうございました。部屋が終わったので、結果はもう見られません。',
   },
 };
 

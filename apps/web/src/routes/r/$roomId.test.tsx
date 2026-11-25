@@ -133,7 +133,7 @@ describe('断られたとき・閉じられたとき（ADR 0004）', () => {
     expect(server.latest.received).toMatchObject([{ type: 'join', name: 'じろう' }]);
   });
 
-  it('満員なら、満員の画面を出す', async () => {
+  it('満員なら、満員の画面と入口へのリンクを出し、急ぎで読み上げる', async () => {
     const { server } = await openPlayerPage();
 
     await joinAs('たろう');
@@ -144,9 +144,12 @@ describe('断られたとき・閉じられたとき（ADR 0004）', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('この部屋は満員です');
     expect(screen.queryByLabelText('名前')).toBeNull();
+    expect(screen.getByRole('link', { name: 'ズバクイのトップへ' })).toHaveAttribute('href', '/');
+    // 参加するを押したあとに画面が替わるので、急ぎで読み上げる
+    await waitFor(() => expect(liveRegion('assertive')).toHaveTextContent(/^この部屋は満員です。/));
   });
 
-  it('部屋がなければ、秘密を消して「部屋が見つかりません」を出す', async () => {
+  it('部屋がなければ、秘密を消して「部屋が見つかりません」と入口へのリンクを出し、急ぎで読み上げる', async () => {
     const { server } = await openPlayerPage();
 
     await joinAs('たろう');
@@ -159,6 +162,8 @@ describe('断られたとき・閉じられたとき（ADR 0004）', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('部屋が見つかりません');
     expect(screen.queryByLabelText('名前')).toBeNull();
     expect(server.sockets).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'ズバクイのトップへ' })).toHaveAttribute('href', '/');
+    await waitFor(() => expect(liveRegion('assertive')).toHaveTextContent(/^部屋が見つかりません。/));
   });
 
   it('切れたら「再接続中」を出す', async () => {
@@ -348,7 +353,11 @@ describe('部屋が終わったとき（#97・F17）', () => {
     act(() => server.latest.closeFromServer(CLOSE_CODES.room_ended));
 
     expect(screen.getByText('この部屋は終わりました', { selector: 'p' })).toBeInTheDocument();
+    // 部屋の DO は終わった部屋に結果を返さないので、手元の画面にしか残らないことを言う
+    expect(screen.getByText(/最終の結果は、読み込み直すと見られなくなります。/)).toBeInTheDocument();
     await waitFor(() => expect(liveRegion('assertive')).toHaveTextContent('この部屋は終わりました'));
+    // 離れると手元の最終ランキングも消えるので、外へのリンクは置かない
+    expect(screen.queryByRole('link')).toBeNull();
     // 作り直さずに同じ要素を残す。作り直すと、優勝の出てくるアニメーションがもう一度流れる
     expect(winner).toBeInTheDocument();
     expect(winner).toHaveTextContent('はなこ');
@@ -379,7 +388,7 @@ describe('部屋が終わったとき（#97・F17）', () => {
     expect(screen.queryByText('今年の社内ランチで一番人気の店は？')).toBeNull();
   });
 
-  it('終わったあとに読み込み直したら、どこで終わったかは言わずに、終わったことだけを出す', async () => {
+  it('終わったあとに読み込み直したら、どこで終わったかは言わずに、結果がもう見られないことを出す', async () => {
     saveToken(ROOM_ID, createToken());
     const { server } = await openPlayerPage();
 
@@ -390,7 +399,55 @@ describe('部屋が終わったとき（#97・F17）', () => {
     });
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('この部屋は終わりました');
-    expect(screen.getByText('遊んでくれてありがとうございました。')).toBeInTheDocument();
+    expect(
+      screen.getByText('遊んでくれてありがとうございました。部屋が終わったので、結果はもう見られません。'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'ズバクイのトップへ' })).toHaveAttribute('href', '/');
+  });
+
+  it('行のない秘密で終わった部屋を開き直したら、名前の入力に戻り、入れても遊んだ人むけの文は出さない', async () => {
+    // join が DO に届く前に離れた人。秘密は join の前に保存するので残っている
+    saveToken(ROOM_ID, createToken());
+    const { server } = await openPlayerPage();
+
+    // 部屋の DO は、終わった部屋でも秘密を先に確かめ、行がなければ resume_failed で閉じる
+    act(() => {
+      server.latest.open();
+      server.latest.closeFromServer(CLOSE_CODES.resume_failed);
+    });
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('前回の参加には戻れませんでした');
+    expect(loadToken(ROOM_ID)).toBeNull();
+
+    await joinAs('たろう');
+    act(() => {
+      server.latest.open();
+      server.latest.closeFromServer(CLOSE_CODES.room_ended);
+    });
+
+    expect(screen.getByText('この部屋には、もう参加できません。')).toBeInTheDocument();
+    expect(screen.queryByText(/遊んでくれて/)).toBeNull();
+  });
+
+  it('参加していない人が終わった部屋に入ろうとしたら、遊んだ人むけの文は出さず、秘密を消す', async () => {
+    const { server } = await openPlayerPage();
+
+    // 部屋の DO は、終わった部屋への join を、行を作らずに閉じる
+    await joinAs('たろう');
+    act(() => {
+      server.latest.open();
+      server.latest.closeFromServer(CLOSE_CODES.room_ended);
+    });
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('この部屋は終わりました');
+    expect(screen.getByText('この部屋には、もう参加できません。')).toBeInTheDocument();
+    expect(screen.queryByText(/遊んでくれて/)).toBeNull();
+    expect(screen.queryByLabelText('名前')).toBeNull();
+    expect(screen.getByRole('link', { name: 'ズバクイのトップへ' })).toHaveAttribute('href', '/');
+    await waitFor(() =>
+      expect(liveRegion('assertive')).toHaveTextContent('この部屋は終わりました。この部屋には、もう参加できません。'),
+    );
+    // 残すと、読み込み直したときに resume で入った人と見分けられない
+    expect(loadToken(ROOM_ID)).toBeNull();
   });
 });
 

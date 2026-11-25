@@ -18,7 +18,7 @@ import { clearToken, createToken, loadToken, saveToken } from './token-storage';
 export type JoinNotice = 'name_taken' | 'resume_failed';
 
 /** 秘密を消して入り直す理由。これ以外の閉じ方は、部屋の中の画面のまま ConnectionNotice が出す */
-export type Rejection = JoinNotice | 'room_full' | 'room_not_found';
+export type Rejection = JoinNotice | 'room_full' | 'room_not_found' | 'room_ended';
 
 export type PlayerEntry =
   /** 名前の入力。name は入れ直すときに残しておく前回の名前 */
@@ -32,7 +32,12 @@ export type PlayerEntry =
   /** 部屋が満員（SC1）。参加者は抜けないので、入れ直しても通らない */
   | { screen: 'full' }
   /** 部屋がない。URL の打ち間違いなどで、入れ直しても通らない */
-  | { screen: 'not_found' };
+  | { screen: 'not_found' }
+  /**
+   * 入る前に部屋が終わっていた（join を room_ended で断られた）。参加していない人なので、遊んだ人むけの文は出さない。
+   * 入ったあとに終わったときと、終わったあとに resume した人は、部屋の中の画面のまま ConnectionNotice が出す
+   */
+  | { screen: 'ended' };
 
 export interface PlayerRoom {
   readonly store: StoreApi<{ entry: PlayerEntry }>;
@@ -78,7 +83,10 @@ export function createPlayerRoom({ roomId, url, createSocket, sound }: PlayerRoo
       onStatus: (status, closeCode) => {
         connectionChanged(status, closeCode);
         if (status === 'closed') {
-          rejected(room.getState().closeReason, name ?? '');
+          const { closeReason, room: snapshot } = room.getState();
+          // join を送り、まだ joined を受け取っていない。resume で入る人は、入った人なので含めない
+          const joinPending = name !== undefined && snapshot === null;
+          rejected(rejectionOf(closeReason, { joinPending }), name ?? '');
         }
       },
     });
@@ -86,8 +94,7 @@ export function createPlayerRoom({ roomId, url, createSocket, sound }: PlayerRoo
   }
 
   /** 断られた秘密は部屋の DO に行がない（か、もう使えない）ので消し、入り直してもらう（ADR 0004） */
-  function rejected(reason: CloseReason | null, name: string) {
-    const rejection = rejectionOf(reason);
+  function rejected(rejection: Rejection | null, name: string) {
     if (rejection === null) {
       return;
     }
@@ -122,12 +129,18 @@ export function createPlayerRoom({ roomId, url, createSocket, sound }: PlayerRoo
 
 /**
  * 閉じた理由のうち、秘密を消して入り直してもらうものを返す。ほかは null。
- * connectRoom がつなぎ直さずに閉じたときだけ呼ばれる（つなぎ直す join_timeout・connection_limit はここに来ない）
+ * connectRoom がつなぎ直さずに閉じたときだけ呼ばれる（つなぎ直す join_timeout・connection_limit はここに来ない）。
+ * joinPending は、join を送ってまだ joined を受け取っていないこと
  */
-export function rejectionOf(reason: CloseReason | null): Rejection | null {
+export function rejectionOf(reason: CloseReason | null, { joinPending }: { joinPending: boolean }): Rejection | null {
   // どれも部屋の DO に使える行がない秘密。かぶりと満員では行が作られず、resume_failed では合う行がないか期限切れ、
   // room_not_found では部屋そのものがない
   if (reason === 'name_taken' || reason === 'resume_failed' || reason === 'room_full' || reason === 'room_not_found') {
+    return reason;
+  }
+  // 終わった部屋への join も、満員と同じく行が作られない。残すと、読み込み直したときに resume で入った人と見分けられない。
+  // 入ったあとに終わったときと resume のときは、遊んだ人なので部屋の画面にとどめる
+  if (reason === 'room_ended' && joinPending) {
     return reason;
   }
   // replaced は別のタブが同じ秘密で使っているので、消すとそのタブが読み込み直したときに戻れなくなる
@@ -138,7 +151,7 @@ export function rejectionOf(reason: CloseReason | null): Rejection | null {
  * 断られた理由から、次に出す画面を決める。秘密はもう消してある。
  *
  * - 名前を変えれば通るかもしれない理由（name_taken・resume_failed）は、名前の入力に戻す。name は入力欄に残す前回の名前
- * - 入れ直しても通らない理由（room_full・room_not_found）は、それぞれの画面にして止める
+ * - 入れ直しても通らない理由（room_full・room_not_found・room_ended）は、それぞれの画面にして止める
  */
 export function entryAfter(rejection: Rejection, name: string): PlayerEntry {
   switch (rejection) {
@@ -149,5 +162,7 @@ export function entryAfter(rejection: Rejection, name: string): PlayerEntry {
       return { screen: 'full' };
     case 'room_not_found':
       return { screen: 'not_found' };
+    case 'room_ended':
+      return { screen: 'ended' };
   }
 }

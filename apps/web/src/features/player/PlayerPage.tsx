@@ -5,13 +5,13 @@ import { FinalRanking } from '@/shared/results/FinalRanking';
 import { roomEndOf } from '@/shared/results/room-end';
 import type { SoundPlayer } from '@/shared/sound/sound-player';
 import { SoundToggle } from '@/shared/sound/SoundToggle';
-import { MessageScreen } from '@/shared/status/MessageScreen';
 import { StatusScreen } from '@/shared/status/StatusScreen';
 
 import { ConnectionNotice } from './ConnectionNotice';
 import { JoinForm } from './JoinForm';
 import type { PlayerEntry, PlayerRoom } from './player-room';
 import { QuestionView } from './QuestionView';
+import { RefusedScreen } from './RefusedScreen';
 import { ResultView } from './ResultView';
 import { WaitingRoom } from './WaitingRoom';
 
@@ -35,20 +35,16 @@ export function PlayerPage({ player, sound }: { player: PlayerRoom; sound: Sound
       );
     case 'full':
       return (
-        <MessageScreen
-          variant="mobile"
+        <RefusedScreen
           title="この部屋は満員です"
           body={`1つの部屋に入れるのは${MAX_PARTICIPANTS}人までです。ホストに、別の部屋を作れるか聞いてください。`}
         />
       );
     case 'not_found':
-      return (
-        <MessageScreen
-          variant="mobile"
-          title="部屋が見つかりません"
-          body="URL が正しいか、ホストに確かめてください。"
-        />
-      );
+      return <RefusedScreen title="部屋が見つかりません" body="URL が正しいか、ホストに確かめてください。" />;
+    case 'ended':
+      // 参加していない人なので、遊んだ人むけのお礼は言わない
+      return <RefusedScreen title="この部屋は終わりました" body="この部屋には、もう参加できません。" />;
     case 'room':
       return <InRoom entry={entry} onAnswer={player.answer} sound={sound} />;
   }

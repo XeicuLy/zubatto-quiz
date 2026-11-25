@@ -162,20 +162,62 @@ describe('断られたとき（ADR 0004）', () => {
     expect(server.sockets).toHaveLength(1);
   });
 
-  it.each([
-    ['replaced', CLOSE_CODES.replaced],
-    ['room_ended', CLOSE_CODES.room_ended],
-  ] as const)('%s で閉じられたら、部屋の中の画面のまま理由を残し、つなぎ直さない', async (reason, code) => {
+  it('参加する前に部屋が終わっていたら、秘密を消して「終わった部屋」の画面にし、つなぎ直さない', async () => {
+    const { server, player, entry } = setup();
+
+    // 部屋の DO は、終わった部屋への join を、行を作らずに room_ended で閉じる
+    player.join('たろう');
+    server.latest.open();
+    server.latest.closeFromServer(CLOSE_CODES.room_ended);
+    await vi.runOnlyPendingTimersAsync();
+
+    expect(loadToken(ROOM_ID)).toBeNull();
+    expect(entry()).toEqual({ screen: 'ended' });
+    expect(server.sockets).toHaveLength(1);
+  });
+
+  it('入ったあとに部屋が終わったら、部屋の中の画面のまま理由を残し、秘密も残す', async () => {
     const { server, player, entry } = setup();
 
     player.join('たろう');
     server.latest.open();
-    server.latest.closeFromServer(code);
+    server.latest.emit({ type: 'joined', participantId: PARTICIPANT_ID, room: ROOM });
+    server.latest.closeFromServer(CLOSE_CODES.room_ended);
     await vi.runOnlyPendingTimersAsync();
 
     const room = roomOf(entry()).room.getState();
     expect(room.connection).toBe('closed');
-    expect(room.closeReason).toBe(reason);
+    expect(room.closeReason).toBe('room_ended');
+    expect(loadToken(ROOM_ID)).not.toBeNull();
+    expect(server.sockets).toHaveLength(1);
+  });
+
+  it('終わった部屋に resume で入ろうとしたら、部屋の中の画面のまま理由を残し、秘密も残す', async () => {
+    saveToken(ROOM_ID, createToken());
+    const { server, player, entry } = setup();
+
+    // 終わったあとの読み込み直し。秘密を持っているのは、入れた人だけ
+    player.resumeSaved();
+    server.latest.open();
+    server.latest.closeFromServer(CLOSE_CODES.room_ended);
+    await vi.runOnlyPendingTimersAsync();
+
+    const room = roomOf(entry()).room.getState();
+    expect(room.closeReason).toBe('room_ended');
+    expect(loadToken(ROOM_ID)).not.toBeNull();
+  });
+
+  it('別のタブで開かれたら、部屋の中の画面のまま理由を残し、秘密も残してつなぎ直さない', async () => {
+    const { server, player, entry } = setup();
+
+    player.join('たろう');
+    server.latest.open();
+    server.latest.closeFromServer(CLOSE_CODES.replaced);
+    await vi.runOnlyPendingTimersAsync();
+
+    const room = roomOf(entry()).room.getState();
+    expect(room.connection).toBe('closed');
+    expect(room.closeReason).toBe('replaced');
     expect(loadToken(ROOM_ID)).not.toBeNull();
     expect(server.sockets).toHaveLength(1);
   });
@@ -192,8 +234,17 @@ describe('閉じた理由のうち、秘密を消して入り直すもの', () =
     ['join_timeout', null],
     ['connection_limit', null],
     [null, null],
-  ])('%s → %s', (reason, expected) => {
-    expect(rejectionOf(reason)).toBe(expected);
+  ])('入ったあと・resume のとき、%s → %s', (reason, expected) => {
+    expect(rejectionOf(reason, { joinPending: false })).toBe(expected);
+  });
+
+  it.each<[CloseReason | null, ReturnType<typeof rejectionOf>]>([
+    ['room_ended', 'room_ended'],
+    ['name_taken', 'name_taken'],
+    ['replaced', null],
+    [null, null],
+  ])('join の返事を待っているとき、%s → %s', (reason, expected) => {
+    expect(rejectionOf(reason, { joinPending: true })).toBe(expected);
   });
 });
 
@@ -203,6 +254,7 @@ describe('断られた理由から次の画面を決める', () => {
     ['resume_failed', { screen: 'form', notice: 'resume_failed', name: 'たろう' }],
     ['room_full', { screen: 'full' }],
     ['room_not_found', { screen: 'not_found' }],
+    ['room_ended', { screen: 'ended' }],
   ])('%s → %o', (rejection, expected) => {
     expect(entryAfter(rejection, 'たろう')).toEqual(expected);
   });

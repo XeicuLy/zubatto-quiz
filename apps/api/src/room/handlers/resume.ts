@@ -20,14 +20,10 @@ function sameHash(a: ArrayBuffer, b: ArrayBuffer): boolean {
 }
 
 /**
- * 秘密のハッシュから、戻ってよい回答者を探す。部屋が終わっていれば room_ended、
- * 秘密が合わないか入室から6時間を過ぎていれば resume_failed を返す
+ * 秘密のハッシュから、戻ってよい回答者を探す。秘密が合わなければ resume_failed、
+ * 合っても部屋が終わっていれば room_ended、入室から6時間を過ぎていれば resume_failed を返す
  */
 function findParticipant(sql: SqlStorage, tokenHash: ArrayBuffer): FindResult {
-  const { ended_at } = sql.exec<{ ended_at: number | null }>('SELECT ended_at FROM room').one();
-  if (ended_at !== null) {
-    return { ok: false, reason: 'room_ended' };
-  }
   // resume は participantId を持たないので、秘密のハッシュから回答者を探す。
   // WHERE で引くと、比べる時間が中身で変わる。回答者は50名までなので、全員のハッシュを timingSafeEqual で比べる
   const row = sql
@@ -36,8 +32,18 @@ function findParticipant(sql: SqlStorage, tokenHash: ArrayBuffer): FindResult {
     )
     .toArray()
     .find((participant) => sameHash(participant.token_hash, tokenHash));
+  // 部屋の終わりより先に、秘密を確かめる。room_ended を受けた端末は、遊んだ人むけのお礼を出す（#338）。
+  // 秘密は join の前に保存するので、join が届く前に離れた人も、行のない秘密を持っている
+  if (!row) {
+    return { ok: false, reason: 'resume_failed' };
+  }
+  // 6時間は戻れる期限で、過ぎても遊んだ人であることは変わらないので、終わった部屋では期限より先に見る
+  const { ended_at } = sql.exec<{ ended_at: number | null }>('SELECT ended_at FROM room').one();
+  if (ended_at !== null) {
+    return { ok: false, reason: 'room_ended' };
+  }
   // 秘密が合わないときと6時間を過ぎたときは、同じ理由で閉じる。どちらでも端末のすることは同じなので、分けて伝えない
-  if (!row || Date.now() - row.joined_at > RESUME_WINDOW_MS) {
+  if (Date.now() - row.joined_at > RESUME_WINDOW_MS) {
     return { ok: false, reason: 'resume_failed' };
   }
   return { ok: true, participantId: row.participant_id, name: row.name };
