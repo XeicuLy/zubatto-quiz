@@ -4,7 +4,8 @@ import type { RoomState } from '@/realtime/room-store';
  * ホストが部屋を終えたとき、部屋がどこまで進んでいたか（#97）。
  * - after_final: 最終ランキングを出したあと。閉じたあとも、手元に最終ランキングを残す
  * - midway: それより前（待機・出題・結果の途中）。発表した最終の結果はない
- * - not_entered: 部屋に入る前に断られた。回答者では、終わったあとに保存した秘密で読み込み直した人。
+ * - not_entered: 部屋に入る前に断られた。回答者では、終わったあとに保存した秘密で読み込み直した参加者。
+ *   部屋の DO は、秘密が参加者の行と合ったときだけ resume を room_ended で閉じる。
  *   あとから URL を開いて join で断られた人は、player-room が秘密を消して ended の画面にするので、ここには来ない
  */
 export type RoomEnd = 'after_final' | 'midway' | 'not_entered';

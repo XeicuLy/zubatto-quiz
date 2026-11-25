@@ -405,6 +405,29 @@ describe('部屋が終わったとき（#97・F17）', () => {
     expect(screen.getByRole('link', { name: 'ズバクイのトップへ' })).toHaveAttribute('href', '/');
   });
 
+  it('行のない秘密で終わった部屋を開き直したら、名前の入力に戻り、入れても遊んだ人むけの文は出さない', async () => {
+    // join が DO に届く前に離れた人。秘密は join の前に保存するので残っている
+    saveToken(ROOM_ID, createToken());
+    const { server } = await openPlayerPage();
+
+    // 部屋の DO は、終わった部屋でも秘密を先に確かめ、行がなければ resume_failed で閉じる
+    act(() => {
+      server.latest.open();
+      server.latest.closeFromServer(CLOSE_CODES.resume_failed);
+    });
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('前回の参加には戻れませんでした');
+    expect(loadToken(ROOM_ID)).toBeNull();
+
+    await joinAs('たろう');
+    act(() => {
+      server.latest.open();
+      server.latest.closeFromServer(CLOSE_CODES.room_ended);
+    });
+
+    expect(screen.getByText('この部屋には、もう参加できません。')).toBeInTheDocument();
+    expect(screen.queryByText(/遊んでくれて/)).toBeNull();
+  });
+
   it('参加していない人が終わった部屋に入ろうとしたら、遊んだ人むけの文は出さず、秘密を消す', async () => {
     const { server } = await openPlayerPage();
 

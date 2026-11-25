@@ -51,6 +51,37 @@ describe('resume（F19・ADR 0004）', () => {
     expect(await closed).toEqual({ code: CLOSE_CODES.room_ended, reason: 'room_ended' });
   });
 
+  // 端末は room_ended なら遊んだ人として「遊んでくれてありがとう」を出す（#338）。
+  // 秘密は join の前に保存するので、DO に届く前に離れた人も、行のない秘密を持っている
+  it('部屋が終わったあとでも、行のない秘密なら 4410 ではなく 4401 resume_failed で閉じる', async () => {
+    const stub = await newRoom();
+    await joinPlayer(stub, 'たろう', newToken());
+    await runInDurableObject(stub, (_instance, state) => {
+      state.storage.sql.exec('UPDATE room SET ended_at = ?', Date.now());
+    });
+
+    const { closed } = await resumePlayer(stub, newToken());
+
+    expect(await closed).toEqual({ code: CLOSE_CODES.resume_failed, reason: 'resume_failed' });
+  });
+
+  it('部屋が終わったあとは、入室から6時間を過ぎた参加者にも 4410 room_ended で閉じる', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const joinedAt = Date.now();
+    const stub = await newRoom();
+    const token = newToken();
+    await joinPlayer(stub, 'たろう', token);
+    await runInDurableObject(stub, (_instance, state) => {
+      state.storage.sql.exec('UPDATE room SET ended_at = ?', Date.now());
+    });
+
+    // 6時間は戻れる期限で、遊んだ人であることは変わらない。終わったことを伝える
+    vi.setSystemTime(joinedAt + RESUME_WINDOW_MS + 1);
+    const { closed } = await resumePlayer(stub, token);
+
+    expect(await closed).toEqual({ code: CLOSE_CODES.room_ended, reason: 'room_ended' });
+  });
+
   it('入室から6時間ちょうどまでは戻れ、それを過ぎると 4401 resume_failed で閉じる', async () => {
     // 部屋の DO もテストと同じ isolate で動くので、Date.now() の値をテストから進められる
     vi.useFakeTimers({ toFake: ['Date'] });
