@@ -270,6 +270,11 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - loader は1つの `createHostRoom`（`host-room.ts`）を作り、回答者と同じく `onEnter`/`onLeave` が `connect`/`leave` を呼ぶ。ホストは最初のメッセージを送らない
 - 参加の URL は `roomJoinUrl(roomId, location)` で、API の `joinUrl` と同じ値（同じオリジン、ADR 0006）。そのため、再読み込みしても出せる
 - `JoinQrCode` は、その URL の QR を uqr の `boolean[][]`（`ecc: 'M'`、`boostEcc`、`viewBox` の中に4モジュールの余白）から描く。純粋な関数 `qrPathOf`（`qr-path.ts`）が作る1つの JSX の `<path>` にし、`innerHTML` で SVG の文字列を入れることはしない
+- 待機画面（`HostLobby`）は投影する画面で、やることは QR を読むことだけなので、QR を主役にする。1920×1080 と 1440×900 では、下の進行の帯まで含めてスクロールなしの1画面に収める（#335）
+  - QR の大きさは `clamp(12rem,min(21vw,36vh),28rem)`。幅だけで決めると、横に長い画面で高さがはみ出す
+  - 参加用の URL は64桁の ID を含んで長く、手で打つ人はいない。QR の下にカードの幅いっぱいで `text-stage-label` の補足の色で出す（1920 で2行）。人に送るときは「URL をコピー」を使う
+  - 参加者のチップは `max-w-[10em]` で、名前は `name-clip`。50人が入っても行の数が決まる。ただし、全員が上限の32文字の名前なら収まらない。ふつうの名前に長い名前を1割まぜた50人で、`e2e/host-lobby-fit.spec.ts` が高さを測る
+- ③ 途中経過（`StandingsRanking`）の投影の行は、見出しと同じ `text-stage-title`。列の幅（`col` の `em`）は表の文字の大きさで決まるので、大きさは表全体に付け、列の名前（`thead`）だけを `text-stage-label` に戻す。10行でも 1440×900 の1画面に収まる
 - ホストが持ち主でない部屋と、ない部屋は 4404 で閉じ、`HostConnectionNotice` が「部屋が見つかりません」と一覧へ戻るリンクを出す
 - `HostPage` は、映す部分（`lobby` では `HostLobby`、そのあとは `HostStage`）を、`HostControls` の帯（`sticky bottom-0`）の上に重ねる
 
@@ -419,4 +424,5 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 - `vite dev` では、GitHub を使わずにホストになる。手元の D1 に `user`、`session`、問題セットを入れ（`apps/api` から `wrangler d1 execute DB --local --persist-to ../web/.wrangler/state`）、cookie の `better-auth.session_token` = `encodeURIComponent(token + '.' + base64(HMAC-SHA256(BETTER_AUTH_SECRET, token)))` を `browser_run_code_unsafe`（`page.context().addCookies`）で足す。秘密の値はスクリプトの中で `apps/api/.dev.vars` から読み、表に出さない
 - `POST /api/rooms` で部屋を作る（入れた問題セットの `id` は UUID にする。そうしないと 400 になる）。1つのタブで `page.evaluate` を使ってホストの WebSocket を開いてそこから進行の操作を送り、2つ目のタブで遊ぶ。終わったら、入れた行を消す
 - スクリーンショットは `.playwright-mcp/`（gitignore してある）の下にしか保存できない
-- QR が読めるかを確かめるには、要素のスクリーンショットを base64 で `page.evaluate` に渡し、Chromium の `BarcodeDetector` で読む
+- QR が読めるかを確かめるには、要素のスクリーンショットを base64 で `page.evaluate` に渡し、Chromium の `BarcodeDetector` で読む。`fetch('data:…')` は CSP の `connect-src` に止められるので、`atob` でバイト列に戻して `Blob` にし、`createImageBitmap` に渡す
+- 回答者を何人も入れるには、`tools/loadtest` の `Bot.join(url, origin, name, mode)` を使う。Node の WebSocket は `Origin` を付けられる。ブラウザのタブを人数分開くより軽い
