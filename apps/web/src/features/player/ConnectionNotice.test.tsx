@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { Announcer } from '@/components/a11y/Announcer';
 
 import { liveRegion } from '../../../test/live-region';
+import { renderInRouter } from '../../../test/render-in-router';
 import { ConnectionNotice } from './ConnectionNotice';
 
 const content = <p>待機画面</p>;
@@ -125,24 +126,23 @@ describe('部屋が終わったときの知らせ（#97・F17）', () => {
     );
 
     expect(screen.getByText('この部屋は終わりました', { selector: 'p' })).toBeInTheDocument();
-    expect(
-      screen.getByText('最終の結果は、この画面で見られます。', { exact: false, selector: 'p' }),
-    ).toBeInTheDocument();
-    await waitFor(() =>
-      expect(liveRegion('assertive')).toHaveTextContent(
-        'この部屋は終わりました。遊んでくれてありがとうございました。最終の結果は、この画面で見られます。',
-      ),
-    );
+    // 部屋の DO は終わった部屋に結果を返さないので、「この画面で見られます」とは言わない（#338）
+    const body =
+      '遊んでくれてありがとうございました。最終の結果は、読み込み直すと見られなくなります。残したいときは、画面を撮っておいてください。';
+    expect(screen.getByText(body, { selector: 'p' })).toBeInTheDocument();
+    await waitFor(() => expect(liveRegion('assertive')).toHaveTextContent(`この部屋は終わりました。${body}`));
     // 薄くも押せなくもしない。手元の最終ランキングは、そのまま読める
     expect(screen.getByRole('button', { name: '最終ランキング' }).closest('[inert]')).toBeNull();
+    // 離れると手元の最終ランキングも消えるので、外へのリンクは置かない
+    expect(screen.queryByRole('link')).toBeNull();
   });
 
   it.each([
     ['midway', 'ホストが部屋を途中で終えました。遊んでくれてありがとうございました。'],
-    // 終わったあとに読み込み直した人も、あとから URL を開いた人もここに来る。途中かどうかは分からない
-    ['not_entered', '遊んでくれてありがとうございました。'],
-  ] as const)('%s なら、中身の代わりに「%s」を出し、急ぎで読み上げる', async (roomEnd, body) => {
-    render(
+    // 終わったあとに、保存した秘密で読み込み直した人が来る。途中かどうかは分からない
+    ['not_entered', '遊んでくれてありがとうございました。部屋が終わったので、結果はもう見られません。'],
+  ] as const)('%s なら、中身の代わりに「%s」と入口へのリンクを出し、急ぎで読み上げる', async (roomEnd, body) => {
+    await renderInRouter(
       withAnnouncer(
         <ConnectionNotice connection="closed" closeReason="room_ended" roomEnd={roomEnd}>
           {content}
@@ -154,13 +154,14 @@ describe('部屋が終わったときの知らせ（#97・F17）', () => {
     // getByText は文の全体と比べるので、ほかの文が混ざっていれば見つからない。読み上げ領域は p ではないので外す
     expect(screen.getByText(body, { selector: 'p' })).toBeInTheDocument();
     expect(screen.queryByText('待機画面')).toBeNull();
+    expect(screen.getByRole('link', { name: 'ズバクイのトップへ' })).toHaveAttribute('href', '/');
     await waitFor(() => expect(liveRegion('assertive')).toHaveTextContent(`この部屋は終わりました。${body}`));
   });
 
   it.each(['after_final', 'midway', 'not_entered'] as const)(
     '%s でも、スクリーンがある前提の文言を出さない',
-    (roomEnd) => {
-      const { container } = render(
+    async (roomEnd) => {
+      const { container } = await renderInRouter(
         <ConnectionNotice connection="closed" closeReason="room_ended" roomEnd={roomEnd}>
           {content}
         </ConnectionNotice>,
