@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.6.0
+
+[compare changes](https://github.com/XeicuLy/zubatto-quiz/compare/v1.5.0...v1.6.0)
+
+### 🚀 Enhancements
+
+- 最終ランキングのあとに部屋を終えるボタンを出し、全員が答えたことを知らせる ([#382](https://github.com/XeicuLy/zubatto-quiz/pull/382))
+
+### 🩹 Fixes
+
+- 問題セットの編集を 390 px の幅でも使えるようにする ([#381](https://github.com/XeicuLy/zubatto-quiz/pull/381))
+- 文言・リンク・404 のタイトル・toast の位置の小さな直しを入れる ([#384](https://github.com/XeicuLy/zubatto-quiz/pull/384))
+
+### 📖 Documentation
+
+- アクセス解析を Workers Analytics Engine で数える判断を ADR に記録する ([#371](https://github.com/XeicuLy/zubatto-quiz/pull/371))
+- 脅威モデルの文書と SECURITY.md を作る ([#379](https://github.com/XeicuLy/zubatto-quiz/pull/379))
+- ホストの個人情報を持たない判断を ADR 0016 に記録する ([#380](https://github.com/XeicuLy/zubatto-quiz/pull/380))
+
+### ⏪ Reverts
+
+- アクセス解析の ADR 0015 を取り消す ([#373](https://github.com/XeicuLy/zubatto-quiz/pull/373))
+
 ## v1.5.0
 
 [compare changes](https://github.com/XeicuLy/zubatto-quiz/compare/v1.4.0...v1.5.0)
