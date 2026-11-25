@@ -13,8 +13,9 @@ const copyMessages: Record<CopyStatus, string> = {
 };
 
 /**
- * 参加用の URL（F1）。会場ではカメラで QR を読むのがいちばん早く、QR を読めない人のために URL も vw で伸びる文字で全部出す。
- * URL は推測できない64桁の ID を含んで長いので（S3）、どこでも折り返す
+ * 参加用の URL（F1）。会場ではカメラで QR を読むのがいちばん早いので、QR を主役にする。
+ * URL は推測できない64桁の ID を含んで長く（S3）、手で打つ人はいない。QR を読めない人がホストの近くで読めるよう、
+ * QR の下にカードの幅いっぱいで小さく出し、どこでも折り返す。人に送るときは「URL をコピー」を使う
  */
 export function JoinUrlCard({ joinUrl }: { joinUrl: string }) {
   const [status, setStatus] = useState<CopyStatus>('idle');
@@ -43,12 +44,10 @@ export function JoinUrlCard({ joinUrl }: { joinUrl: string }) {
       <div className="flex flex-wrap items-center gap-stage">
         <JoinQrCode url={joinUrl} />
         <div className="flex min-w-0 grow basis-56 flex-col gap-4">
-          <div>
-            <p className="text-stage-label text-muted-foreground">
-              カメラで読み取るか、この URL を開いて、名前を入れてください
-            </p>
-            <p className="mt-1 text-stage-title font-bold wrap-anywhere">{joinUrl}</p>
-          </div>
+          {/* QR の横の狭い列で折れるので、文節で改行し、最後の1文字だけが次の行に落ちないようにする */}
+          <p className="text-stage-label text-phrase text-muted-foreground">
+            カメラで読み取るか、下の URL を開いて、名前を入れてください
+          </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Button variant="outline" size="stage" onClick={() => void copy()}>
               URL をコピー
@@ -60,6 +59,7 @@ export function JoinUrlCard({ joinUrl }: { joinUrl: string }) {
           </div>
         </div>
       </div>
+      <p className="text-stage-label wrap-anywhere text-muted-foreground">{joinUrl}</p>
     </section>
   );
 }

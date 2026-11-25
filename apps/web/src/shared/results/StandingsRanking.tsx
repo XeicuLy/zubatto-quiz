@@ -36,12 +36,25 @@ const subVariants = cva('text-muted-foreground', {
   },
 });
 
-/** 名前は1行で省略し（name-clip）、行の高さをそろえる */
+/**
+ * 名前は1行で省略し（name-clip）、行の高さをそろえる。
+ * 投影では、人数が少なくても後ろの席から読めるよう、行を見出しと同じ大きさにする。10行でも 1440×900 の1画面に収まる。
+ * 列の幅（col の em）はこの大きさで決まるので、表全体に付け、列の名前（thead）だけを小さく戻す
+ */
 const tableVariants = cva('w-full table-fixed border-separate border-spacing-y-1', {
   variants: {
     variant: {
-      projector: 'text-stage-label',
+      projector: 'text-stage-title',
       mobile: 'text-note',
+    },
+  },
+});
+
+const headVariants = cva('whitespace-nowrap text-muted-foreground', {
+  variants: {
+    variant: {
+      projector: 'text-stage-label',
+      mobile: '',
     },
   },
 });
@@ -79,7 +92,7 @@ export function StandingsRanking({ standings, variant, meId, headingRef }: Stand
           <col className="w-[5em]" />
           <col className="w-[5em]" />
         </colgroup>
-        <thead className="whitespace-nowrap text-muted-foreground">
+        <thead className={headVariants({ variant })}>
           <tr>
             <th scope="col" className="px-2 text-left font-normal">
               順位

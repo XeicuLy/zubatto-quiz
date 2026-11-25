@@ -11,8 +11,10 @@ interface HostLobbyProps {
 /**
  * ホストの待機画面（F1・F3）。投影する画面なので、文字と余白は vw で伸びるトークンを使う。
  * md 以上は URL と参加者を横に並べ（投影）、それより狭いと縦に積む（ホストのスマホ）。
+ * 投影（1920×1080・1440×900）では、進行の帯まで含めてスクロールなしの1画面に収める。
  * 名前は JSX の {name} で文字として描画する。innerHTML 系の API は使わない（ADR 0004）。
- * 参加者の一覧は全部見せたい場所なので name-wrap で折り返す
+ * 参加者のチップは幅に上限を付け、長い名前は1行で省略して title で全文を見せる。
+ * 折り返すと、長い名前の人が多いときに行が増えて、50人で1画面に収まらない
  */
 export function HostLobby({ room, participants, joinUrl }: HostLobbyProps) {
   return (
@@ -23,7 +25,7 @@ export function HostLobby({ room, participants, joinUrl }: HostLobbyProps) {
       </header>
 
       {/* flex-1 で伸ばした高さを行に分けないよう、content-start で上に詰める。縦に積むと URL と参加者のあいだが空く */}
-      <div className="grid flex-1 grid-cols-1 content-start gap-stage md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <div className="grid flex-1 grid-cols-1 content-start gap-stage md:grid-cols-2">
         <div className="flex flex-col gap-4 self-start">
           <JoinUrlCard joinUrl={joinUrl} />
           {/* F2: ホストも同じ URL から回答者として入れる。この画面は進行に使うので、別のタブで開く */}
@@ -53,8 +55,10 @@ export function HostLobby({ room, participants, joinUrl }: HostLobbyProps) {
             // 入った順に並ぶ。部屋の DO が join_order の順で送る
             <ul aria-labelledby="participants-heading" className="flex flex-wrap content-start gap-2 text-stage-label">
               {participants.map((participant) => (
-                <li key={participant.participantId} className="name-wrap rounded-chip bg-secondary px-3 py-1">
-                  {participant.name}
+                <li key={participant.participantId} className="max-w-[10em] rounded-chip bg-secondary px-3 py-1">
+                  <span className="block name-clip" title={participant.name}>
+                    {participant.name}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -63,8 +67,8 @@ export function HostLobby({ room, participants, joinUrl }: HostLobbyProps) {
       </div>
 
       <footer className="border-t border-border pt-4">
-        {/* ADR 0002: 部屋は作ったときの問題セットを写して使う */}
-        <p className="max-w-[60ch] text-note text-muted-foreground">
+        {/* ADR 0002: 部屋は作ったときの問題セットを写して使う。投影では1行に収め、待機画面の高さを増やさない */}
+        <p className="text-note text-muted-foreground">
           部屋を作ったあとに問題セットを編集しても、この部屋には反映されません。直したいときは、部屋を作り直してください。
         </p>
       </footer>
