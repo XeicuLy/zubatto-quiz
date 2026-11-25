@@ -1,6 +1,36 @@
 import { MAX_PARTICIPANTS, type Participants, type RoomSnapshot } from '@zubatto-quiz/protocol';
+import { cva } from 'class-variance-authority';
 
 import { JoinUrlCard } from './JoinUrlCard';
+
+/**
+ * 名前の長さに合わせたチップを折り返して並べる人数の上限。
+ * 幅の上限（10em）のチップは、投影（1920×1080・1440×900）の参加者の列に、どの名前でも1行に3人は入る。
+ * 30人なら10行で、1440×900 の一覧に入る11行に収まる。それより多いと、名前の長さで行の数が決まらないので、
+ * 幅のそろった格子（1440・1920 とも5列）にする。50人なら10行になる
+ */
+const LOOSE_MAX_PARTICIPANTS = 30;
+
+// Tailwind はクラス名を文字列のまま探すので、並べ方ごとのクラスは組み立てずに書いておく。
+// oxfmt は cva の引数の class を並べ替える（.oxfmtrc.json の sortTailwindcss.functions）
+const listVariants = cva('gap-2 text-stage-label', {
+  variants: {
+    layout: {
+      loose: 'flex flex-wrap content-start',
+      dense: 'grid grid-cols-[repeat(auto-fill,minmax(6em,1fr))]',
+    },
+  },
+});
+
+/** 格子では、マスの幅いっぱいに広げ、そこからはみ出す名前を省略する */
+const chipVariants = cva('rounded-chip bg-secondary px-3 py-1', {
+  variants: {
+    layout: {
+      loose: 'max-w-[10em]',
+      dense: 'min-w-0',
+    },
+  },
+});
 
 interface HostLobbyProps {
   room: RoomSnapshot;
@@ -14,9 +44,11 @@ interface HostLobbyProps {
  * 投影（1920×1080・1440×900）では、進行の帯まで含めてスクロールなしの1画面に収める。
  * 名前は JSX の {name} で文字として描画する。innerHTML 系の API は使わない（ADR 0004）。
  * 参加者のチップは幅に上限を付け、長い名前は1行で省略して title で全文を見せる。
- * 折り返すと、長い名前の人が多いときに行が増えて、50人で1画面に収まらない
+ * 折り返すと、長い名前の人が多いときに行が増えて、50人で1画面に収まらない。
+ * 30人を超えたら、幅のそろった格子に並べる（LOOSE_MAX_PARTICIPANTS）
  */
 export function HostLobby({ room, participants, joinUrl }: HostLobbyProps) {
+  const layout = participants.length > LOOSE_MAX_PARTICIPANTS ? 'dense' : 'loose';
   return (
     <main className="flex flex-1 flex-col gap-stage p-stage">
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
@@ -53,9 +85,9 @@ export function HostLobby({ room, participants, joinUrl }: HostLobbyProps) {
             <p className="text-stage-label text-muted-foreground">まだだれも入っていません</p>
           ) : (
             // 入った順に並ぶ。部屋の DO が join_order の順で送る
-            <ul aria-labelledby="participants-heading" className="flex flex-wrap content-start gap-2 text-stage-label">
+            <ul aria-labelledby="participants-heading" className={listVariants({ layout })}>
               {participants.map((participant) => (
-                <li key={participant.participantId} className="max-w-[10em] rounded-chip bg-secondary px-3 py-1">
+                <li key={participant.participantId} className={chipVariants({ layout })}>
                   <span className="block name-clip" title={participant.name}>
                     {participant.name}
                   </span>

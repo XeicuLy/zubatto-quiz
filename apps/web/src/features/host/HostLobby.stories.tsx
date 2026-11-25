@@ -46,7 +46,7 @@ export const Empty: Story = {
   args: { participants: [] },
 };
 
-/** 上限の50人。長い名前はチップの幅で省略し、一覧の行の数を抑える */
+/** 上限の50人。31人からは幅のそろった格子に並べ、名前の長さにかかわらず一覧の行の数を抑える */
 export const Full: Story = {
   args: { participants: participants(MAX_PARTICIPANTS) },
 };
