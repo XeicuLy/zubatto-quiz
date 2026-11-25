@@ -217,14 +217,17 @@ props だけで見た目が決まる表示部品を、Storybook の autodocs（p
 ## 回答者の参加
 
 - `player-room.ts` の `join` は、つなぐ前に秘密を作って保存する（`token-storage.ts`、キーは `zubakui:room:<roomId>:token`）。`join` か `resumeSaved` のたびに、`connect` が新しい部屋のストアを作る。自動のつなぎ直しは `connectRoom` の中でソケットを開き直すだけで、同じストアを使い続ける
-- `rejectionOf` は、秘密がもう役に立たない閉じ方（`name_taken`、`resume_failed`、`room_full`、`room_not_found`）を選ぶ。そのときは秘密を消し、純粋な関数 `entryAfter` が次の入口を選ぶ。前の2つなら名前の入力欄、あとの2つなら `full`/`not_found` の画面
-- `replaced` と `room_ended` は秘密を残し、部屋の画面にとどまる。`ConnectionNotice` がそれを出す
+- `rejectionOf` は、秘密がもう役に立たない閉じ方（`name_taken`、`resume_failed`、`room_full`、`room_not_found`、それに `joined` の前の `join` への `room_ended`）を選ぶ。そのときは秘密を消し、純粋な関数 `entryAfter` が次の入口を選ぶ。前の2つなら名前の入力欄、あとの3つなら `full`/`not_found`/`ended` の画面
+- 終わった部屋への `join` は、満員と同じく DO に行が作られないので、秘密を消す。残すと、読み込み直したときに `resume` で入った人と見分けられなくなる。`rejectionOf` には、`join` を送ってまだ `joined` を受け取っていないか（`joinPending`）を渡す
+- `full`/`not_found`/`ended` の画面は `RefusedScreen` が出す。「参加する」のあとに画面が替わるので、見出しと本文を急ぎで読み上げ、入口（`/`）へのリンク（`TopLink`）を置く
+- `replaced`、入ったあとの `room_ended`、`resume` への `room_ended` は秘密を残し、部屋の画面にとどまる。`ConnectionNotice` がそれを出す
 - localStorage が例外を投げたら、秘密はメモリにだけ置き（`persisted: false`）、`WaitingRoom` が「再読み込みすると戻れない」と知らせる
 
 ## 部屋の終わり
 
-- `shared/results/room-end.ts` の純粋な関数 `roomEndOf(state)` が、`room_ended` で閉じたあとに残ったストアを読み、次の3つに分ける。`after_final`（段階が `final` で `finalRanking` がある）、`midway`、`not_entered`（`room === null`。再読み込みしたか、遅れて来て DO に `room_ended` で断られたので、どこで終わったかが分からない）
-- `after_final` では、`ConnectionNotice`（最終順位の上の帯）と `HostPage`（`HostControls` のかわりに `HostEndedBar`）のどちらも最終順位を残す。それ以外では、お知らせが画面を置き換える
+- `shared/results/room-end.ts` の純粋な関数 `roomEndOf(state)` が、`room_ended` で閉じたあとに残ったストアを読み、次の3つに分ける。`after_final`（段階が `final` で `finalRanking` がある）、`midway`、`not_entered`（`room === null`。DO に `room_ended` で断られたので、どこで終わったかが分からない）。回答者の `not_entered` は、保存した秘密で `resume` した人、つまり終わったあとに読み込み直した参加者だけになる。参加していない人の `join` は、`rejectionOf` が `ended` の画面に移す
+- `after_final` では、`ConnectionNotice`（最終順位の上の帯）と `HostPage`（`HostControls` のかわりに `HostEndedBar`）のどちらも最終順位を残す。それ以外では、お知らせが画面を置き換え、回答者には入口へのリンク（`TopLink`）を置く。`after_final` の帯には置かない。離れると、手元の最終順位も消えるため
+- 部屋の DO は、終わった部屋に結果を返さない（#338）。最終順位は、終わったときに開いていた画面にしか残らないので、`after_final` の帯は「読み込み直すと見られなくなる」と言い、画面を撮っておくよう案内する。`not_entered` は「結果はもう見られない」と言う
 - 文言で「結果は画面に出ている」とは言わない（F17）
 - `ConnectionNotice` は、つながっている間も終わったあとも、同じ `<>{banner}{children}</>` の形を返す。こうすると順位の表が作り直されず、スポットライトの動きがもう一度始まらない
 
