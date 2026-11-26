@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from 'drizzle-orm';
 
 import type { Db } from '@/db';
-import { account, hostAllowlist, session } from '@/db/schema';
+import { account, hostAllowlist, user } from '@/db/schema';
 
 /** 許可リストの1行。応答では createdAt を ISO の文字列にする */
 export interface HostRow {
@@ -39,19 +39,21 @@ export async function addHost(db: Db, { githubUserId, note }: { githubUserId: st
 }
 
 /**
- * ホストを許可リストから外し、その人のセッションも一緒に消す（ADR 0013）。runbook の2手順を1回で行う。
+ * ホストを許可リストから外し、その人の user の行も一緒に消す（ADR 0013、ADR 0016）。元に戻せない。
  *
+ * user を消すと、外部キーの cascade で account・session・question_sets（とその questions）も消える。D1 は外部キーを
+ * 常に守らせるので、セッションを消す文は別に置かない（置いても、cascade と同じ行を消すだけになる）。
  * D1 の batch は1つのトランザクションなので、片方だけが消えることはない。どちらの DELETE にも「管理者でない」の条件を入れ、
  * 先に確かめずに消してから、消えなかったときだけ理由を読む。確かめてから消すまでの間に管理者の印が付いても、消さない。
- * セッションの user_id は Better Auth の user の ID なので、GitHub の ID から account を引く。セッションの文は許可リストの行を
- * 参照するので、行を消す文より先に置く
+ * user の ID は Better Auth のもので GitHub の ID ではないので、GitHub の ID から account を引く。user の文は許可リストの行を
+ * 参照するので、行を消す文より先に置く。一度もログインしていない人は user が無いので、許可リストの行だけが消える
  */
 export async function removeHost(db: Db, githubUserId: string): Promise<'removed' | 'admin' | 'notFound'> {
   const removable = and(eq(hostAllowlist.githubUserId, githubUserId), eq(hostAllowlist.isAdmin, false));
   const [, removed] = await db.batch([
-    db.delete(session).where(
+    db.delete(user).where(
       inArray(
-        session.userId,
+        user.id,
         db
           .select({ userId: account.userId })
           .from(account)
