@@ -108,47 +108,51 @@ pnpm exec wrangler d1 execute DB --remote --command "SELECT * FROM host_allowlis
 
 ### 管理者のホストを外す
 
-管理者のホストは、画面からは外せない。先に「管理者の印を外す」を行い、そのあとで、画面から外すか、下の「コマンドで外す」の手順（許可リスト → セッション）を行う。印を先に外すのは、許可リストから外すまでの間も、管理者だけの API を使わせないため。
+管理者のホストは、画面からは外せない。先に「管理者の印を外す」を行い、そのあとで、画面から外すか、下の「コマンドで外す」の手順（許可リスト → user）を行う。印を先に外すのは、許可リストから外すまでの間も、管理者だけの API を使わせないため。外すと、その人の問題セットも消える。
 
 ## 外す（ホストの取り消し）
 
+外すと、その人の `user` の行も消える。外部キーの cascade で、`account`・`session`・問題セット・問題も一緒に消える（[ADR 0016](../adr/0016-do-not-keep-host-personal-data.md)）。**元に戻せない。** 足し直しても問題セットは戻らない。誤って外したときに戻す方法は、D1 全体を Time Travel で外す前の時点へ戻すことしか無く、そうするとほかのホストの変更も同じ時点まで戻る。必要なら、外す前に `pnpm exec wrangler d1 time-travel info DB` で今の位置（bookmark）を控えておく。
+
 ### 画面から外す（管理者）
 
-管理者は、一覧から外す操作をするだけでよい。許可リストの行と、その人のセッションを、1回で一緒に消す（D1 の `batch` で、片方だけが消えることはない）。外した人は、ログインしたままの画面からでも、次の要求から 401 になり、ログインし直しても拒否される。
+管理者は、一覧から外す操作をするだけでよい。許可リストの行と、その人の `user` の行を、1回で一緒に消す（D1 の `batch` で、片方だけが消えることはない）。外した人は、ログインしたままの画面からでも、次の要求から 401 になり、ログインし直しても拒否される。一度もログインしていない人（`user` の行が無い）は、許可リストの行だけが消える。
 
 管理者のホストは、画面から外せない（409）。下の「管理者のホストを外す」のとおり、先にコマンドで印を外す。
 
 ### コマンドで外す
 
-画面が使えないときは、次を**この順で**行う。先にセッションを消すと、許可リストから外すまでの間にログインし直せてしまう。手順1だけでも、`requireHost` が次の要求から断るが、手順2も必ず行う（二重の守り）。
+画面が使えないときは、次を**この順で**行う。先に `user` を消すと、許可リストから外すまでの間にログインし直せ、新しい `user` の行ができてしまう。
 
-1. 許可リストから外す。これで次のログインから拒否される
+1. 許可リストから外す。これで次のログインから拒否され、`requireHost` も次の要求から断る
 
    ```sh
    pnpm exec wrangler d1 execute DB --remote \
      --command "DELETE FROM host_allowlist WHERE github_user_id = '12345'"
    ```
 
-2. その人のセッションを D1 から消す。セッションは7日有効で、使っていれば延びる。手順1で `requireHost` は通さなくなるが、その判定が何かの理由で効かなくても、ログインしたままの画面から問題セットの編集や部屋の作成を続けられないよう、消しておく。セッションの `user_id` は Better Auth の user の ID で、GitHub の ID ではないので、`account` から引く
+2. その人の `user` の行を消す。cascade で `account`・`session`・問題セット・問題も消える。`user` の ID は Better Auth のもので、GitHub の ID ではないので、`account` から引く。一度もログインしていない人は `user` の行が無いので、何も消えない
 
    ```sh
    pnpm exec wrangler d1 execute DB --remote \
-     --command "DELETE FROM session WHERE user_id IN (SELECT user_id FROM account WHERE provider_id = 'github' AND account_id = '12345')"
+     --command "DELETE FROM user WHERE id IN (SELECT user_id FROM account WHERE provider_id = 'github' AND account_id = '12345')"
    ```
 
-3. 消えたことを確かめる。両方とも結果が0行になる
+3. 消えたことを確かめる。両方とも結果が0行になる（`account` が消えていれば、cascade で `user` も消えている）
 
    ```sh
    pnpm exec wrangler d1 execute DB --remote \
      --command "SELECT * FROM host_allowlist WHERE github_user_id = '12345'"
    pnpm exec wrangler d1 execute DB --remote \
-     --command "SELECT s.id FROM session s JOIN account a ON a.user_id = s.user_id WHERE a.provider_id = 'github' AND a.account_id = '12345'"
+     --command "SELECT user_id FROM account WHERE provider_id = 'github' AND account_id = '12345'"
    ```
 
 ### 外したあとも続くもの
 
 - **つながったままのホスト用の WebSocket は、閉じるまで進行操作を続けられる。** 部屋の DO は、接続を開くときに1回だけホストかを確かめ、進行中は D1 に問い合わせないため（P1・ADR 0003）。その接続が閉じたあとは、つなぎ直せない
-- user・account の行と、その人の問題セットは D1 に残る。もう一度許可リストに入れると、同じ GitHub のアカウントでログインし直せば、前の問題セットがそのまま使える。外す前のセッションは、足し直しても通らないので、ログインし直してもらう
+- その人が作った部屋の DO には、部屋を作ったときに写した問題セット（題名・問題文・選択肢・正解）が残る。cascade は D1 の中にしか届かないため
+- 消した行は、D1 の Time Travel に7日残る。「すぐに消してほしい」と頼まれても、7日は待つことになる
+- もう一度許可リストに入れると、同じ GitHub のアカウントでログインできる。ただし新しい `user` になり、問題セットは空から始まる
 
 ### すぐに止めたいとき
 
