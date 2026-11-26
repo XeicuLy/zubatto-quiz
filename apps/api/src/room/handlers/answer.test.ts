@@ -315,6 +315,8 @@ describe('経過時間（P2）', () => {
       // 接続ごと DO を落とし、新しい接続で resume する。受付を始めた時刻は締切から求めるので、つなぎ直しでは変わらない
       await evictDurableObject(stub, { webSockets: 'close' });
       const resumed = await resumePlayer(stub, taro!.token);
+      // resume はハッシュを await するので、そのあいだに届いた回答は未確認の接続として断られる。確認が済むまで待つ
+      await nextOf(resumed, 'resumed');
 
       expect(await answer(resumed, { ...q1, elapsedMs: 0 })).toMatchObject({
         type: 'answerAccepted',
