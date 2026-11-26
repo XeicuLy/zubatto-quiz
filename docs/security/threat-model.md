@@ -8,14 +8,14 @@
 
 ## 守るもの
 
-| もの                                       | なぜ守るか                                                                                                                                           | 要件・ADR                                                                        |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| ホストのセッション                         | 奪われると、そのホストの問題セット（正解を含む）を読み書きでき、部屋を進行できる。管理者のセッションなら、ホストを足し、外せる                       | S1、[ADR 0003](../adr/0003-host-identification-and-host-connection.md)、ADR 0013 |
-| 回答者の秘密                               | localStorage に置き、つなぎ直しに使う。持ち出されると、その回答者として回答できる                                                                    | S4、[ADR 0004](../adr/0004-player-identification-and-reconnection.md)            |
-| 締切の前の正解                             | 届けば、開発者ツールで正解を見て答えられる                                                                                                           | S2、[ADR 0002](../adr/0002-question-set-storage-and-room-handoff.md)             |
-| 部屋 ID                                    | 部屋の URL そのもので、知っていれば誰でも参加できる。推測できず、漏れないことが参加の鍵になる                                                        | S3                                                                               |
-| ホストの個人情報                           | D1 に GitHub の名前と ID がある。email・アバターの URL・GitHub のトークン（暗号化済み）・セッションの IP と User-Agent も残っている（#345 で減らす） | #344                                                                             |
-| 無料枠（リクエスト・DO・D1・Workers Logs） | 使い切られると、その日の残りは画面も API も止まる。アカウント全体で分け合う                                                                          | C1、C4、[stop-and-usage.md](../runbooks/stop-and-usage.md#無料プランの上限)      |
+| もの                                       | なぜ守るか                                                                                                                     | 要件・ADR                                                                        |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| ホストのセッション                         | 奪われると、そのホストの問題セット（正解を含む）を読み書きでき、部屋を進行できる。管理者のセッションなら、ホストを足し、外せる | S1、[ADR 0003](../adr/0003-host-identification-and-host-connection.md)、ADR 0013 |
+| 回答者の秘密                               | localStorage に置き、つなぎ直しに使う。持ち出されると、その回答者として回答できる                                              | S4、[ADR 0004](../adr/0004-player-identification-and-reconnection.md)            |
+| 締切の前の正解                             | 届けば、開発者ツールで正解を見て答えられる                                                                                     | S2、[ADR 0002](../adr/0002-question-set-storage-and-room-handoff.md)             |
+| 部屋 ID                                    | 部屋の URL そのもので、知っていれば誰でも参加できる。推測できず、漏れないことが参加の鍵になる                                  | S3                                                                               |
+| ホストの個人情報                           | D1 に持つのは GitHub の ID と login だけ。前からある行に残る email・トークン・IP などは #347 で消す                            | S5、[ADR 0016](../adr/0016-do-not-keep-host-personal-data.md)                    |
+| 無料枠（リクエスト・DO・D1・Workers Logs） | 使い切られると、その日の残りは画面も API も止まる。アカウント全体で分け合う                                                    | C1、C4、[stop-and-usage.md](../runbooks/stop-and-usage.md#無料プランの上限)      |
 
 回答者の名前と回答は、自分で入力したものだけを扱う（S5）。公開の場で使うことを前提に、秘密としては扱わない。
 
@@ -49,18 +49,19 @@
 
 ### ホストの認証と HTTP API
 
-| 守り                                                                                                             | どこで                                                                                                                   | 確かめるテスト                                                                                                                                                                                                         |
-| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 許可リストの外の GitHub ユーザーは、`user` の行を書く前に断り、セッションを作る前にも確かめる                    | [create-auth.ts](../../apps/api/src/auth/create-auth.ts)、[allowlist.ts](../../apps/api/src/auth/allowlist.ts)           | [create-auth.test.ts](../../apps/api/src/auth/create-auth.test.ts)、[allowlist.test.ts](../../apps/api/src/auth/allowlist.test.ts)                                                                                     |
-| 要求のたびに許可リストを確かめ直し、行より前に作られたセッションを通さない（足し直しても古い Cookie は戻らない） | [require-host.ts](../../apps/api/src/auth/require-host.ts)                                                               | [require-host.test.ts](../../apps/api/src/auth/require-host.test.ts)                                                                                                                                                   |
-| 管理者だけの経路は、要求のたびに D1 の管理者の印を読む。経路を足したら例を足さないと落ちる                       | [require-admin.ts](../../apps/api/src/auth/require-admin.ts)、[admin-hosts.ts](../../apps/api/src/routes/admin-hosts.ts) | [require-admin.test.ts](../../apps/api/src/auth/require-admin.test.ts)、[admin-routes.test.ts](../../apps/api/test/admin-routes.test.ts)                                                                               |
-| 状態を変える Cookie の経路は、`csrf()` で別のオリジンからの要求を断る                                            | [question-sets.ts](../../apps/api/src/routes/question-sets.ts)、[rooms.ts](../../apps/api/src/routes/rooms.ts)           | [question-sets.test.ts](../../apps/api/src/routes/question-sets.test.ts)、[rooms.test.ts](../../apps/api/src/routes/rooms.test.ts)                                                                                     |
-| 他のホストの問題セットと部屋は、ないものと同じ 404・4404 に見える（S1）                                          | [repository.ts](../../apps/api/src/question-sets/repository.ts)、[room-do.ts](../../apps/api/src/room/room-do.ts)        | [question-sets.test.ts](../../apps/api/src/routes/question-sets.test.ts)、[room-do.test.ts](../../apps/api/src/room/room-do.test.ts)、[security.contract.test.ts](../../tools/contract/test/security.contract.test.ts) |
-| `/api/auth/*` の本文を、Better Auth が読む前に 4KB で止める                                                      | [index.ts](../../apps/api/src/index.ts)                                                                                  | [body-limit.test.ts](../../apps/api/src/auth/body-limit.test.ts)                                                                                                                                                       |
-| GitHub のトークンを平文で D1 に残さない。ログイン Cookie は HttpOnly・SameSite=Lax で、7日で切れる               | [create-auth.ts](../../apps/api/src/auth/create-auth.ts)                                                                 | [create-auth.test.ts](../../apps/api/src/auth/create-auth.test.ts)                                                                                                                                                     |
-| 外への問い合わせは `https://api.github.com/users/` だけで、名前の形を確かめてから送り、待つ時間を区切る          | [lookup-user.ts](../../apps/api/src/github/lookup-user.ts)                                                               | [lookup-user.test.ts](../../apps/api/src/github/lookup-user.test.ts)                                                                                                                                                   |
-| ホストを外すときは、許可リストの行とセッションを1つの batch で消す。管理者の行は外せない                         | [repository.ts](../../apps/api/src/hosts/repository.ts)                                                                  | [repository.test.ts](../../apps/api/src/hosts/repository.test.ts)                                                                                                                                                      |
-| 本番のバンドルに、テスト用のログインと Swagger UI を入れない                                                     | [e2e-entry.ts](../../apps/api/test/e2e-entry.ts)、[index.ts](../../apps/api/src/index.ts)                                | [production-bundle.test.ts](../../apps/api/test/bundle/production-bundle.test.ts)                                                                                                                                      |
+| 守り                                                                                                             | どこで                                                                                                                       | 確かめるテスト                                                                                                                                                                                                         |
+| ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 許可リストの外の GitHub ユーザーは、`user` の行を書く前に断り、セッションを作る前にも確かめる                    | [create-auth.ts](../../apps/api/src/auth/create-auth.ts)、[allowlist.ts](../../apps/api/src/auth/allowlist.ts)               | [create-auth.test.ts](../../apps/api/src/auth/create-auth.test.ts)、[allowlist.test.ts](../../apps/api/src/auth/allowlist.test.ts)                                                                                     |
+| 要求のたびに許可リストを確かめ直し、行より前に作られたセッションを通さない（足し直しても古い Cookie は戻らない） | [require-host.ts](../../apps/api/src/auth/require-host.ts)                                                                   | [require-host.test.ts](../../apps/api/src/auth/require-host.test.ts)                                                                                                                                                   |
+| 管理者だけの経路は、要求のたびに D1 の管理者の印を読む。経路を足したら例を足さないと落ちる                       | [require-admin.ts](../../apps/api/src/auth/require-admin.ts)、[admin-hosts.ts](../../apps/api/src/routes/admin-hosts.ts)     | [require-admin.test.ts](../../apps/api/src/auth/require-admin.test.ts)、[admin-routes.test.ts](../../apps/api/test/admin-routes.test.ts)                                                                               |
+| 状態を変える Cookie の経路は、`csrf()` で別のオリジンからの要求を断る                                            | [question-sets.ts](../../apps/api/src/routes/question-sets.ts)、[rooms.ts](../../apps/api/src/routes/rooms.ts)               | [question-sets.test.ts](../../apps/api/src/routes/question-sets.test.ts)、[rooms.test.ts](../../apps/api/src/routes/rooms.test.ts)                                                                                     |
+| 他のホストの問題セットと部屋は、ないものと同じ 404・4404 に見える（S1）                                          | [repository.ts](../../apps/api/src/question-sets/repository.ts)、[room-do.ts](../../apps/api/src/room/room-do.ts)            | [question-sets.test.ts](../../apps/api/src/routes/question-sets.test.ts)、[room-do.test.ts](../../apps/api/src/room/room-do.test.ts)、[security.contract.test.ts](../../tools/contract/test/security.contract.test.ts) |
+| `/api/auth/*` の本文を、Better Auth が読む前に 4KB で止める                                                      | [index.ts](../../apps/api/src/index.ts)                                                                                      | [body-limit.test.ts](../../apps/api/src/auth/body-limit.test.ts)                                                                                                                                                       |
+| ログインで email・本名・アバター・トークン・IP・User-Agent を保存せず、GitHub に scope も求めない                | [host-data-policy.ts](../../apps/api/src/auth/host-data-policy.ts)、[create-auth.ts](../../apps/api/src/auth/create-auth.ts) | [create-auth.test.ts](../../apps/api/src/auth/create-auth.test.ts)、[host-data-policy.test.ts](../../apps/api/src/auth/host-data-policy.test.ts)                                                                       |
+| ログイン Cookie は HttpOnly・SameSite=Lax で、7日で切れる                                                        | [create-auth.ts](../../apps/api/src/auth/create-auth.ts)                                                                     | [create-auth.test.ts](../../apps/api/src/auth/create-auth.test.ts)                                                                                                                                                     |
+| 外への問い合わせは `https://api.github.com/users/` だけで、名前の形を確かめてから送り、待つ時間を区切る          | [lookup-user.ts](../../apps/api/src/github/lookup-user.ts)                                                                   | [lookup-user.test.ts](../../apps/api/src/github/lookup-user.test.ts)                                                                                                                                                   |
+| ホストを外すときは、許可リストの行とセッションを1つの batch で消す。管理者の行は外せない                         | [repository.ts](../../apps/api/src/hosts/repository.ts)                                                                      | [repository.test.ts](../../apps/api/src/hosts/repository.test.ts)                                                                                                                                                      |
+| 本番のバンドルに、テスト用のログインと Swagger UI を入れない                                                     | [e2e-entry.ts](../../apps/api/test/e2e-entry.ts)、[index.ts](../../apps/api/src/index.ts)                                    | [production-bundle.test.ts](../../apps/api/test/bundle/production-bundle.test.ts)                                                                                                                                      |
 
 ### 部屋と WebSocket
 
@@ -105,23 +106,23 @@
 
 #341 の子 Issue で入れる。入ったら、その行を「確かめた守り」の表へ移し、ファイルとテストへのリンクを付ける。
 
-| 守り                                                                                             | Issue            | 所見                        |
-| ------------------------------------------------------------------------------------------------ | ---------------- | --------------------------- |
-| 使っていないホストの個人情報を D1 に持たない（判断と、ログインでの保存と、既にある行の書き換え） | #344、#345、#347 | A1、A7                      |
-| ホストを外したら、`user` の行ごと消す（account・問題セットも消える）                             | #346             | A2                          |
-| 外したホストの、開いたままの WebSocket を切る                                                    | #359             | Z5                          |
-| API の入口で、ログインの開始・部屋への接続・書き込みを絞る                                       | #348、#356       | S-01、Z3                    |
-| API の守り（ヘッダー、非 GET の Origin の確認、本文の上限）を1か所にまとめる                     | #349             | A5、A11、A12、A13、Z8、S-07 |
-| Better Auth の設定を、実行環境の既定値に頼らず明示する                                           | #350             | A3、A4、A8、A15             |
-| ホストごとの問題セットの数と部屋の数に上限を設ける                                               | #351、#361       | A6                          |
-| 回答時間に、出題の時刻から計算した下限を設ける（`0` と申告しても満点にならない）                 | #352             | Z1                          |
-| 見えない名前と、重ねた結合文字を断る                                                             | #353             | Z7                          |
-| 不正なメッセージを送り続ける接続を切る                                                           | #354             | Z4                          |
-| デプロイのトークンを wrangler だけに渡し、E2E の D1 を本番と分ける                               | #355             | S-02、S-08、A9              |
-| すべての `${{ }}` を `run:` から禁じ、依存の既知の脆弱性を定期的に調べる                         | #357             | S-03、S-09、S-10            |
-| バックアップ・インシデント・secret のローテーション・ダッシュボードの設定の確認の手順書          | #358             | S-04、S-05、S-06、S-12      |
-| 部屋に寿命を設け、終わった部屋のデータを片づける                                                 | #360             | Z6                          |
-| 部屋が終わったら、回答者の秘密を端末から消す                                                     | #362             | Z9                          |
+| 守り                                                                                    | Issue      | 所見                        |
+| --------------------------------------------------------------------------------------- | ---------- | --------------------------- |
+| 前からあるホストの行を、ログインと同じ保存の規則で1回書き換える                         | #347       | A1、A7                      |
+| ホストを外したら、`user` の行ごと消す（account・問題セットも消える）                    | #346       | A2                          |
+| 外したホストの、開いたままの WebSocket を切る                                           | #359       | Z5                          |
+| API の入口で、ログインの開始・部屋への接続・書き込みを絞る                              | #348、#356 | S-01、Z3                    |
+| API の守り（ヘッダー、非 GET の Origin の確認、本文の上限）を1か所にまとめる            | #349       | A5、A11、A12、A13、Z8、S-07 |
+| Better Auth の設定を、実行環境の既定値に頼らず明示する                                  | #350       | A3、A4、A8、A15             |
+| ホストごとの問題セットの数と部屋の数に上限を設ける                                      | #351、#361 | A6                          |
+| 回答時間に、出題の時刻から計算した下限を設ける（`0` と申告しても満点にならない）        | #352       | Z1                          |
+| 見えない名前と、重ねた結合文字を断る                                                    | #353       | Z7                          |
+| 不正なメッセージを送り続ける接続を切る                                                  | #354       | Z4                          |
+| デプロイのトークンを wrangler だけに渡し、E2E の D1 を本番と分ける                      | #355       | S-02、S-08、A9              |
+| すべての `${{ }}` を `run:` から禁じ、依存の既知の脆弱性を定期的に調べる                | #357       | S-03、S-09、S-10            |
+| バックアップ・インシデント・secret のローテーション・ダッシュボードの設定の確認の手順書 | #358       | S-04、S-05、S-06、S-12      |
+| 部屋に寿命を設け、終わった部屋のデータを片づける                                        | #360       | Z6                          |
+| 部屋が終わったら、回答者の秘密を端末から消す                                            | #362       | Z9                          |
 
 ## 受け入れたリスク
 

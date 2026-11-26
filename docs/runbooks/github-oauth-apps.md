@@ -36,10 +36,31 @@ https://zubakui-web.<サブドメイン>.workers.dev
 
 Client ID と Client Secret は、チャットやリポジトリに貼らない。
 
+## 求める権限（scope）
+
+ズバクイは、GitHub に scope を求めない（[ADR 0016](../adr/0016-do-not-keep-host-personal-data.md)）。OAuth App の設定には scope の欄が無く、ログインのときの認可の URL で決まる（`apps/api/src/auth/create-auth.ts` の `disableDefaultScope: true`）。
+
+- 初めて許可する人の同意の画面には、公開の情報を読むことだけが出る。email を読む権限は出ない
+- 前に `user:email` を許可したことのある人は、同意の画面が出ず、前の許可の付いたトークンを受け取る。GitHub の仕様で、ズバクイの側では変えられない
+- どちらの場合も、D1 には email・アバター・トークン・scope を保存しない。入るのは GitHub の ID と login だけ（[backend.md](../architecture/backend.md#ホストの認証)）
+
 ## 確かめる
 
 - ローカル: `vite dev` を動かし、`http://localhost:5173/login` から GitHub でログインする。許可リストに自分を入れていないと `host_not_allowed` で戻される（[host-allowlist.md](host-allowlist.md)）。入れていれば管理画面（`/admin`）に入れる
 - 本番: デプロイのあとに、本番の URL の `/login` から同じようにログインする
+- ログインしたあと、保存された行に個人情報が無いことを確かめる。`email` が `<GitHub の ID>@users.zubakui.invalid` で、`image`・トークン・`scope`・IP・User-Agent が空（`null`）ならよい。コマンドは `apps/api` で実行する。本番では `--local --persist-to ../web/.wrangler/state` の代わりに `--remote` を付ける
+
+```sh
+cd apps/api
+pnpm exec wrangler d1 execute DB --local --persist-to ../web/.wrangler/state \
+  --command "SELECT name, email, email_verified, image FROM user"
+pnpm exec wrangler d1 execute DB --local --persist-to ../web/.wrangler/state \
+  --command "SELECT account_id, access_token, refresh_token, id_token, scope FROM account"
+pnpm exec wrangler d1 execute DB --local --persist-to ../web/.wrangler/state \
+  --command "SELECT ip_address, user_agent FROM session"
+```
+
+この節の変更が入る前にログインしたホストの行には、古い値が残る。そろえる手順は #347 で手順書に書く。
 
 GitHub の画面で「redirect_uri is not associated with this application」と出たら、OAuth App のコールバック URL と `BETTER_AUTH_URL` が合っていない。
 

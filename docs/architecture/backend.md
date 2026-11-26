@@ -26,6 +26,19 @@
 
 - Better Auth の GitHub ログインを使う（[ADR 0003](../adr/0003-host-identification-and-host-connection.md)）。`owner_id` は Better Auth の `user.id`
 - GitHub のユーザー ID の許可リストは、新規登録のときに `user.validateUserInfo` で、行を書く前に確かめる。D1 にはトランザクションがないので、`account.create.before` で断ると `user` の行が残ってしまう。セッションを作るたびに、`databaseHooks.session.create.before` でもう一度確かめる
+- ホストの個人情報は D1 に持たない（[ADR 0016](../adr/0016-do-not-keep-host-personal-data.md)、S5）。何をどう保存するかは `auth/host-data-policy.ts` の1か所に置き、ログインの設定と hook も、既にある行の書き換え（#347）もそこから値を引く
+
+  | 表        | 保存するもの                                                                 | 保存しないもの                                                                            |
+  | --------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+  | `user`    | `name` は GitHub の login。`email` は `<GitHub の ID>@users.zubakui.invalid` | 本名、本物の email、アバター（`image` は null、`email_verified` は false）                |
+  | `account` | `account_id`（GitHub の ID）                                                 | GitHub のトークンと scope（`access_token`・`refresh_token`・`id_token`・`scope` は null） |
+  | `session` | `token`、有効期限                                                            | ログインしたときの IP と User-Agent（どちらも null）                                      |
+  - github の provider の `mapProfileToUser` が、本名・email・アバターの代わりに `hostUserFromGithub` の値を入れる。Better Auth は既定の値の上に重ねるので、4つの項目を全部書く。`emailVerified: false` は、email の一致による別のアカウントとの暗黙の連携も止める
+  - `disableDefaultScope: true` で GitHub に scope を求めない。`/user/emails` は scope が無いと失敗するが、Better Auth はその応答を捨て、ログインは通る
+  - `databaseHooks.account` は、`create.before`（1回目のログイン）と `update.before`（2回目から）の両方でトークンと scope を空にする。`update.before` に渡る値には `scope` が無いが、空にした値を重ねるので、前に入った scope も消える。`encryptOAuthTokens` は、空にできなかったときに平文で残さないための守りとして残す
+  - `advanced.ipAddress.disableIpTracking` で、Better Auth は要求から IP を読まない。`session.create.before` は、許可リストを確かめたあと、IP と User-Agent を空にした値を返す
+  - Better Auth は hook の返す値を保存の値に重ねるだけなので、版を上げて効かなくなっても、型やビルドでは気付けない。`create-auth.test.ts` が、実際にログインして1回目と2回目の行を確かめ、CI で止める（ADR 0016）
+
 - `requireHost` は、セッションを読んだあと、要求のたびに `isAllowedSession` で許可リストを確かめ直す（[ADR 0013](../adr/0013-host-admin-role.md)）。許可リストに行があり、セッションの `created_at` がその行の `created_at` 以後なら通し、そうでなければセッションがないときと同じ 401 にする。画面から外しても、コマンドで行だけを外しても、次の要求から通らない。行があるかだけを見ると、行だけを外して足し直したときに外す前のセッションがまた通るので、時刻も比べる。そのため、`host_allowlist.created_at` は足した時刻のまま書き換えない。ホスト用の WebSocket は、つなぐときにだけ `requireHost` を通る
 - 管理者の印は `host_allowlist.is_admin` に持つ（[ADR 0013](../adr/0013-host-admin-role.md)）。許可リストの行にあるので、管理者は必ずホストになる。印はコマンドでだけ付け外しする（[host-allowlist.md](../runbooks/host-allowlist.md#管理者)）。`auth/allowlist.ts` の `isAllowedUser`・`isAllowedSession`・`isAdminUser` は、同じ `account` と `host_allowlist` の join（`provider_id = 'github'` で絞る）を使い、`isAllowedSession` は時刻の、`isAdminUser` は `is_admin` の条件を足すだけにしている
 - 管理者だけの経路は `.use(csrf(), requireHost, requireAdmin)` を使う。`auth/require-admin.ts` の `requireAdmin` は、`requireHost` が決めた `ownerId` で、要求のたびに `isAdminUser` を D1 に問い合わせる。キャッシュしないので、印を外せば同じセッションでも次の要求から断る。管理者でないホストには 403 `{ "error": "forbidden" }` を返す。経路は `GET /api/me` と画面から分かるので、S1 の 404 では隠さない

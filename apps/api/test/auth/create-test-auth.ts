@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth';
 import { testUtils } from 'better-auth/plugins';
 
 import { createAuthOptions } from '@/auth/create-auth';
+import { syntheticEmail } from '@/auth/host-data-policy';
 import type { Db } from '@/db';
 import { account, hostAllowlist, user } from '@/db/schema';
 
@@ -23,7 +24,8 @@ export async function insertGithubUser(
   db: Db,
   { userId, githubUserId, name = userId }: { userId: string; githubUserId: string; name?: string },
 ) {
-  await db.insert(user).values({ id: userId, name, email: `${userId}@example.com` });
+  // email は、ログインの hook と同じく GitHub の ID から作る（ADR 0016、host-data-policy.ts）
+  await db.insert(user).values({ id: userId, name, email: syntheticEmail(githubUserId) });
   await db.insert(account).values({ id: `${userId}-github`, userId, providerId: 'github', accountId: githubUserId });
 }
 

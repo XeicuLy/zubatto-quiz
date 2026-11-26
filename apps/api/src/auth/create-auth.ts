@@ -6,6 +6,7 @@ import { createDb } from '@/db';
 import * as schema from '@/db/schema';
 
 import { isAllowedGithubUser, isAllowedUser } from './allowlist';
+import { EMPTIED_ACCOUNT_FIELDS, EMPTIED_SESSION_FIELDS, hostUserFromGithub } from './host-data-policy';
 
 const DAY_SECONDS = 60 * 60 * 24;
 
@@ -28,15 +29,28 @@ export function createAuthOptions(env: Env) {
     secret: env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(db, { provider: 'sqlite', schema }),
     socialProviders: {
-      github: { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET },
+      github: {
+        clientId: env.GITHUB_CLIENT_ID,
+        clientSecret: env.GITHUB_CLIENT_SECRET,
+        // 公開のプロフィール（ID と login）だけで足りるので、scope を求めない（ADR 0016 の U1）。
+        // 既定の read:user・user:email を外すと、認可の URL に scope が付かない。/user/emails は失敗するが、Better Auth は応答を捨てる
+        disableDefaultScope: true,
+        // 本名・email・アバターを保存せず、login と合成の email を入れる（ADR 0016、host-data-policy.ts）
+        mapProfileToUser: hostUserFromGithub,
+      },
     },
-    // GitHub のアクセストークンは使わないが、Better Auth は account に保存する。D1 が漏れても使えないよう、secret で暗号化して保存する
+    // トークンは account の hook で空にする。空にできなかったとき（Better Auth の版を上げて hook が効かなくなったときなど）に
+    // 平文で残らないよう、暗号化も残しておく（ADR 0016）
     account: { encryptOAuthTokens: true },
     // 本番の約2時間とその前の準備の間にログインが切れないよう、7日にし、使っていれば1日ごとに延ばす（ADR 0003）
     session: { expiresIn: 7 * DAY_SECONDS, updateAge: DAY_SECONDS },
     // 既定と同じ値でも書いておき、Better Auth の既定が変わってもこの判断のとおりに動かす。
     // Secure と __Secure- は baseURL が https で始まるかで決まるので、secure と useSecureCookies は書かない（ADR 0003）
-    advanced: { defaultCookieAttributes: { sameSite: 'lax' } },
+    advanced: {
+      defaultCookieAttributes: { sameSite: 'lax' },
+      // 要求から IP を読まない。session の ip_address に入れないため（ADR 0016）。Better Auth の rate limiter も IP を鍵にできなくなる
+      ipAddress: { disableIpTracking: true },
+    },
     user: {
       // 新しく登録するとき（と、GitHub でログインし直すとき）に、GitHub のプロフィールの ID で許可リストを確かめる（S1・ADR 0003）。
       // user を作る前に呼ばれるので、拒否すれば user の行も残らない。D1 ではトランザクションが使えず、
@@ -54,6 +68,12 @@ export function createAuthOptions(env: Env) {
       },
     },
     databaseHooks: {
+      // 1回目のログインでは create、2回目からは update が呼ばれる。どちらでもトークンと scope を空にする（ADR 0016）。
+      // 2回目に渡る値には scope が無いが、空にした値を重ねるので、前に保存した scope もここで消える
+      account: {
+        create: { before: async (data) => ({ data: { ...data, ...EMPTIED_ACCOUNT_FIELDS } }) },
+        update: { before: async (data) => ({ data: { ...data, ...EMPTIED_ACCOUNT_FIELDS } }) },
+      },
       session: {
         create: {
           // セッションを作るたび（ログインのたび）に確かめる。許可リストから外したホストは、次のログインで拒否される（ADR 0003）
@@ -61,6 +81,8 @@ export function createAuthOptions(env: Env) {
             if (!(await isAllowedUser(db, session.userId))) {
               throw new APIError('FORBIDDEN', { code: HOST_NOT_ALLOWED, message: HOST_NOT_ALLOWED });
             }
+            // User-Agent を保存しない。IP は disableIpTracking で読まないが、ほかの経路で入っても同じ規則で空にする（ADR 0016）
+            return { data: { ...session, ...EMPTIED_SESSION_FIELDS } };
           },
         },
       },

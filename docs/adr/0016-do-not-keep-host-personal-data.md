@@ -114,6 +114,7 @@ Better Auth の版を上げて、hook の返す値が効かなくなった場合
   - `session` の `ipAddress`・`userAgent`: 持たない（`disableIpTracking` と、`session.create.before` で `userAgent` を空にする）
   - 何をどう保存するかは、`apps/api/src/auth/host-data-policy.ts` の1か所に置き、ログインの hook と既にある行の書き換えの両方がそこから引く
 - scope（U1）: github の provider に `disableDefaultScope: true` を付け、scope を足さない。#345 を本番に出したあと、本番とローカルの OAuth App の設定で「Revoke all user tokens」を押し、全員の前の許可を取り消す。全員が次のログインで、scope の無い許可をし直す。「Revoke all user tokens」で許可まで消えるかは #345 で確かめ、許可が残るなら、ホストそれぞれに GitHub の設定（Settings → Applications → Authorized OAuth Apps）で許可を取り消してもらう
+  - 確かめた結果（#345、2026-11-26）: ローカルの OAuth App で、前に許可した状態から「Revoke all user tokens」を押してログインし直すと、同意の画面が出た。トークンだけでなく許可も消えるので、ホストそれぞれに取り消してもらう手順は要らない
 - 既にある行（W1）: `host-data-policy.ts` の規則から作った SQL を、`wrangler d1 execute` で1回流す。変える行の数を先に見る SELECT と、書き換えの UPDATE を分け、何度流しても同じ結果になる形にする。本番で流すのは、手順書に沿って人が行う
 - 外すとき（R1）: ADR 0013 の「許可リストの行とその人のセッションを、1つの `db.batch` で消す」を、次のように広げる
   - 同じ1つの `db.batch` で、その人の `user` の行も消す。cascade で `account`・`session`・`question_sets`・`questions` も消える
@@ -138,6 +139,6 @@ Better Auth の版を上げて、hook の返す値が効かなくなった場合
 - 悪い影響: Cloudflare の基盤が残すログ（Workers Logs と `wrangler tail`）には、ホストの IP も残る。回答者と同じく受け入れる（S5、ADR 0005）
 - 対応事項（#345）: `host-data-policy.ts` を作り、`createAuthOptions` に `mapProfileToUser`・`disableDefaultScope: true`・`disableIpTracking: true`・account の hook（トークンと scope を空にする）・`session.create.before` での `userAgent` を空にする処理を入れる。テスト用の auth で実際にログインし、1回目と2回目のどちらでも、user・account・session の行に本物の email・image・トークン・IP・User-Agent が無いことを確かめる。scope が空でもログインが通ることも確かめる。ローカルの OAuth App で、前に `user:email` を許可した状態から「Revoke all user tokens」を押してログインし直し、トークン交換の応答の `scope` が空になるか（許可まで消えるか）を確かめて、結果をこの ADR に追記する。`backend.md` の「ホストの認証」に、保存するものとしないものを書く
 - 対応事項（#346）: `removeHost` の `db.batch` で `user` の行も消す。外すと user・account・session・question_sets・questions が消えること、管理者の行はどの文でも消えないこと、一度もログインしていないホストも外せること、ほかのホストの行は残ることを、テストで確かめる。確認の文言を「問題セットも消え、元に戻せない」に直し、`host-allowlist.md` の「外す」の手順とコマンドの SQL を合わせる
-- 対応事項（#347）: 既にある行を、`host-data-policy.ts` の規則で1回書き換えるコマンドと、手順書（流す前に Time Travel の位置を控える、確かめの SELECT、書き換え、結果の確かめ、ホストから消してほしいと頼まれたとき）を作る。書き換えたあとも、同じ人が同じ user でログインできることを確かめる。手順書には、OAuth App の「Revoke all user tokens」で全員の前の許可を取り消す手順と、それで許可が残るときに、ホストそれぞれが GitHub の設定で取り消す手順も書く
+- 対応事項（#347）: 既にある行を、`host-data-policy.ts` の規則で1回書き換えるコマンドと、手順書（流す前に Time Travel の位置を控える、確かめの SELECT、書き換え、結果の確かめ、ホストから消してほしいと頼まれたとき）を作る。書き換えたあとも、同じ人が同じ user でログインできることを確かめる。手順書には、OAuth App の「Revoke all user tokens」で全員の前の許可を取り消す手順も書く（許可まで消えることは #345 で確かめた）
 - 対応事項（#360）: 部屋の寿命を決めるとき、外したホストの問題セットの写しが寿命まで残ることを含めて、要件 S5 に保存の期間を書く
 - 対応事項: 要件定義書の S5 を、ホストも扱う形に直す。docs/README.md の ADR の一覧に1行足し、ADR 0013 の外すときの決まりに、この ADR を指す一言を足す

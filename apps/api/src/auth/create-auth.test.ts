@@ -24,25 +24,38 @@ afterEach(() => {
 /**
  * GitHub の API への通信を差し替え、githubUserId の人としてログインしたことにする。
  * Better Auth は、トークンの取得・ユーザー情報・メールアドレスの3つを GitHub に問い合わせる。
+ * 保存しないことを確かめるため、本名・email・アバター・トークン・scope には本物らしい値を返す。
+ * scope は、前に `user:email` を許可した人に GitHub が返す形にする（ADR 0016）。
+ * emailsStatus を 403 にすると、scope の無いトークンで `/user/emails` が断られたことにする
  */
-function mockGithub(githubUserId: number) {
+function mockGithub(
+  githubUserId: number,
+  { email = `user${githubUserId}@example.com`, emailsStatus = 200 }: { email?: string; emailsStatus?: 200 | 403 } = {},
+) {
   const realFetch = globalThis.fetch;
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = new Request(input).url;
     if (url === 'https://github.com/login/oauth/access_token') {
-      return Response.json({ access_token: 'gho_test', token_type: 'bearer', scope: 'read:user,user:email' });
+      return Response.json({
+        access_token: 'gho_test',
+        refresh_token: 'ghr_test',
+        token_type: 'bearer',
+        scope: 'read:user,user:email',
+      });
     }
     if (url === 'https://api.github.com/user') {
       return Response.json({
         id: githubUserId,
         login: `user${githubUserId}`,
-        name: null,
-        email: null,
-        avatar_url: null,
+        name: '山田 太郎',
+        email,
+        avatar_url: `https://avatars.githubusercontent.com/u/${githubUserId}?v=4`,
       });
     }
     if (url === 'https://api.github.com/user/emails') {
-      return Response.json([{ email: `user${githubUserId}@example.com`, primary: true, verified: true }]);
+      return emailsStatus === 200
+        ? Response.json([{ email, primary: true, verified: true }])
+        : Response.json({ message: 'Requires authentication' }, { status: 403 });
     }
     return realFetch(input, init);
   });
@@ -55,6 +68,12 @@ const toCookieHeader = (response: Response) =>
     .map((cookie) => cookie.split(';')[0])
     .join('; ');
 
+/** ブラウザから届く User-Agent と、Better Auth が既定で IP を読むヘッダー。保存されないことを確かめる */
+const BROWSER_HEADERS = {
+  'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) AppleWebKit/605.1.15 Safari/605.1.15',
+  'x-forwarded-for': '203.0.113.7',
+};
+
 /**
  * ブラウザが行う GitHub のログインの流れを、画面の Worker の URL で通す。
  * 1. /api/auth/sign-in/social で GitHub への URL と state の Cookie を受け取る
@@ -63,7 +82,7 @@ const toCookieHeader = (response: Response) =>
 async function signInWithGithub() {
   const signIn = await exports.default.fetch(`${BASE_URL}/api/auth/sign-in/social`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', origin: BASE_URL },
+    headers: { 'content-type': 'application/json', origin: BASE_URL, ...BROWSER_HEADERS },
     // 画面（apps/web の auth-client.ts）と同じく、拒否されたらログイン画面へ戻すよう頼む
     body: JSON.stringify({ provider: 'github', callbackURL: '/host', errorCallbackURL: '/login' }),
   });
@@ -72,10 +91,10 @@ async function signInWithGithub() {
   const state = new URL(url).searchParams.get('state');
 
   const callback = await exports.default.fetch(`${BASE_URL}/api/auth/callback/github?code=test-code&state=${state}`, {
-    headers: { cookie: toCookieHeader(signIn) },
+    headers: { cookie: toCookieHeader(signIn), ...BROWSER_HEADERS },
     redirect: 'manual',
   });
-  return { signIn, callback };
+  return { signIn, callback, authorizationUrl: new URL(url) };
 }
 
 const sessionCookieOf = (response: Response) =>
@@ -128,16 +147,88 @@ describe('GitHub のログイン（S1・ADR 0003）', () => {
   });
 });
 
-describe('GitHub のトークンの保存', () => {
-  it('GitHub のアクセストークンを平文で D1 に残さない', async () => {
+describe('ホストの個人情報を保存しない（ADR 0016）', () => {
+  /** user・account・session の行に、GitHub やブラウザから届いた本物の値が残っていないことを確かめる */
+  async function expectNoPersonalData(githubUserId: number) {
+    const [savedUser] = await db.select().from(user);
+    expect(savedUser).toMatchObject({
+      name: `user${githubUserId}`,
+      email: `${githubUserId}@users.zubakui.invalid`,
+      emailVerified: false,
+      image: null,
+    });
+    const [savedAccount] = await db.select().from(account);
+    expect(savedAccount).toMatchObject({
+      accountId: String(githubUserId),
+      accessToken: null,
+      refreshToken: null,
+      idToken: null,
+      scope: null,
+    });
+    const sessions = await db.select().from(session);
+    expect(sessions.length).toBeGreaterThan(0);
+    for (const saved of sessions) {
+      expect(saved).toMatchObject({ ipAddress: null, userAgent: null });
+    }
+  }
+
+  it('1回目のログインで、本物の email・本名・アバター・トークン・scope・IP・User-Agent を保存しない', async () => {
     await allowGithubUser(db, '1001');
     mockGithub(1001);
 
+    const { callback } = await signInWithGithub();
+
+    expect(sessionCookieOf(callback)).toBeDefined();
+    await expectNoPersonalData(1001);
+  });
+
+  it('2回目のログインでも保存せず、GitHub の email が変わっても同じ user のまま', async () => {
+    await allowGithubUser(db, '1001');
+    mockGithub(1001);
+    await signInWithGithub();
+    const [first] = await db.select().from(user);
+    vi.restoreAllMocks();
+
+    mockGithub(1001, { email: 'changed@example.com' });
+    const { callback } = await signInWithGithub();
+
+    expect(sessionCookieOf(callback)).toBeDefined();
+    expect(await countSessions()).toBe(2);
+    expect(await db.select({ id: user.id }).from(user)).toEqual([{ id: first!.id }]);
+    await expectNoPersonalData(1001);
+  });
+
+  it('別の GitHub ユーザーが同じ email を持っていても、別の user になる', async () => {
+    await allowGithubUser(db, '1001');
+    await allowGithubUser(db, '1002');
+    mockGithub(1001, { email: 'shared@example.com' });
+    await signInWithGithub();
+    vi.restoreAllMocks();
+
+    mockGithub(1002, { email: 'shared@example.com' });
     await signInWithGithub();
 
-    const [saved] = await db.select().from(account);
-    expect(saved!.accessToken).toBeTruthy();
-    expect(saved!.accessToken).not.toContain('gho_test');
+    const users = await db.select({ email: user.email }).from(user).orderBy(user.email);
+    expect(users).toEqual([{ email: '1001@users.zubakui.invalid' }, { email: '1002@users.zubakui.invalid' }]);
+  });
+
+  it('GitHub に scope を求めない', async () => {
+    mockGithub(1001);
+
+    const { authorizationUrl } = await signInWithGithub();
+
+    expect(authorizationUrl.searchParams.has('scope')).toBe(false);
+  });
+
+  it('scope の無いトークンで /user/emails が断られても、ログインできる', async () => {
+    await allowGithubUser(db, '1001');
+    mockGithub(1001, { emailsStatus: 403 });
+
+    const { callback } = await signInWithGithub();
+
+    expect(callback.headers.get('location')).toBe('/host');
+    expect(sessionCookieOf(callback)).toBeDefined();
+    await expectNoPersonalData(1001);
   });
 });
 
