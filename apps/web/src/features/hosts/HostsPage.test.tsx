@@ -116,7 +116,7 @@ describe('ホストの一覧（ADR 0013）', () => {
     expect(within(await rowOf('alice')).getByRole('button', { name: '外す' })).toBeInTheDocument();
   });
 
-  it('外すときは確かめ、ログインも切れることを伝える。「やめる」なら何も外さず、「外す」へフォーカスを戻す', async () => {
+  it('外すときは確かめ、ログインが切れ、問題セットも消えて元に戻せないことを伝える。「やめる」なら何も外さず、「外す」へフォーカスを戻す', async () => {
     const api = stubFakeApi({ isAdmin: true, hosts: [ADMIN, ALICE] });
     await openAt('/admin/hosts');
     const row = await rowOf('alice');
@@ -124,7 +124,7 @@ describe('ホストの一覧（ADR 0013）', () => {
     fireEvent.click(within(row).getByRole('button', { name: '外す' }));
     const dialog = within(row).getByRole('alertdialog', { name: '本当に外しますか？' });
     expect(dialog).toHaveAccessibleDescription(
-      'その人のログインも切れます。作った問題セットは残り、追加し直せばまた使えます。',
+      'その人のログインが切れ、作った問題セットもすべて消えます。元に戻せません。',
     );
     expect(within(dialog).getByRole('button', { name: 'やめる' })).toHaveFocus();
     fireEvent.click(within(dialog).getByRole('button', { name: 'やめる' }));
