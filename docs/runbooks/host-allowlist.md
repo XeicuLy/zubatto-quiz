@@ -112,7 +112,20 @@ pnpm exec wrangler d1 execute DB --remote --command "SELECT * FROM host_allowlis
 
 ## 外す（ホストの取り消し）
 
-外すと、その人の `user` の行も消える。外部キーの cascade で、`account`・`session`・問題セット・問題も一緒に消える（[ADR 0016](../adr/0016-do-not-keep-host-personal-data.md)）。**元に戻せない。** 足し直しても問題セットは戻らない。誤って外したときに戻す方法は、D1 全体を Time Travel で外す前の時点へ戻すことしか無く、そうするとほかのホストの変更も同じ時点まで戻る。必要なら、外す前に `pnpm exec wrangler d1 time-travel info DB` で今の位置（bookmark）を控えておく。
+外すと、その人の `user` の行も消える。外部キーの cascade で、`account`・`session`・問題セット・問題も一緒に消える（[ADR 0016](../adr/0016-do-not-keep-host-personal-data.md)）。**元に戻せない。** 足し直しても問題セットは戻らない。誤って外したときに戻す方法は、D1 全体を Time Travel で外す前の時点へ戻すことしか無い（下の「誤って外したとき」）。必要なら、外す前に `pnpm exec wrangler d1 time-travel info DB` で今の位置（bookmark）を控えておく。
+
+### 誤って外したとき
+
+D1 全体を、控えた bookmark の時点へ戻す。控えていなければ、`--bookmark` の代わりに `--timestamp=<外す前の時刻（RFC3339）>` を渡す。
+
+```sh
+pnpm exec wrangler d1 time-travel restore DB --bookmark=<控えた bookmark>
+```
+
+戻すと、その時点より後の変更がすべて消える。ほかのホストが作った問題セットの変更も、ほかの取り消しも戻る。**とくに、その間にほかのホストを外していたら、その人の許可リストの行とセッションも戻り、Cookie が切れていなければまた使えてしまう。** 戻したら、すぐに次を行う。
+
+1. その時点より後に外したホストを、もう一度外す。管理者の印を外していたら、それも外し直す
+2. [今の管理者を見る](#今の管理者を見る)と、許可リスト全体（`SELECT * FROM host_allowlist`）を見て、いてはいけない人がいないことを確かめる
 
 ### 画面から外す（管理者）
 
@@ -122,7 +135,7 @@ pnpm exec wrangler d1 execute DB --remote --command "SELECT * FROM host_allowlis
 
 ### コマンドで外す
 
-画面が使えないときは、次を**この順で**行う。先に `user` を消すと、許可リストから外すまでの間にログインし直せ、新しい `user` の行ができてしまう。
+画面が使えないときは、次を**この順で**行う。先に `user` を消すと、許可リストから外すまでの間にログインし直せ、新しい `user` の行ができてしまう。手順3で両方の結果が0行と確かめるまで、同じ人を許可リストに足し直さない。手順1と2の間に足し直してログインされると、手順2が、足し直したあとに作った問題セットまで消すため。
 
 1. 許可リストから外す。これで次のログインから拒否され、`requireHost` も次の要求から断る
 
