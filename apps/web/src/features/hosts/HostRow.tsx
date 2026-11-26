@@ -74,10 +74,11 @@ export function HostRow({ host, onRemoved }: HostRowProps) {
         </p>
       </div>
       {host.isAdmin ? null : confirm.confirming === 'remove' ? (
-        // 外すと何が起きるか（ログインが切れる）と、何が残るか（問題セット）を添える
+        // 外すと何が起きるか（ログインが切れ、問題セットも消える）と、元に戻せないことを添える。
+        // API は user の行ごと消し、足し直しても問題セットは戻らない（ADR 0016）
         <ConfirmDialog
           title="本当に外しますか？"
-          detail="その人のログインも切れます。作った問題セットは残り、追加し直せばまた使えます。"
+          detail="その人のログインが切れ、作った問題セットもすべて消えます。元に戻せません。"
           confirmLabel="本当に外す"
           onConfirm={() => remove.mutate()}
           onCancel={confirm.close}

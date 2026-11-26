@@ -150,7 +150,7 @@ describe('DELETE /api/admin/hosts/:githubUserId（ADR 0013）', () => {
     expect((await requestAs('admin', 'DELETE', '/1001')).status).toBe(204);
     expect((await requestAs('admin', 'POST', '', { login: 'alice' })).status).toBe(201);
 
-    // 外すときにセッションを消しているので、足し直しても戻らない
+    // 外すときに user ごと（cascade でセッションも）消しているので、足し直しても戻らない
     expect((await apiRequest('/question-sets', { headers: alice })).status).toBe(401);
   });
 
