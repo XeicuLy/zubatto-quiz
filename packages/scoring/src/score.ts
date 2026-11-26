@@ -1,4 +1,4 @@
-import { defaultScoring, type ScoringConfig } from './config.ts';
+import { ANSWER_TIME_ALLOWANCE_MS, defaultScoring, type ScoringConfig } from './config.ts';
 
 /** 経過時間をそろえる単位（0.01秒、P2） */
 const ELAPSED_UNIT_MS = 10;
@@ -11,6 +11,17 @@ export const normalizeElapsedMs = (measuredMs: number, limitMs: number): number 
   const clamped = Math.min(Math.max(measuredMs, 0), limitMs);
   return Math.floor(clamped / ELAPSED_UNIT_MS) * ELAPSED_UNIT_MS;
 };
+
+/**
+ * 端末が申告した経過時間に、サーバーから見た経過時間で下限を付ける（Z1）。0 と申告しても、満点と最速にならない。
+ * serverElapsedMs は、受付を始めた時刻（deadline_at - limit_ms）から回答が届くまで。時刻は呼ぶ側で読む。
+ * 正規化（normalizeElapsedMs）はしないので、呼ぶ側でこの値を1回だけ正規化する（P2）
+ */
+export const flooredElapsedMs = (
+  reportedMs: number,
+  serverElapsedMs: number,
+  allowanceMs: number = ANSWER_TIME_ALLOWANCE_MS,
+): number => Math.max(reportedMs, serverElapsedMs - allowanceMs);
 
 /**
  * 経過時間を 0.01秒単位の秒の文字列にする（例: 1010 → "1.01"）。「秒」は画面で付ける。

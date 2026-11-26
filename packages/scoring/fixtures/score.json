@@ -13,6 +13,7 @@
       "maxSpeedPoints": 500
     }
   },
+  "answerTimeAllowanceMs": 1000,
   "scoreAnswer": [
     {
       "input": {
@@ -220,6 +221,57 @@
         "limitMs": 10000
       },
       "expected": 0
+    }
+  ],
+  "flooredElapsedMs": [
+    {
+      "input": {
+        "reportedMs": 0,
+        "serverElapsedMs": 3000
+      },
+      "expected": 2000
+    },
+    {
+      "input": {
+        "reportedMs": 0,
+        "serverElapsedMs": 9999
+      },
+      "expected": 8999
+    },
+    {
+      "input": {
+        "reportedMs": 0,
+        "serverElapsedMs": 500
+      },
+      "expected": 0
+    },
+    {
+      "input": {
+        "reportedMs": 2340,
+        "serverElapsedMs": 2400
+      },
+      "expected": 2340
+    },
+    {
+      "input": {
+        "reportedMs": 2000,
+        "serverElapsedMs": 3000
+      },
+      "expected": 2000
+    },
+    {
+      "input": {
+        "reportedMs": 1999,
+        "serverElapsedMs": 3000
+      },
+      "expected": 2000
+    },
+    {
+      "input": {
+        "reportedMs": 5000,
+        "serverElapsedMs": 3000
+      },
+      "expected": 5000
     }
   ],
   "formatSeconds": [
