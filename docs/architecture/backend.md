@@ -26,7 +26,7 @@
 
 - Better Auth の GitHub ログインを使う（[ADR 0003](../adr/0003-host-identification-and-host-connection.md)）。`owner_id` は Better Auth の `user.id`
 - GitHub のユーザー ID の許可リストは、新規登録のときに `user.validateUserInfo` で、行を書く前に確かめる。D1 にはトランザクションがないので、`account.create.before` で断ると `user` の行が残ってしまう。セッションを作るたびに、`databaseHooks.session.create.before` でもう一度確かめる
-- ホストの個人情報は D1 に持たない（[ADR 0016](../adr/0016-do-not-keep-host-personal-data.md)、S5）。何をどう保存するかは `auth/host-data-policy.ts` の1か所に置き、ログインの設定と hook も、既にある行の書き換え（#347）もそこから値を引く
+- ホストの個人情報は D1 に持たない（[ADR 0016](../adr/0016-do-not-keep-host-personal-data.md)、S5）。何をどう保存するかは `auth/host-data-policy.ts` の1か所に置き、ログインの設定と hook も、既にある行の書き換え（`scripts/scrub-host-data.ts`）もそこから値を引く
 
   | 表        | 保存するもの                                                                 | 保存しないもの                                                                            |
   | --------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
@@ -38,6 +38,7 @@
   - `databaseHooks.account` は、`create.before`（1回目のログイン）と `update.before`（2回目から）の両方でトークンと scope を空にする。`update.before` に渡る値には `scope` が無いが、空にした値を重ねるので、前に入った scope も消える。`encryptOAuthTokens` は、空にできなかったときに平文で残さないための守りとして残す
   - `advanced.ipAddress.disableIpTracking` で、Better Auth は要求から IP を読まない。`session.create.before` は、許可リストを確かめたあと、IP と User-Agent を空にした値を返す
   - Better Auth は hook の返す値を保存の値に重ねるだけなので、版を上げて効かなくなっても、型やビルドでは気付けない。`create-auth.test.ts` が、実際にログインして1回目と2回目の行を確かめ、CI で止める（ADR 0016）
+  - 規則が入る前に保存された行は、`apps/api/scripts/scrub-host-data.ts` が同じ定数から作った SQL を、`host-data:check`・`host-data:scrub` で `wrangler d1 execute` に渡して1回そろえる（[host-data.md](../runbooks/host-data.md)）。D1 には bind の無い1本の SQL で渡るので、値はコードの定数だけを文字列にし、D1 の中身や引数は入れない。確かめの SELECT と UPDATE は同じ「規則と違う」の条件から作り、UPDATE はその行だけを書き換えるので、2回目は1行も変えない。`user.name` は、login が D1 に無く SQL で作り直せないので、手順書で1人ずつ直す。`scrub-host-data.test.ts` は、古い形の行を書き換えると `create-auth.test.ts` と同じ確かめ（`test/auth/github-login.ts` の `expectStoredByPolicy`）を通り、そのあとも同じ `user` でログインできることを確かめる
 
 - `requireHost` は、セッションを読んだあと、要求のたびに `isAllowedSession` で許可リストを確かめ直す（[ADR 0013](../adr/0013-host-admin-role.md)）。許可リストに行があり、セッションの `created_at` がその行の `created_at` 以後なら通し、そうでなければセッションがないときと同じ 401 にする。画面から外しても、コマンドで行だけを外しても、次の要求から通らない。行があるかだけを見ると、行だけを外して足し直したときに外す前のセッションがまた通るので、時刻も比べる。そのため、`host_allowlist.created_at` は足した時刻のまま書き換えない。ホスト用の WebSocket は、つなぐときにだけ `requireHost` を通る
 - 管理者の印は `host_allowlist.is_admin` に持つ（[ADR 0013](../adr/0013-host-admin-role.md)）。許可リストの行にあるので、管理者は必ずホストになる。印はコマンドでだけ付け外しする（[host-allowlist.md](../runbooks/host-allowlist.md#管理者)）。`auth/allowlist.ts` の `isAllowedUser`・`isAllowedSession`・`isAdminUser` は、同じ `account` と `host_allowlist` の join（`provider_id = 'github'` で絞る）を使い、`isAllowedSession` は時刻の、`isAdminUser` は `is_admin` の条件を足すだけにしている
