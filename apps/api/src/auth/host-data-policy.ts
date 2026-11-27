@@ -2,7 +2,7 @@
  * ホストについて D1 に何を保存するかの規則（ADR 0016、要件 S5）。
  *
  * アプリが読むのは user.id・user.name・account.account_id だけなので、それ以外の個人情報は持たない。
- * ログインの hook（create-auth.ts）と、既にある行の1回の書き換え（#347）の両方が、ここから値を引く。
+ * ログインの hook（create-auth.ts）と、既にある行の1回の書き換え（scripts/scrub-host-data.ts）の両方が、ここから値を引く。
  * 規則を1か所に置くのは、2つの経路で行の形がずれないようにするため。Go 版も同じ列に同じ値を入れる（ADR 0008）
  */
 
@@ -11,7 +11,8 @@ const SYNTHETIC_EMAIL_DOMAIN = 'users.zubakui.invalid';
 
 /**
  * GitHub の ID から作る email。Better Auth は user.email に NOT NULL UNIQUE を求めるので、本物の代わりに入れる。
- * 中身は account.account_id にある ID だけなので、新しく分かることは無く、#347 でも同じ値を作り直せる
+ * 中身は account.account_id にある ID だけなので、新しく分かることは無く、既にある行の書き換えでも SQL で同じ値を作り直せる。
+ * scripts/scrub-host-data.ts は syntheticEmail('') を後ろの部分として使うので、`<ID><後ろの部分>` の形を変えるときはそちらも見る
  */
 export const syntheticEmail = (githubUserId: string) => `${githubUserId}@${SYNTHETIC_EMAIL_DOMAIN}`;
 

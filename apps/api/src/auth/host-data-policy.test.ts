@@ -38,7 +38,7 @@ describe('GitHub のプロフィールから user の行に入れる値', () => 
 });
 
 describe('空にする列', () => {
-  // #347 の書き換えも同じ定数から SQL を作るので、キーが表の列で、NULL を入れられることを確かめておく
+  // 既にある行の書き換え（scripts/scrub-host-data.ts）も同じ定数から SQL を作るので、キーが表の列で、NULL を入れられることを確かめておく
   it.each([
     ['account', EMPTIED_ACCOUNT_FIELDS, getTableColumns(account)],
     ['session', EMPTIED_SESSION_FIELDS, getTableColumns(session)],

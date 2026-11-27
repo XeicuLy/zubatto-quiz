@@ -7,6 +7,8 @@
     "db:migrate:local": "wrangler d1 migrations apply DB --local --persist-to ../web/.wrangler/state",
     "db:migrate:e2e": "wrangler d1 migrations apply DB --local --env e2e --persist-to ../web/.wrangler/e2e",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote --env=\"\"",
+    "host-data:check": "wrangler d1 execute DB --env=\"\" --command \"$(node scripts/scrub-host-data-cli.ts check)\"",
+    "host-data:scrub": "wrangler d1 execute DB --env=\"\" --command \"$(node scripts/scrub-host-data-cli.ts scrub)\"",
     "deploy": "wrangler deploy --env=\"\"",
     "dev": "wrangler dev",
     "tsc": "wrangler types --check && tsc -p tsconfig.json && tsc -p tsconfig.node.json",

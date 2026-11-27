@@ -1,8 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    // 設定のファイルと test/bundle/ は node の上で動くので、Workers の型ではなく node の型を読む
+    // 設定のファイル・test/bundle/・scripts/ のコマンドの入口は node の上で動くので、Workers の型ではなく node の型を読む
     "types": ["node"]
   },
-  "include": ["vitest.config.ts", "vitest.bundle.config.ts", "drizzle.config.ts", "test/bundle/**/*.ts"]
+  "include": [
+    "vitest.config.ts",
+    "vitest.bundle.config.ts",
+    "drizzle.config.ts",
+    "test/bundle/**/*.ts",
+    "scripts/*-cli.ts"
+  ]
 }
