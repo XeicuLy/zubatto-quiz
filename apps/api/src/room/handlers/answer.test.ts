@@ -8,7 +8,9 @@ import {
   MANY_PLAYERS_TIMEOUT_MS,
   messageReader,
   newRoom,
+  newToken,
   nextOf,
+  resumePlayer,
   type RoomStub,
   type Socket,
 } from '../../../test/room-socket';
@@ -35,7 +37,9 @@ async function startAccepting(stub: RoomStub, names = ['たろう']) {
   const host = { ws: hostWs, next: messageReader(hostWs) };
   const players = [];
   for (const name of names) {
-    players.push(await joinPlayer(stub, name));
+    // 秘密も返し、つなぎ直しのテストで resume に使う
+    const token = newToken();
+    players.push({ ...(await joinPlayer(stub, name, token)), token });
   }
   send(host, { type: 'showQuestion', questionIndex: 0 });
   send(host, { type: 'startAnswering', questionIndex: 0 });
@@ -267,6 +271,68 @@ describe('経過時間（P2）', () => {
     } = await startAccepting(stub);
 
     expect(await answer(taro, { ...q1, elapsedMs: -1 })).toEqual({ type: 'error', code: 'invalid_message' });
+  });
+
+  describe('サーバーから見た経過時間での下限（Z1）', () => {
+    // 受付を始めてからの時間を、時計を進めて作る。下限は「受付を始めてからの時間 - 余裕の1秒」で、制限時間は10秒
+    let now: number;
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      now = Date.now();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('受付を始めて3秒たって 0 と申告されたら、2秒として記録する', async () => {
+      const stub = await newRoom();
+      const {
+        players: [taro],
+      } = await startAccepting(stub);
+
+      vi.setSystemTime(now + 3_000);
+      expect(await answer(taro, { ...q1, elapsedMs: 0 })).toMatchObject({ type: 'answerAccepted', elapsedMs: 2_000 });
+      expect(await readAnswers(stub)).toMatchObject([{ elapsedMs: 2_000 }]);
+    });
+
+    it('下限より大きい正直な申告は、そのまま記録する', async () => {
+      const stub = await newRoom();
+      const {
+        players: [taro],
+      } = await startAccepting(stub);
+
+      // 端末の時計は配信のあとに動き始めるので、正直な申告はサーバーの経過時間より少し小さい
+      vi.setSystemTime(now + 2_500);
+      expect(await answer(taro, q1)).toMatchObject({ type: 'answerAccepted', elapsedMs: 2_340 });
+    });
+
+    it('つなぎ直したあとも、受付を始めた時刻から数える', async () => {
+      const stub = await newRoom();
+      const {
+        players: [taro],
+      } = await startAccepting(stub);
+      vi.setSystemTime(now + 5_000);
+      // 接続ごと DO を落とし、新しい接続で resume する。受付を始めた時刻は締切から求めるので、つなぎ直しでは変わらない
+      await evictDurableObject(stub, { webSockets: 'close' });
+      const resumed = await resumePlayer(stub, taro!.token);
+      // resume はハッシュを await するので、そのあいだに届いた回答は未確認の接続として断られる。確認が済むまで待つ
+      await nextOf(resumed, 'resumed');
+
+      expect(await answer(resumed, { ...q1, elapsedMs: 0 })).toMatchObject({
+        type: 'answerAccepted',
+        elapsedMs: 4_000,
+      });
+    });
+
+    it('締切の直前に 0 と申告されても、下限を0.01秒単位に切り捨て、制限時間を超えない', async () => {
+      const stub = await newRoom();
+      const {
+        players: [taro],
+      } = await startAccepting(stub);
+
+      vi.setSystemTime(now + LIMIT_MS - 1);
+      expect(await answer(taro, { ...q1, elapsedMs: 0 })).toMatchObject({ type: 'answerAccepted', elapsedMs: 8_990 });
+    });
   });
 });
 

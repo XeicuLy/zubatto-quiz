@@ -1,5 +1,5 @@
 import type { Answer, AnswerProgress, ErrorCode } from '@zubatto-quiz/protocol';
-import { normalizeElapsedMs } from '@zubatto-quiz/scoring';
+import { flooredElapsedMs, normalizeElapsedMs } from '@zubatto-quiz/scoring';
 
 import { answerProgressOf } from '@/room/resend';
 import { send, sendToHosts } from '@/room/send';
@@ -10,14 +10,18 @@ type AcceptResult =
   | { ok: true; elapsedMs: number; progress: AnswerProgress }
   | { ok: false; code: Extract<ErrorCode, 'not_accepting' | 'invalid_choice' | 'already_answered'> };
 
-/** 受付中の問題。正解（correct_index）は読まない（S2） */
-type AcceptingQuestion = { id: string; choice_count: number; limit_ms: number };
+/**
+ * 受付中の問題。正解（correct_index）は読まない（S2）。
+ * started_at は受付を始めた時刻。表には持たず、締切から制限時間を引いて求めるので、つなぎ直しても変わらない
+ */
+type AcceptingQuestion = { id: string; choice_count: number; limit_ms: number; started_at: number };
 
 /** 受付中の問題を読む。受付中でないとき（出題中・締切のあと・部屋を終えたあと）は undefined */
 const readAcceptingQuestion = (sql: SqlStorage): AcceptingQuestion | undefined =>
   sql
     .exec<AcceptingQuestion>(
-      `SELECT q.id, json_array_length(q.choices) AS choice_count, q.limit_ms
+      // 受付中の部屋は、いつも deadline_at を持つ（host-commands.ts）
+      `SELECT q.id, json_array_length(q.choices) AS choice_count, q.limit_ms, r.deadline_at - q.limit_ms AS started_at
        FROM room r JOIN questions q ON q.position = r.current_position
        WHERE r.phase = 'accepting' AND r.ended_at IS NULL`,
     )
@@ -67,9 +71,13 @@ export function handleAnswer(ctx: DurableObjectState, ws: WebSocket, participant
     if (answer.choiceIndex >= question.choice_count) {
       return { ok: false, code: 'invalid_choice' };
     }
-    // 端末で計った値を信じる（P2）。制限時間を超えた値は制限時間に丸め、速さの点を0にするだけで、回答としては受け付ける。
+    // 端末で計った値を使う（P2）。ただし、受付を始めてから届くまでの時間から通信の余裕を引いた値より小さくはしない（Z1）。
+    // 制限時間を超えた値は制限時間に丸め、速さの点を0にするだけで、回答としては受け付ける。
     // 負の値は protocol の検査で invalid_message になり、ここへは来ない
-    const elapsedMs = normalizeElapsedMs(answer.elapsedMs, question.limit_ms);
+    const elapsedMs = normalizeElapsedMs(
+      flooredElapsedMs(answer.elapsedMs, now - question.started_at),
+      question.limit_ms,
+    );
     const inserted = insertAnswerOnce(sql, {
       questionId: question.id,
       participantId,

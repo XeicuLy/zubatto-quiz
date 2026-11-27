@@ -113,7 +113,7 @@
 - `join` の確かめ（NFKC で正規化して前後の空白を取った名前の重なり、protocol の50人の上限 `MAX_PARTICIPANTS`。ホストの待機画面もこの数を出す）と行の追加は、await のない同期の SQL で行う
 - 1問に1回だけの回答は、`UNIQUE(question_id, participant_id)` と、受け付け中かの確かめを1つのトランザクションで行って守る
 - `handleAnswer`（`room/handlers/answer.ts`）は、回答者の役割の接続からだけ `answer` を受け付ける（ホストの接続には `invalid_state`）。1つの `transactionSync` の中で、受け付け中の問題を読み（段階が `accepting` でない、部屋が終わっている、`questionId` が今の問題でない、のどれかなら `not_accepting`）、`choiceIndex` をその問題の選択肢の数と比べ（`invalid_choice`）、`ON CONFLICT (question_id, participant_id) DO NOTHING` で入れて、`rowsWritten`/`changes()` が0なら `already_answered` にする。`INSERT OR IGNORE` は使わない。CHECK の違反も飲み込むので、`already_answered` に見えてしまう
-- `answers.elapsed_ms` には `normalizeElapsedMs` の値を入れる。クライアントの値を信じ（P2）、`limitMs` を超える値は断らずに `limitMs` に切り詰め、負の値は decode で `invalid_message` になる。`answerAccepted` は保存した値を返す。`answerProgress` はホストの接続にだけ送り、回答者には送らない
+- `answers.elapsed_ms` には `normalizeElapsedMs(flooredElapsedMs(申告, now - 受付の開始), limitMs)` の値を入れる。クライアントの値を使う（P2）が、受付を始めてからの時間から通信の余裕を引いた値より小さくはしない（Z1）。受付を始めた時刻は表に持たず、`readAcceptingQuestion` が `deadline_at - limit_ms` で求めるので、つなぎ直しても変わらない。`now` は `closeAnsweringIfDue` と同じ、`handleAnswer` の頭で1回だけ読んだ値。`limitMs` を超える値は断らずに `limitMs` に切り詰め、負の値は decode で `invalid_message` になる。`answerAccepted` は保存した値を返す。`answerProgress` はホストの接続にだけ送り、回答者には送らない
 - 受付中に `join` が通ったら、`handleJoin` は `currentAnswerProgress`（`room/resend.ts`）で今の回答数を作り直し、ホストへ送る。受付中に入った人も分母に入るので、送らないと分母が古いまま残り、まだ答えていない人がいるのに進行画面が「全員が回答しました」と出す（#336）。`resume` は人数を変えないので送らない
 
 ## メッセージの形
@@ -177,5 +177,6 @@
 - 配点は `config.ts` だけで変える（M2）。`defaultScoring` には F12 の `quickBonus`（1.00秒以内、1.00秒ちょうどを含む、+200点）が入っているので、`maxPointsPerQuestion` と F15 の `remainingMaxPoints` は1問1,200点になる。`quickBonusPoints` は `scoreAnswer` のうちのボーナスの部分。要件定義書の表のボーナスなしの列が要るテストは、`fixtures/score.json` の `configs.withoutQuickBonus` を渡す
 - 点と順位のテストの表は `fixtures/score.json` と `fixtures/ranking.json` にあり、TS のテストはそれを読んで回す。採点と同点の扱いは `ws.schema.json` に入らないので、Go で書き直すときも同じ JSON を読み、表を二重に持たない。どの行も `joinOrder` をはっきり書き、`expected` には関数の戻り値をまるごと書く。`configs.default` は `defaultScoring` と同じ値で、ずれたら `defaultScoring` のテストが落ちる。例外の文言のように TS の実装に頼るものだけは、テストに残す
 - 経過時間は `normalizeElapsedMs` で1回だけ正規化し、その値を表示・得点・ボーナス・最速の回答に使う（P2）
+- `flooredElapsedMs` は、申告の時間と「サーバーから見た経過時間 − `ANSWER_TIME_ALLOWANCE_MS`」の大きいほうを返す純粋な関数で、正規化はしない。時刻は呼ぶ側が読む。正直な端末の時計は配信を受けて選択肢を描いてから動くので、申告はサーバーの経過時間より「下り + 描画 + 上り」のぶん小さい。余裕（1秒）はこの差を吸うための値で、ごまかした端末が縮められる時間の上限でもある。差が1秒を超えた正直な回答は、下限が申告を上回り、記録される時間が長くなることがある（0.01秒単位の切り捨てで変わらないこともある）。根拠は `config.ts` のコメントにある。表は `fixtures/score.json` の `flooredElapsedMs` と `answerTimeAllowanceMs`
 - 同点のときの決め方は、要件定義書の[「同点のとき」](../requirements/zubatto-quiz.md#同点のとき)にある。`positionOf` は protocol の `playerPosition` の形から `rankUp` と `hidden` を除いたものを返し、締切の集計がそれを足す
 - `packages/protocol` と同じく、`tsconfig.lib.json` がテストでない `src/` を ambient な型なしで確かめる

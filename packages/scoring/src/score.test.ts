@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import fixture from '../fixtures/score.json' with { type: 'json' };
-import { defaultScoring, type ScoringConfig } from './config.ts';
+import { ANSWER_TIME_ALLOWANCE_MS, defaultScoring, type ScoringConfig } from './config.ts';
 import {
+  flooredElapsedMs,
   formatSeconds,
   maxPointsPerQuestion,
   normalizeElapsedMs,
@@ -64,6 +65,32 @@ describe('normalizeElapsedMs', () => {
       expect(normalizeElapsedMs(input.measuredMs, input.limitMs)).toBe(expected);
     });
   }
+});
+
+describe('ANSWER_TIME_ALLOWANCE_MS', () => {
+  it('通信の余裕は1.00秒で、fixtures/score.json の answerTimeAllowanceMs と同じ', () => {
+    // config.ts を変えたら（M2）、fixtures/score.json の answerTimeAllowanceMs と flooredElapsedMs の期待値も直す
+    expect(ANSWER_TIME_ALLOWANCE_MS).toBe(fixture.answerTimeAllowanceMs);
+  });
+});
+
+describe('flooredElapsedMs', () => {
+  // 申告の時間と、サーバーから見た経過時間から余裕を引いた下限の、大きいほう。expected は初期値の余裕での値
+  for (const { input, expected } of fixture.flooredElapsedMs) {
+    it(`${input.reportedMs} ミリ秒の申告は、サーバーで ${input.serverElapsedMs} ミリ秒たっていれば ${expected} ミリ秒にする`, () => {
+      expect(flooredElapsedMs(input.reportedMs, input.serverElapsedMs)).toBe(expected);
+    });
+  }
+
+  it('余裕を渡せば、その値で下限を計算する', () => {
+    expect(flooredElapsedMs(0, 3000, 500)).toBe(2500);
+  });
+
+  it('0 の申告でも、下限に直した値を正規化すれば満点とボーナスにならない', () => {
+    // 制限10秒で、サーバーから見て3秒たって届いた「0秒」の回答: 2.00秒として 500 + floor(500 × 8000 / 10000)
+    const elapsedMs = normalizeElapsedMs(flooredElapsedMs(0, 3000), 10_000);
+    expect(scoreAnswer({ correct: true, elapsedMs, limitMs: 10_000 })).toBe(900);
+  });
 });
 
 describe('formatSeconds', () => {
