@@ -11,11 +11,14 @@
 - DO はテストと同じ isolate で動く。そのため `vi.useFakeTimers({ toFake: ['Date'] })` と `vi.setSystemTime` で、DO の中の `Date.now()` も進む。alarm は `runDurableObjectAlarm(stub)` で動かす
 - DO の stub の RPC が返す Promise を、`expect(...).rejects` にそのまま渡さない。テストは通るが、vitest が Unhandled Rejection を報告して、実行全体が落ちる。`then` だけを呼ぶふつうの Promise に包む（`room/initialize.test.ts` の `settle`）
 - `src/` とテストは Workers の型で、`vitest.config.ts` は node の型（`tsconfig.node.json`）で確かめる。2つを混ぜると、`Request` などのグローバルがぶつかる
-- `apps/api/worker-configuration.d.ts` は生成したもの。`wrangler.jsonc` を変えたら次を動かす。パッケージの `tsc` のスクリプトは `wrangler types --check` を動かすので、古いままだと CI が落ちる。oxfmt と oxlint はこのファイルを飛ばす。整形すると、このチェックが落ちるため
+- Workers の型（`apps/api` と `apps/web` の `worker-configuration.d.ts`）は `wrangler types` が作るもので、リポジトリに入れない（`.gitignore`）。中身は `wrangler.jsonc` と wrangler の版（その中の workerd の型）だけで決まり、どちらもリポジトリにあるので、いつ作っても同じになる。パッケージの `tsc` のスクリプトが毎回 `wrangler types` で作り直してから確かめるので、CI が古い型で確かめることはない。エディタもこのファイルを読むので、`make setup` が作る。`wrangler.jsonc` を変えたり wrangler を上げたりしたあと、エディタの型を新しくしたいときは次を動かす（`pnpm run tsc` でも作り直される）。oxfmt と oxlint はこのファイルを飛ばす
 
   ```sh
   pnpm --filter @zubatto-quiz/api run types
   ```
+
+  - 前は生成したファイルをコミットし、`wrangler types --check` で古くないかを確かめていた。`--check` は workerd の版まで比べるので、wrangler を上げる Dependabot の PR が毎回落ち、手で作り直して push すると Dependabot の自動の rebase が止まっていた（2026-11-28 にやめた）。Cloudflare の文書も、コミットするかは任意としている（[TypeScript の文書](https://developers.cloudflare.com/workers/languages/typescript/#generate-types)で、2026-11-28 に確かめた）
+  - `tools/docs-check/test/worker-types.test.ts` が、`tsc` のスクリプトの先頭、`.gitignore`、git が追跡していないことを確かめる
 
 - D1 のマイグレーションの当て方と、テストの間で D1 を空にする方法は、[backend.md の「D1 のスキーマ」](backend.md#d1-のスキーマ)にある
 - 見えない文字は、ソースにエスケープで書く（`'\u200D'`、`'\u3000'`）。Claude Code の Write ツールは、中身の `\u` のエスケープを文字そのものに変えてしまう。そういうファイルはスクリプトで書くか、書いたあとで確かめる

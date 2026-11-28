@@ -11,7 +11,7 @@
     "host-data:scrub": "wrangler d1 execute DB --env=\"\" --command \"$(node scripts/scrub-host-data-cli.ts scrub)\"",
     "deploy": "wrangler deploy --env=\"\"",
     "dev": "wrangler dev",
-    "tsc": "wrangler types --check && tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "tsc": "wrangler types && tsc -p tsconfig.json && tsc -p tsconfig.node.json",
     "types": "wrangler types",
     "logs": "wrangler tail --env=\"\" --format json"
   },

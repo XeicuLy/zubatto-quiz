@@ -1,8 +1,10 @@
 .PHONY: setup dev fmt lint tsc test check e2e
 
+# Workers の型（worker-configuration.d.ts）はリポジトリに入れないので、エディタが読めるようここで作る
 setup:
 	mise install
 	mise exec -- pnpm install --frozen-lockfile
+	mise exec -- pnpm -r --if-present run types
 
 # 開発用のサーバー（vite dev、http://localhost:5173）。ローカルの D1 にマイグレーションを当ててから動かす。
 # 当て済みのマイグレーションは飛ばすので、毎回当てても変わらない。.dev.vars が無いとログインできないので、先に止める

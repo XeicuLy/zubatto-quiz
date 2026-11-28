@@ -202,7 +202,7 @@ action と npm の依存の更新は、Dependabot が週に1回 PR にする（`
 - `commit-message.prefix` は `chore` にし、`include: scope` は書かない。理由は action の `ci` と同じ。`chore` は版を上げないので、更新は次のリリースで本番に届く。脆弱性を直す更新をすぐ本番に出したいときは、PR の題名を `fix:` に書き換えてからマージする
 - minor と patch は `minor-and-patch` の1つの PR にまとめ、ほかの major はパッケージごとの PR にする。`storybook`・`react`・`tailwindcss`・`commitlint` は版をそろえて動くので、major のときだけ一緒に別の PR にする。minor と patch まで分けないのは、グループの数だけ PR と `e2e` が増えるからだ。グループは先に一致したものに入るので、`minor-and-patch` を最後に書く
 - 手で直すことがあるものは、minor と patch でも `minor-and-patch` から外し、直し方ごとのグループにする。1つにまとめると、その1件のために毎週の PR が `tsc` で止まり、ほかの更新のテストの結果が見えない。直すために手で push すると Dependabot が自動で rebase しなくなるので、手を入れる PR は小さいほうがよい
-  - `cloudflare`（`wrangler`・`@cloudflare/*`、major も含む）: `wrangler` はほぼ毎週新しい版が出て、そのたびに `worker-configuration.d.ts` の作り直しが要る（[下の3番](#更新の-pr-で読むこと)）。`@cloudflare/vite-plugin` と `@cloudflare/vitest-plugin` も workerd を持つので、型を作る版とテストを動かす版がずれないよう一緒に上げる
+  - `cloudflare`（`wrangler`・`@cloudflare/*`、major も含む）: `wrangler` はほぼ毎週新しい版が出て、workerd の型の変わり方で `tsc` が落ちることがある（[下の3番](#更新の-pr-で読むこと)）。`@cloudflare/vite-plugin` と `@cloudflare/vitest-plugin` も workerd を持つので、型を作る版とテストを動かす版がずれないよう一緒に上げる
   - `oxc`（`oxlint`・`oxfmt`）: 整形の変わり方や新しいルールで、リポジトリ全体に直しが出ることがある（下の4番）
 - `cooldown` は `default-days` を3日、`semver-major-days` を7日にする。公開直後の版を避け、[pnpm の公開待ち期間](#pnpm-の公開待ち期間)に引っかからないようにする
 - `@babel/core`・`@types/node`・`typescript` の major は `ignore` で止め、手で上げる。`@babel/core` は 8 系にすると React Compiler が既定値付き props の部品を黙って飛ばす（[frontend.md の「全体の形」](frontend.md#全体の形)）。`@types/node` は `.mise.toml` の Node の版に合わせる。`typescript` は 7.0 に API がなく、新しい API は 7.1 で出る予定なので（[TypeScript の告知](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)で、2026-11-07 に確かめた）、7.1 が出たら `ignore` を外す。このリポジトリの `tsc` と commitlint は 7.0.2 でも動いたので、今の失敗を避けるためではなく、API が整うのを待つための `ignore` だ
@@ -226,14 +226,8 @@ pnpm には、公開から1440分（1日）たっていない版を避ける `mi
 
 1. `pnpm-workspace.yaml` が変わっていないこと。`minimumReleaseAgeExclude` が足されていると `dependabot.test.ts` で `ci` が落ちる。その PR はマージせず、1日以上たってから `@dependabot recreate` とコメントして作り直す
 2. `ci` が `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` で落ちたら、除外を足さない。名前の出た版が公開から1日たつのを待ち、`ci` を再実行する
-3. `wrangler` を上げる PR（`cloudflare` のグループ）は、`ci` の `tsc` が `Types at worker-configuration.d.ts are out of date` で落ちる。`wrangler types --check` は生成ファイルの workerd の版まで比べるのに、Dependabot はこのファイルを作り直さないからだ。PR のブランチで次の2つを動かし、できたファイルをコミットする。手で push すると Dependabot は自動で rebase しなくなるので、`pnpm-lock.yaml` を変えるほかの PR より先にマージする。`ci` は `tsc` で止まり、`test` がまだ動いていないので、push のあとの `ci` まで見る
-
-   ```sh
-   pnpm --filter @zubatto-quiz/api run types
-   pnpm --filter @zubatto-quiz/web run types
-   ```
-
-4. `oxc` の PR が `ci` の `fmt:check` で落ちたら、PR のブランチで次を動かし、整形の差分をコミットする。`lint` で落ちたら、新しいルールの違反を直す。どちらも push すると自動の rebase が止まるのは3番と同じ
+3. `wrangler` を上げる PR（`cloudflare` のグループ）で、`worker-configuration.d.ts` を作り直してコミットすることはない。このファイルはリポジトリに入れず、`tsc` のスクリプトが毎回新しい版の `wrangler types` で作る（[testing.md の「Workers のテスト」](testing.md#workers-のテスト)）。新しい workerd の型で `tsc` が落ちたら、その型に合わせてコードを直す
+4. `oxc` の PR が `ci` の `fmt:check` で落ちたら、PR のブランチで次を動かし、整形の差分をコミットする。`lint` で落ちたら、新しいルールの違反を直す。どちらも、手で push すると Dependabot は自動で rebase しなくなるので、`pnpm-lock.yaml` を変えるほかの PR より先にマージする。`ci` は最初に落ちたところで止まり、あとの確かめがまだ動いていないので、push のあとの `ci` まで見る
 
    ```sh
    pnpm run fmt
