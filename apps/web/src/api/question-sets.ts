@@ -34,7 +34,8 @@ export async function fetchQuestionSet(id: string): Promise<QuestionSetDetail> {
 
 /**
  * 編集画面の loader で読む。キーが一覧の ['question-sets'] で始まるので、一覧を読み直すときは、こちらも古い扱いになる。
- * staleTime は既定の0のままにし、開くたびに読み直す。別のタブで保存した内容を、古い値のまま編集し始めないため
+ * staleTime は既定の0のままにし、開くたびに読み直す。別のタブで保存した内容を、古い値のまま編集し始めないため。
+ * ただし、これだけでは Router が前に開いたときの loaderData を先に出すので、ルートの gcTime: 0 と組で、読み終えてから画面を出す
  */
 export const questionSetQueryOptions = (id: string) =>
   queryOptions({
