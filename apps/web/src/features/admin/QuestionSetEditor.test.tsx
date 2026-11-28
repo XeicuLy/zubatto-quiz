@@ -102,6 +102,82 @@ describe('問題セットの編集（F4・F7・F9）', () => {
     expect(within(card(2)).getByLabelText('制限時間')).toHaveValue(30);
   });
 
+  // 上のテストは router を作り直す（ページの読み込み直しと同じ）。こちらは同じ router のまま行き来し、
+  // 離れた match を Router が持っていても、保存する前の loaderData から下書きを作らないことを確かめる
+  it('「保存して一覧へ」のあと同じセットを開き直すと、保存した内容が出る', async () => {
+    stubFakeApi({ questionSetDetails: [SET] });
+    const { router } = await openEditor();
+    await screen.findByLabelText('問題セットの名前');
+    fireEvent.change(screen.getByLabelText('問題セットの名前'), { target: { value: '書き換えた名前' } });
+
+    fireEvent.click(saveAndListButton());
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin'));
+    // 一覧が出てから、その「編集」で開き直す。人が押すのと同じく、一覧の loader を待ち終えてから移る
+    await screen.findByRole('heading', { level: 2, name: '書き換えた名前' });
+    fireEvent.click(screen.getByRole('link', { name: '編集' }));
+
+    expect(await screen.findByLabelText('問題セットの名前')).toHaveValue('書き換えた名前');
+  });
+
+  it('「保存する」で留まってから一覧へ移り、同じセットを開き直すと、保存した内容が出る', async () => {
+    stubFakeApi({ questionSetDetails: [SET] });
+    await openEditor();
+    await screen.findByLabelText('問題セットの名前');
+    fireEvent.change(screen.getByLabelText('問題セットの名前'), { target: { value: '書き換えた名前' } });
+    fireEvent.click(saveButton());
+    await within(toasts()).findByText('「書き換えた名前」を保存しました');
+
+    fireEvent.click(screen.getByRole('link', { name: '問題セットの一覧に戻る' }));
+    await screen.findByRole('heading', { level: 2, name: '書き換えた名前' });
+    fireEvent.click(screen.getByRole('link', { name: '編集' }));
+
+    expect(await screen.findByLabelText('問題セットの名前')).toHaveValue('書き換えた名前');
+  });
+
+  it('読み終える前に離れ、別のタブで保存されてから開き直すと、離れる前の応答を待たずに読み直す', async () => {
+    stubFakeApi({ questionSetDetails: [SET] });
+    // 最初の GET は、保存する前の中身で答えたまま、返すのを止めておく
+    const fakeFetch = globalThis.fetch;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let first = true;
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await fakeFetch(input, init);
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : input.href;
+      if ((init?.method ?? 'GET') === 'GET' && url.endsWith(`/api/question-sets/${SET.id}`) && first) {
+        first = false;
+        await held;
+      }
+      return response;
+    });
+    const router = createAppRouter({ history: createMemoryHistory({ initialEntries: ['/admin'] }) });
+    // 編集画面の loader が読んだ回数。開き直した loader が読み始めてから、止めた応答を返すため
+    const query = vi.spyOn(router.options.context.queryClient, 'query');
+    const editorLoads = () => query.mock.calls.filter(([options]) => options.queryKey[1] === SET.id).length;
+    render(<RouterProvider router={router} />);
+    await act(() => router.load());
+
+    fireEvent.click(await screen.findByRole('link', { name: '編集' }));
+    await waitFor(() => expect(editorLoads()).toBe(1));
+    await act(() => router.navigate({ to: '/' }));
+    await act(() => router.navigate({ to: '/admin' }));
+
+    // 別のタブで保存する
+    await fetch(`/api/question-sets/${SET.id}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: '別のタブの名前', questions: SET.questions }),
+    });
+
+    fireEvent.click(await screen.findByRole('link', { name: '編集' }));
+    await waitFor(() => expect(editorLoads()).toBe(2));
+    await act(async () => release());
+
+    expect(await screen.findByLabelText('問題セットの名前')).toHaveValue('別のタブの名前');
+  });
+
   it('正解を選んでいない問題があれば保存せず、直すところを示し、直すと誤りが消える（F4）', async () => {
     const api = stubFakeApi({ questionSetDetails: [SET] });
     await openEditor();
