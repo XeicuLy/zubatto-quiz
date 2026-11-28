@@ -10,7 +10,7 @@
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
     "e2e:serve": "rm -rf .wrangler/e2e && CLOUDFLARE_ENV=e2e vite build --mode e2e && pnpm --filter @zubatto-quiz/api run db:migrate:e2e && vite preview --mode e2e --port 4173 --strictPort",
-    "tsc": "wrangler types --check && tsc -p tsconfig.app.json && tsc -p tsconfig.worker.json && tsc -p tsconfig.node.json",
+    "tsc": "wrangler types && tsc -p tsconfig.app.json && tsc -p tsconfig.worker.json && tsc -p tsconfig.node.json",
     "types": "wrangler types",
     "logs": "wrangler tail --env=\"\" --format json"
   },

@@ -56,7 +56,7 @@ updates:
         patterns: ['@commitlint/*']
         update-types: [major]
       # 手で直すことがあるものは、minor と patch でも別の PR にする。ほかの更新の ci を止めない
-      # wrangler は worker-configuration.d.ts の作り直しが毎回要る。plugin も同じ workerd に合わせて一緒に上げる
+      # wrangler はほぼ毎週上がり、workerd の型の変わり方で tsc が落ちることがある。plugin も同じ workerd に合わせて一緒に上げる
       cloudflare:
         patterns: ['wrangler', '@cloudflare/*']
         update-types: [major, minor, patch]
