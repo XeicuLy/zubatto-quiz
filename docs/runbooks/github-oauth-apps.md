@@ -60,7 +60,7 @@ pnpm exec wrangler d1 execute DB --local --persist-to ../web/.wrangler/state \
   --command "SELECT ip_address, user_agent FROM session"
 ```
 
-この節の変更が入る前にログインしたホストの行には、古い値が残る。そろえる手順は #347 で手順書に書く。
+この節の変更が入る前にログインしたホストの行には、古い値が残る。[host-data.md](host-data.md#前からある行をそろえる)の手順で1回そろえる。
 
 GitHub の画面で「redirect_uri is not associated with this application」と出たら、OAuth App のコールバック URL と `BETTER_AUTH_URL` が合っていない。
 

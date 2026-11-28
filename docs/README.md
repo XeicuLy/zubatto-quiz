@@ -50,7 +50,8 @@
 2. [release.md](runbooks/release.md) と [deploy.md](runbooks/deploy.md) で、版の出し方と本番へのデプロイを読む。本番の最中は API の Worker をデプロイしない。workflow やルールセットがなぜその形かは [architecture/operations.md](architecture/operations.md) にある
 3. [stop-and-usage.md](runbooks/stop-and-usage.md) で、本番の前後の使用量の確かめ方と、すぐに止める方法を読む
 4. [logs.md](runbooks/logs.md) で、本番中と本番のあとのログの見方と残し方を読む
-5. 本番の前に、[tools/loadtest/README.md](../tools/loadtest/README.md) でリハーサルを行う。前の結果は [o2-rehearsal.md](rehearsal/o2-rehearsal.md) にある
+5. ホストを足し外しするときは [host-allowlist.md](runbooks/host-allowlist.md) を、ホストのデータをそろえる・消すときは [host-data.md](runbooks/host-data.md) を読む
+6. 本番の前に、[tools/loadtest/README.md](../tools/loadtest/README.md) でリハーサルを行う。前の結果は [o2-rehearsal.md](rehearsal/o2-rehearsal.md) にある
 
 ## ADR の一覧
 

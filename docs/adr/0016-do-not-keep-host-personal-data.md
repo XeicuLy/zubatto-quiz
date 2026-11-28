@@ -116,6 +116,7 @@ Better Auth の版を上げて、hook の返す値が効かなくなった場合
 - scope（U1）: github の provider に `disableDefaultScope: true` を付け、scope を足さない。#345 を本番に出したあと、本番とローカルの OAuth App の設定で「Revoke all user tokens」を押し、全員の前の許可を取り消す。全員が次のログインで、scope の無い許可をし直す。「Revoke all user tokens」で許可まで消えるかは #345 で確かめ、許可が残るなら、ホストそれぞれに GitHub の設定（Settings → Applications → Authorized OAuth Apps）で許可を取り消してもらう
   - 確かめた結果（#345、2026-11-26）: ローカルの OAuth App で、前に許可した状態から「Revoke all user tokens」を押してログインし直すと、同意の画面が出た。トークンだけでなく許可も消えるので、ホストそれぞれに取り消してもらう手順は要らない
 - 既にある行（W1）: `host-data-policy.ts` の規則から作った SQL を、`wrangler d1 execute` で1回流す。変える行の数を先に見る SELECT と、書き換えの UPDATE を分け、何度流しても同じ結果になる形にする。本番で流すのは、手順書に沿って人が行う
+  - 作った結果（#347、2026-11-28）: `apps/api/scripts/scrub-host-data.ts` が規則の定数から SQL を作り、`host-data:check`・`host-data:scrub` で `wrangler d1 execute` に渡す。UPDATE は規則と違う行だけを書き換えるので、2回目は1行も変えない。`user.name`（規則では login）は D1 に login が無く SQL で作り直せないので、手順書（`docs/runbooks/host-data.md`）で `gh api user/<ID>` から1人ずつ直す。書き換えたあとも同じ人が同じ `user` でログインできることは、`scrub-host-data.test.ts` で確かめた
 - 外すとき（R1）: ADR 0013 の「許可リストの行とその人のセッションを、1つの `db.batch` で消す」を、次のように広げる
   - 同じ1つの `db.batch` で、その人の `user` の行も消す。cascade で `account`・`session`・`question_sets`・`questions` も消える
   - `user` を消す文は、許可リストの行を副問い合わせで引くので、許可リストの行を消す文より前に置く

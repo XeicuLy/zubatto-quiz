@@ -89,6 +89,7 @@ pnpm exec vitest run --project <名前>   # 1つのパッケージのテスト�
 | [secrets.md](docs/runbooks/secrets.md)                     | `.dev.vars` を書く・本番のシークレットを入れる・変える                        |
 | [deploy.md](docs/runbooks/deploy.md)                       | 本番にデプロイする・API トークンを入れる・作り直す                            |
 | [host-allowlist.md](docs/runbooks/host-allowlist.md)       | ホストを足す・外す（取り消す）                                                |
+| [host-data.md](docs/runbooks/host-data.md)                 | 前からあるホストの行を保存の規則にそろえる・データを消してほしいと頼まれた    |
 | [stop-and-usage.md](docs/runbooks/stop-and-usage.md)       | 本番の前後に使用量を確かめる・すぐに止める                                    |
 | [logs.md](docs/runbooks/logs.md)                           | 本番中と本番のあとにエラーのログを見る・手元に残す（O1）                      |
 | [branch-protection.md](docs/runbooks/branch-protection.md) | main と `v*` のタグのルールセットを見る・作り直す・一時的に止める             |

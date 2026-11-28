@@ -7,7 +7,8 @@
     // @/ はこのアプリの src/（ADR 0007）。vitest と apps/web の Vite は resolve.tsconfigPaths で、wrangler は esbuild がここを読む
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "worker-configuration.d.ts"],
-  // node の上で走るテスト。tsconfig.node.json で確かめる
-  "exclude": ["test/bundle"]
+  // scripts/ は、手で流すコマンドの SQL を作るモジュールとそのテスト。テストは Workers の実行環境で D1 に流す
+  "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "worker-configuration.d.ts"],
+  // node の上で走るテストと、node で動かすコマンドの入口。tsconfig.node.json で確かめる
+  "exclude": ["test/bundle", "scripts/*-cli.ts"]
 }
