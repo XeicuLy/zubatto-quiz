@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.7.0
+
+[compare changes](https://github.com/XeicuLy/zubatto-quiz/compare/v1.6.0...v1.7.0)
+
+### 🚀 Enhancements
+
+- 待機の画面を1画面に収め、QR コードと途中経過を投影で読める大きさにする ([#386](https://github.com/XeicuLy/zubatto-quiz/pull/386))
+- ログインでホストの email・アバター・トークン・IP・User-Agent を保存しない ([#389](https://github.com/XeicuLy/zubatto-quiz/pull/389))
+- ホストを外したら user の行ごと消し、問題セットも消す ([#390](https://github.com/XeicuLy/zubatto-quiz/pull/390))
+- 回答時間に、受付を始めた時刻から計算した下限を設ける ([#391](https://github.com/XeicuLy/zubatto-quiz/pull/391))
+- 前からあるホストの行を、ログインと同じ保存の規則で書き換えるコマンドを足す ([#397](https://github.com/XeicuLy/zubatto-quiz/pull/397))
+
+### 🩹 Fixes
+
+- 終わった部屋の回答者の画面の文を、できることに合わせる ([#387](https://github.com/XeicuLy/zubatto-quiz/pull/387))
+- 問題セットの編集画面を開き直すと、保存する前の内容が出るのを直す ([#403](https://github.com/XeicuLy/zubatto-quiz/pull/403))
+
+### 📖 Documentation
+
+- 要求の絞り込みと HTTP の守りの置き場所を ADR 0017 に記録する ([#401](https://github.com/XeicuLy/zubatto-quiz/pull/401))
+
 ## v1.6.0
 
 [compare changes](https://github.com/XeicuLy/zubatto-quiz/compare/v1.5.0...v1.6.0)
