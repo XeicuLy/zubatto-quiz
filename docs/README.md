@@ -41,7 +41,7 @@
 1. [CONTRIBUTING.md](../CONTRIBUTING.md) で、進め方と PR の題名の形を知る
 2. [README.md の「開発環境を作る」](../README.md#開発環境を作る)のとおりに、手元で動かす
 3. [CLAUDE.md](../CLAUDE.md) で、触る場所の約束を読む。破ると安全（S1〜S4）や同時に起きる処理の正しさが崩れるものが多い。約束の理由と、コードのどこで守っているかは、バックエンドなら [architecture/backend.md](architecture/backend.md)、画面なら [architecture/frontend.md](architecture/frontend.md)、テストなら [architecture/testing.md](architecture/testing.md) にある
-4. 触る場所に関わる ADR を、下の一覧から読む。部屋と WebSocket なら 0001・0003・0004・0008、問題セットと HTTP API なら 0002・0011・0014、ホストの許可リストと管理者なら 0003・0013・0016、画面なら 0006・0007、CI とリリースなら 0005・0009・0010・0012
+4. 触る場所に関わる ADR を、下の一覧から読む。部屋と WebSocket なら 0001・0003・0004・0008、問題セットと HTTP API なら 0002・0011・0014・0017、ホストの許可リストと管理者なら 0003・0013・0016、画面なら 0006・0007、CI とリリースなら 0005・0009・0010・0012
 5. メッセージや HTTP API の形を変えるときは、[ws.schema.json](../packages/protocol/schema/ws.schema.json) と [openapi.json](../packages/protocol/schema/openapi.json) も作り直す（作り方は [backend.md の「メッセージの形」](architecture/backend.md#メッセージの形)にある）
 
 ### 本番を運用する人
@@ -74,6 +74,7 @@
 | [0013](adr/0013-host-admin-role.md)                         | ホストの管理者は許可リストの印で決め、管理者だけが GitHub の名前でホストを足し、外せる                        | accepted（外すときに user の行ごと消すことを ADR 0016 で足した）                                           |
 | [0014](adr/0014-keep-api-contract-with-admin-routes.md)     | 409・502 を返すルートができても、HTTP API は ADR 0011 の形を保つ                                              | accepted                                                                                                   |
 | [0016](adr/0016-do-not-keep-host-personal-data.md)          | ホストの個人情報は D1 に持たず、ホストを外したら user の行ごと消す                                            | accepted                                                                                                   |
+| [0017](adr/0017-throttle-in-api-worker.md)                  | 要求の絞り込みと HTTP の守りは API の Worker に置き、守れない Workers のリクエストの枠は受け入れる            | accepted                                                                                                   |
 
 ## 用語集
 
